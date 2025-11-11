@@ -15,11 +15,12 @@ bun dev
 ```
 
 ## Install these dependencies
+```bash
 npm install qrcode @types/qrcode
 npm install lucide-react
 npm install class-variance-authority clsx tailwind-merge
 npm install @radix-ui/react-slot
-
+```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
