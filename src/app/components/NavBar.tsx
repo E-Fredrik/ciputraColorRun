@@ -4,9 +4,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { ShoppingCart, User, Menu, X } from "lucide-react";
 import { useState } from "react";
+<<<<<<< Updated upstream
 
 export default function NavBar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+=======
+import { useRouter } from "next/navigation";
+import { useCart } from "../context/CartContext";
+
+export default function NavBar() {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const router = useRouter();
+    const { totalItems } = useCart();
+>>>>>>> Stashed changes
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-black/30 border-b border-white/10">
@@ -40,18 +50,25 @@ export default function NavBar() {
                         {/* Icons */}
                         <div className="flex items-center gap-6">
                             <button
-                                onClick={() => {
-                                    console.log("Cart clicked");
-                                }}
-                                className="text-white hover:text-white/80 transition-colors"
+                                onClick={() => router.push("/cart")}
+                                className="relative text-white hover:text-white/80 transition-colors"
                                 aria-label="Shopping Cart"
                             >
                                 <ShoppingCart size={32} strokeWidth={2.5} />
+                                {totalItems > 0 && (
+                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                        {totalItems}
+                                    </span>
+                                )}
                             </button>
                             <button
+<<<<<<< Updated upstream
                                 onClick={() => {
                                     console.log("Profile clicked");
                                 }}
+=======
+                                onClick={() => router.push("/profilePage")}
+>>>>>>> Stashed changes
                                 className="text-white hover:text-white/80 transition-colors"
                                 aria-label="User Profile"
                             >
@@ -93,17 +110,25 @@ export default function NavBar() {
                         <div className="flex items-center gap-6 pt-4 border-t border-white/10">
                             <button
                                 onClick={() => {
-                                    console.log("Cart clicked");
                                     setIsMenuOpen(false);
+                                    router.push("/cart");
                                 }}
-                                className="text-white hover:text-white/80 transition-colors"
+                                className="relative text-white hover:text-white/80 transition-colors"
                                 aria-label="Shopping Cart"
                             >
                                 <ShoppingCart size={32} strokeWidth={2.5} />
+                                {totalItems > 0 && (
+                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                                        {totalItems}
+                                    </span>
+                                )}
                             </button>
                             <button
                                 onClick={() => {
+<<<<<<< Updated upstream
                                     console.log("Profile clicked");
+=======
+>>>>>>> Stashed changes
                                     setIsMenuOpen(false);
                                 }}
                                 className="text-white hover:text-white/80 transition-colors"
