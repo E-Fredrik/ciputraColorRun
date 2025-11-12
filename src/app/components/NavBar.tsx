@@ -4,11 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { ShoppingCart, User, Menu, X } from "lucide-react";
 import { useState } from "react";
-<<<<<<< Updated upstream
-
-export default function NavBar() {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-=======
 import { useRouter } from "next/navigation";
 import { useCart } from "../context/CartContext";
 
@@ -16,7 +11,6 @@ export default function NavBar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const router = useRouter();
     const { totalItems } = useCart();
->>>>>>> Stashed changes
 
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-black/30 border-b border-white/10">
@@ -62,13 +56,7 @@ export default function NavBar() {
                                 )}
                             </button>
                             <button
-<<<<<<< Updated upstream
-                                onClick={() => {
-                                    console.log("Profile clicked");
-                                }}
-=======
                                 onClick={() => router.push("/profilePage")}
->>>>>>> Stashed changes
                                 className="text-white hover:text-white/80 transition-colors"
                                 aria-label="User Profile"
                             >
@@ -125,10 +113,6 @@ export default function NavBar() {
                             </button>
                             <button
                                 onClick={() => {
-<<<<<<< Updated upstream
-                                    console.log("Profile clicked");
-=======
->>>>>>> Stashed changes
                                     setIsMenuOpen(false);
                                 }}
                                 className="text-white hover:text-white/80 transition-colors"
