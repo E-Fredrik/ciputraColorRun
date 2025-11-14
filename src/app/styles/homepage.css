@@ -1,0 +1,114 @@
+.home_top {
+    position: relative;
+    width: 100%;
+    height: auto;
+    background-image: 
+        linear-gradient(
+        rgba(141, 214, 166, 0.6) 0%,    
+        rgba(203, 220, 209, 0.4) 50%,   
+        rgba(239, 146, 155, 0.5) 100% 
+        ),
+        url('/Homepage/home_background.svg');
+    background-size: cover; 
+    background-position: center;
+    background-repeat: no-repeat;
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.home_top_content {
+    position: relative;
+    z-index: 2; 
+    text-align: center;
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center;
+    margin-top: 5.8rem;
+}
+
+.home_top_logo {
+    width: 12rem;
+    height: auto;
+}
+
+.home_title {   
+    font-size: 5rem;
+    font-weight: bolder;
+    background: linear-gradient(
+        90deg,
+        #4D9D56 0%,      
+        #FFE1C4 25%,      
+        #682950 50%, 
+        #F581A4 75%, 
+        #A17C80 88%, 
+        #4E765C 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text; 
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+
+
+.home_register_button {
+    display: inline-block; 
+    color: white; 
+    font-size: 3rem;
+    font-weight: bolder;
+    padding: 1rem 2rem; 
+    border: none;
+    border-radius: 2rem;
+    width: auto;
+    margin-top: 18rem;
+    background: linear-gradient(
+    90deg,         
+    #8DD6A6 0%,      
+    #CBDCD1 50%,      
+    #EF929B 74% 
+    );
+
+}
+
+.home_description {
+    font-size: 1rem;
+    max-width: 50%;
+    margin-top: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.sponsor-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.sponsor-title {
+    font-size: 2.5rem;
+    font-weight: bolder;
+    max-width: 50%;
+    margin-top: 2rem;
+    background: linear-gradient(
+        90deg,
+        #4D9D56 0%,      
+        #FFE1C4 25%,      
+        #682950 50%, 
+        #F581A4 75%, 
+        #A17C80 88%, 
+        #4E765C 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text; 
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+
+.partner-loop-with-borders {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    width: 100%;
+}
