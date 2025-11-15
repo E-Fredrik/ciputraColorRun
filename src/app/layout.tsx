@@ -4,6 +4,7 @@ import "./globals.css";
 import NavBar from "./components/NavBar";
 import { CartProvider } from "./context/CartContext";
 import Script from "next/script";
+import Footer from "./components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -78,6 +79,7 @@ export default function RootLayout({
             `,
           }}
         />
+        <Footer />
       </body>
     </html>
   );

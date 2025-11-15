@@ -97,53 +97,56 @@ export default function Home() {
         </div>
 
       </div>
-      
-      <section className="relative w-full bg-gradient-to-r from-[#1F6251] to-[#9C686A] py-16 px-10">
-        <div className="grid grid-cols-3 gap-8 mb-12 max-w-6xl mx-auto">
-          <div 
-            className="bg-gray-200 rounded-md flex items-center justify-center text-center p-6"
-            data-aos="fade-right"
-            data-aos-duration="1000"
-            data-aos-delay="100"
-          >
-            <h3 className="font-bold text-xl text-black">
-              Documentation from last Cirun
-            </h3>
-          </div>
-
-          <div 
-            className="bg-gray-200 rounded-md flex items-center justify-center p-6"
-            data-aos="zoom-in"
-            data-aos-duration="1000"
-            data-aos-delay="300"
-          >
-            <img
-              src="/Images/logo.png"
-              alt="Running Logo"
-              className="w-32 h-32 object-contain"
-            />
-          </div>
-
-          <div 
-            className="bg-gray-200 rounded-md flex items-center justify-center text-center p-6"
-            data-aos="fade-left"
-            data-aos-duration="1000"
-            data-aos-delay="100"
-          >
-            <h3 className="font-bold text-xl text-black">Documentation</h3>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-7 gap-6 max-w-6xl mx-auto">
-          {Array.from({ length: 7 }).map((_, i) => (
+      {/* Documentation Section - Grid Layout with Animations */}
+      <section className="relative w-full bg-gradient-to-r from-[#1F6251] to-[#9C686A] py-8 md:py-16">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
             <div
-              key={i}
-              className="bg-gray-200 rounded-md aspect-square"
-              data-aos="flip-left"
-              data-aos-duration="800"
-              data-aos-delay={i * 100}
-            ></div>
-          ))}
+              className="bg-gray-200 rounded-md flex items-center justify-center text-center p-4 sm:p-6 min-h-[120px] md:min-h-[160px]"
+              data-aos="fade-right"
+              data-aos-duration="1000"
+              data-aos-delay="100"
+            >
+              <h3 className="font-bold text-xl text-black">
+                Documentation from last Cirun
+              </h3>
+            </div>
+
+            <div
+              className="bg-gray-200 rounded-md flex items-center justify-center p-4 sm:p-6 min-h-[120px] md:min-h-[160px]"
+              data-aos="zoom-in"
+              data-aos-duration="1000"
+              data-aos-delay="300"
+            >
+              <img
+                src="/Images/logo.png"
+                alt="Running Logo"
+                className="w-20 h-20 sm:w-32 sm:h-32 object-contain"
+              />
+            </div>
+
+            <div
+              className="bg-gray-200 rounded-md flex items-center justify-center text-center p-4 sm:p-6 min-h-[120px] md:min-h-[160px]"
+              data-aos="fade-left"
+              data-aos-duration="1000"
+              data-aos-delay="100"
+            >
+              <h3 className="font-bold text-xl text-black">Documentation</h3>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-gray-200 rounded-md aspect-square w-full"
+                data-aos="flip-left"
+                data-aos-duration="800"
+                data-aos-delay={i * 100}
+                aria-hidden
+              />
+            ))}
+          </div>
         </div>
       </section>
       

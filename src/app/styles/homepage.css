@@ -70,7 +70,21 @@
     #CBDCD1 50%,      
     #EF929B 74% 
     );
+}
 
+/* Make button smaller and reduce top margin on small screens */
+@media (max-width: 640px) {
+    .home_register_button {
+        font-size: 1.4rem; /* smaller text */
+        padding: 0.6rem 1rem;
+        margin-top: 6rem; /* less vertical space so it fits viewport */
+        border-radius: 1rem;
+        width: auto;
+    }
+
+    .home_top_logo {
+        width: 9rem; /* slightly smaller logo on mobile */
+    }
 }
 
 .home_description {
@@ -111,4 +125,125 @@
     margin-top: 2rem;
     margin-bottom: 2rem;
     width: 100%;
+}
+
+/* Tablet / iPad Pro adjustments (1024px and below) */
+@media (max-width: 1024px) {
+  /* Reduce hero spacing and sizes so content fits vertically on 1024x1366 */
+  .home_top_content {
+    margin-top: 3.5rem; /* less top gap on tablets */
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .home_top_logo {
+    width: 9.5rem; /* smaller logo on tablet */
+    max-width: 40%;
+  }
+
+  .home_title {
+    font-size: 2.6rem; /* scale down large 5rem heading */
+    line-height: 1.05;
+    margin-top: 0.5rem;
+    letter-spacing: 0.6px;
+  }
+
+  /* Make primary CTA smaller on tablets */
+  .home_register_button {
+    font-size: 1.4rem;
+    padding: 0.65rem 1rem;
+    margin-top: 3.2rem;
+    border-radius: 1rem;
+    width: auto;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  }
+
+  .home_description {
+    font-size: 0.98rem;
+    max-width: 86%;
+    margin-top: 0.75rem;
+  }
+
+  /* Sponsor / partner area */
+  .sponsor-title {
+    font-size: 1.8rem;
+    max-width: 90%;
+    margin-top: 1.2rem;
+  }
+
+  .partner-loop-with-borders {
+    margin-top: 1.2rem;
+    margin-bottom: 1.2rem;
+  }
+}
+
+/* Smaller tablets / large phones (<= 820px) for extra polish */
+@media (max-width: 820px) {
+  .home_top_content {
+    margin-top: 2.2rem;
+  }
+
+  .home_title {
+    font-size: 2.2rem;
+  }
+
+  .home_register_button {
+    font-size: 1.1rem;
+    padding: 0.5rem 0.9rem;
+    margin-top: 2rem;
+  }
+
+  .home_description {
+    max-width: 92%;
+  }
+}
+
+/* Fixes for short / landscape tablet viewports (1024x600, 1280x800, etc.) */
+@media (max-height: 820px) {
+  /* reduce vertical padding so content fits in short screens */
+  .home_top {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+    background-position: center top;
+  }
+
+  /* move away from large margin-top centering — keep compact */
+  .home_top_content {
+    margin-top: 1rem !important;
+    gap: 0.6rem;
+  }
+
+  .home_top_logo {
+    width: 7.5rem !important;
+  }
+
+  /* scale down big gradient title and tighten spacing */
+  .home_title {
+    font-size: 2.0rem !important;
+    line-height: 1.05;
+    margin-top: 0.25rem;
+    letter-spacing: 0.4px;
+  }
+
+  /* make CTA smaller and closer to title on low-height screens */
+  .home_register_button {
+    font-size: 1rem !important;
+    padding: 0.45rem 0.9rem !important;
+    margin-top: 1rem !important;
+    border-radius: 0.75rem !important;
+  }
+
+  .home_description {
+    font-size: 0.95rem;
+    max-width: 94%;
+    margin-top: 0.4rem;
+    margin-bottom: 0.8rem;
+  }
+}
+
+/* Extra guard for narrower-but-short laptops (landscape tablets) */
+@media (min-width: 1025px) and (max-height: 820px) {
+  .home_title { font-size: 2.2rem !important; }
+  .home_top_logo { width: 8rem !important; }
+  .home_register_button { font-size: 1.05rem !important; padding: 0.5rem 1rem !important; }
 }
