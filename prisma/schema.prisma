@@ -14,25 +14,6 @@ datasource db {
 }
 
 model User {
-<<<<<<< Updated upstream
-  id           Int            @id @default(autoincrement())
-  name         String
-  email        String         @unique
-  phone        String
-  accessCode   String         @unique
-  role         String         @default("user") // "user" or "admin"
-  password     String?        // For admin login
-  createdAt    DateTime       @default(now())
-  registrations Registration[]
-}
-
-model RaceCategory {
-  id           Int            @id @default(autoincrement())
-  name         String         @unique // "5km", "10km", "20km"
-  price        Decimal        @db.Decimal(10, 2)
-  participants Participant[]
-  qrCodes      QrCode[]
-=======
   id              Int            @id @default(autoincrement())
   name            String
   email           String         @unique
@@ -79,7 +60,6 @@ model RaceCategory {
   
   participants    Participant[]
   qrCodes         QrCode[]
->>>>>>> Stashed changes
 }
 
 model JerseyOption {

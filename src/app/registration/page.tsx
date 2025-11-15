@@ -55,13 +55,10 @@ export default function RegistrationPage() {
     const [agreedToTerms, setAgreedToTerms] = useState(false);
 
     useEffect(() => {
-<<<<<<< Updated upstream
-=======
         if (typeof window !== 'undefined' && (window as any).AOS) {
             (window as any).AOS.refresh();
         }
 
->>>>>>> Stashed changes
         (async () => {
             try {
                 const res = await fetch("/api/categories");
@@ -80,14 +77,11 @@ export default function RegistrationPage() {
         return items.some(item => item.type === "family");
     }, [items]);
 
-<<<<<<< Updated upstream
-=======
     // Check if user has community registration in cart
     const hasCommunityRegistration = useMemo(() => {
         return items.some(item => item.type === "community");
     }, [items]);
 
->>>>>>> Stashed changes
     // Calculate total community participants across all cart items
     function getTotalCommunityParticipants(): number {
         return items
@@ -95,9 +89,6 @@ export default function RegistrationPage() {
             .reduce((sum, item) => sum + (item.participants || 0), 0);
     }
 
-<<<<<<< Updated upstream
-    // Add to cart without modal (for community)
-=======
     // Calculate price based on total participants
     function calculatePrice(category: Category, totalParticipants: number, bundleType?: "family"): number {
         // Family bundle pricing
@@ -235,7 +226,6 @@ export default function RegistrationPage() {
         }
     }
 
->>>>>>> Stashed changes
     function handleAddToCart() {
         if (!validatePersonalDetails()) return;
         if (!categoryId) return;
@@ -303,19 +293,7 @@ export default function RegistrationPage() {
         const totalWithCurrent = getTotalCommunityParticipants() + currentParticipants;
         const pricePerPerson = calculatePrice(category, totalWithCurrent);
 
-<<<<<<< Updated upstream
-        // Persist personal details
-        try {
-            sessionStorage.setItem("reg_fullName", fullName);
-            sessionStorage.setItem("reg_email", email);
-            sessionStorage.setItem("reg_phone", phone);
-            sessionStorage.setItem("reg_registrationType", "community");
-        } catch (e) {
-            // ignore
-        }
-=======
         savePersonalDetailsToSession();
->>>>>>> Stashed changes
 
         // Add to cart
         addItem({
@@ -391,17 +369,6 @@ export default function RegistrationPage() {
         const category = categories.find((c) => c.id === categoryId);
         if (!category) return;
 
-<<<<<<< Updated upstream
-        // Persist personal details
-        try {
-            sessionStorage.setItem("reg_fullName", fullName);
-            sessionStorage.setItem("reg_email", email);
-            sessionStorage.setItem("reg_phone", phone);
-            sessionStorage.setItem("reg_registrationType", registrationType);
-        } catch (e) {
-            // ignore
-        }
-=======
         savePersonalDetailsToSession();
 
         setUserDetails({
@@ -417,7 +384,6 @@ export default function RegistrationPage() {
             idCardPhoto: idCardPhoto || undefined,
             registrationType,
         });
->>>>>>> Stashed changes
 
         if (type === "individual") {
             // Add individual item to cart
@@ -465,19 +431,6 @@ export default function RegistrationPage() {
     return (
         <main className="flex bg-gradient-to-br from-emerald-100/30 via-transparent to-rose-100/30 min-h-screen pt-28 pb-16">
             <div className="mx-auto w-full max-w-2xl px-4">
-<<<<<<< Updated upstream
-                <h1 className="text-4xl md:text-6xl text-center font-bold mb-8 tracking-wide text-white drop-shadow-lg font-moderniz">
-                    CIPUTRA COLOR RUN
-                </h1>
-
-                <section className="bg-white/95 backdrop-blur-md rounded-lg p-8 md:p-10 shadow-lg text-gray-800">
-                    <h2 className="text-2xl font-bold text-center mb-1 text-gray-800 font-moderniz">
-                        REGISTRATION FORM
-                    </h2>
-                    <p className="text-center text-sm text-gray-600 mb-6 font-mustica">
-                        Enter the details to get going.
-                    </p>
-=======
                 <h1 className="text-4xl md:text-6xl text-center font-bold mb-8 tracking-wide text-white drop-shadow-lg font-moderniz" data-aos="fade-down">
                     CIPUTRA COLOR RUN
                 </h1>
@@ -485,7 +438,6 @@ export default function RegistrationPage() {
                 <section className="bg-white/95 backdrop-blur-md rounded-lg p-8 md:p-10 shadow-lg text-gray-800" data-aos="zoom-in" data-aos-delay="200">
                     <h2 className="text-2xl font-bold text-center mb-1 text-gray-800 font-moderniz">REGISTRATION FORM</h2>
                     <p className="text-center text-sm text-gray-600 mb-6 font-mustica">Enter the details to get going.</p>
->>>>>>> Stashed changes
 
                     {/* Personal details */}
                     <div className="space-y-4">
@@ -1139,143 +1091,6 @@ export default function RegistrationPage() {
                             </div>
                         </div>
                     )}
-<<<<<<< Updated upstream
-
-                    {/* Community layout */}
-                    {type === "community" && (
-                        <div className="space-y-6 mt-6">
-                            {/* Community Progress Indicator */}
-                            {getTotalCommunityParticipants() > 0 && (
-                                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm font-medium text-emerald-800">
-                                            Community Progress
-                                        </span>
-                                        <span className="text-sm font-bold text-emerald-700">
-                                            {getTotalCommunityParticipants()} / 100 participants
-                                        </span>
-                                    </div>
-                                    <div className="w-full bg-emerald-200 rounded-full h-2">
-                                        <div 
-                                            className="bg-gradient-to-r from-emerald-400 to-emerald-500 h-2 rounded-full transition-all duration-300"
-                                            style={{ width: `${Math.min((getTotalCommunityParticipants() / 100) * 100, 100)}%` }}
-                                        />
-                                    </div>
-                                    <p className="text-xs text-emerald-600 mt-2">
-                                        {getTotalCommunityParticipants() >= 100 
-                                            ? "✓ Minimum requirement met! You can add more or proceed to checkout."
-                                            : `Add ${100 - getTotalCommunityParticipants()} more participants to meet the minimum.`}
-                                    </p>
-                                </div>
-                            )}
-
-                            <div className="rounded-lg border border-gray-300 p-5 bg-white">
-                                <div className="space-y-4">
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                                        <p className="text-xs text-blue-700">
-                                            💡 <strong>Tip:</strong> You can add multiple race categories to your community registration. 
-                                            For example: 20 people in 3K + 50 in 5K + 30 in 10K = 100 total participants.
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-sm text-gray-700">Race Category *</label>
-                                        <select
-                                            value={categoryId ?? ""}
-                                            onChange={(e) => setCategoryId(Number(e.target.value))}
-                                            className="w-full p-2 border border-gray-300 rounded text-sm text-gray-800 bg-white"
-                                        >
-                                            {categories.map((cat) => (
-                                                <option key={cat.id} value={cat.id}>
-                                                    {cat.name} - Rp {Number(cat.price).toLocaleString("id-ID")} / person
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-sm text-gray-700">Number of Participants (for this category) *</label>
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            value={participants}
-                                            onChange={(e) =>
-                                                setParticipants(
-                                                    e.target.value === "" ? "" : Number(e.target.value)
-                                                )
-                                            }
-                                            className="w-full p-2 border border-gray-300 rounded text-sm text-gray-800 bg-white placeholder-gray-400"
-                                            placeholder="Enter number of participants"
-                                        />
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            This will be added to your community total ({getTotalCommunityParticipants()} currently in cart)
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <label className="text-sm block mb-2 text-gray-700">
-                                            Jersey Size Distribution * (Total must match participant count for this category)
-                                        </label>
-                                        <div className="grid grid-cols-3 gap-3">
-                                            {["XS", "S", "M", "L", "XL", "XXL"].map((size) => (
-                                                <div key={size} className="flex flex-col items-center">
-                                                    <span className="text-xs mb-1 text-gray-700">{size}</span>
-                                                    <input
-                                                        type="number"
-                                                        min={0}
-                                                        value={jerseys[size]}
-                                                        onChange={(e) =>
-                                                            updateJersey(
-                                                                size,
-                                                                e.target.value === ""
-                                                                    ? ""
-                                                                    : Number(e.target.value)
-                                                            )
-                                                        }
-                                                        className="w-full p-2 border border-gray-300 rounded text-sm text-gray-800 bg-white placeholder-gray-400"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <p className="text-xs text-gray-500 mt-2">
-                                            Total: {Object.values(jerseys).reduce((sum, val) => sum + (Number(val) || 0), 0)} / {participants || 0}
-                                        </p>
-                                    </div>
-
-                                    <div className="pt-4">
-                                        <button
-                                            onClick={handleAddToCart}
-                                            className="w-full px-6 py-3 rounded-full bg-gradient-to-r from-emerald-200 to-emerald-100 text-white font-bold shadow hover:shadow-lg transition-all"
-                                        >
-                                            ADD CATEGORY TO CART
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-center mt-4">
-                                <button
-                                    onClick={handleCheckout}
-                                    className={`w-1/2 md:w-1/3 px-6 py-3 rounded-full font-semibold shadow hover:shadow-lg transition-all ${
-                                        getTotalCommunityParticipants() >= 100
-                                            ? 'bg-emerald-500 text-white'
-                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    }`}
-                                    disabled={getTotalCommunityParticipants() < 100}
-                                >
-                                    Proceed to Checkout
-                                </button>
-                            </div>
-                            {getTotalCommunityParticipants() < 100 && (
-                                <p className="text-center text-xs text-gray-500">
-                                    Need {100 - getTotalCommunityParticipants()} more participants in cart to checkout
-                                </p>
-                            )}
-                        </div>
-                    )}
-=======
->>>>>>> Stashed changes
                 </section>
             </div>
 
