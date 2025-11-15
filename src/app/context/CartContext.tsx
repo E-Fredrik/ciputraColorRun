@@ -1,80 +1,92 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
+// Update the CartItem type to include "family"
 export interface CartItem {
   id: string;
-  type: "individual" | "community";
+  type: "individual" | "community" | "family";
   categoryId: number;
   categoryName: string;
   price: number;
-  jerseySize?: string; // for individual
-  participants?: number; // for community
-  jerseys?: Record<string, number>; // for community
+  jerseySize?: string;
+  participants?: number;
+  jerseys?: Record<string, number>;
+}
+
+export interface UserDetails {
+  fullName: string;
+  email: string;
+  phone: string;
+  emergencyPhone?: string;
+  birthDate: string;
+  gender: string;
+  currentAddress: string;
+  nationality: string;
+  medicalHistory?: string;
+  idCardPhoto?: File;
+  registrationType: string;
 }
 
 interface CartContextType {
   items: CartItem[];
+  userDetails: UserDetails | null;
   addItem: (item: Omit<CartItem, "id">) => void;
   removeItem: (id: string) => void;
   clearCart: () => void;
-  totalItems: number;
   totalPrice: number;
+  setUserDetails: (details: UserDetails) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
+export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [userDetails, setUserDetailsState] = useState<UserDetails | null>(null);
 
-  // Load cart from localStorage on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("cart");
-      if (saved) {
-        setItems(JSON.parse(saved));
+    const stored = sessionStorage.getItem("cart");
+    if (stored) {
+      try {
+        setItems(JSON.parse(stored));
+      } catch (e) {
+        console.error("Failed to parse cart", e);
       }
-    } catch (e) {
-      console.error("Failed to load cart:", e);
     }
   }, []);
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
-    try {
-      localStorage.setItem("cart", JSON.stringify(items));
-    } catch (e) {
-      console.error("Failed to save cart:", e);
-    }
+    sessionStorage.setItem("cart", JSON.stringify(items));
   }, [items]);
 
-  const addItem = (item: Omit<CartItem, "id">) => {
-    const newItem: CartItem = {
-      ...item,
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-    };
+  function addItem(item: Omit<CartItem, "id">) {
+    const newItem = { ...item, id: Date.now().toString() };
     setItems((prev) => [...prev, newItem]);
-  };
+  }
 
-  const removeItem = (id: string) => {
+  function removeItem(id: string) {
     setItems((prev) => prev.filter((item) => item.id !== id));
-  };
+  }
 
-  const clearCart = () => {
+  function clearCart() {
     setItems([]);
-  };
+  }
 
-  const totalItems = items.length;
+  function setUserDetails(details: UserDetails) {
+    setUserDetailsState(details);
+  }
+
   const totalPrice = items.reduce((sum, item) => {
-    if (item.type === "community" && item.participants) {
-      return sum + item.price * item.participants;
+    if (item.type === "individual") {
+      return sum + item.price;
+    } else {
+      return sum + item.price * (item.participants || 0);
     }
-    return sum + item.price;
   }, 0);
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, removeItem, clearCart, totalItems, totalPrice }}
+      value={{ items, userDetails, addItem, removeItem, clearCart, totalPrice, setUserDetails }}
     >
       {children}
     </CartContext.Provider>
