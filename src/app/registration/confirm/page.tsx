@@ -90,7 +90,7 @@ export default function ConfirmPaymentPage() {
             }
 
             // Add cart items
-            formData.append("cartItems", JSON.stringify(items));
+            formData.append("items", JSON.stringify(items));
 
             const res = await fetch("/api/payments", {
                 method: "POST",

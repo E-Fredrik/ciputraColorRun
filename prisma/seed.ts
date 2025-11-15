@@ -24,6 +24,7 @@ async function main() {
         tier3Min: null,
         bundlePrice: new Prisma.Decimal("145000"), // Family bundle
         bundleSize: 4,
+        earlyBirdCapacity: 20, // NEW
       },
       {
         name: "5km",
@@ -39,6 +40,7 @@ async function main() {
         tier3Min: 60,
         bundlePrice: null,
         bundleSize: null,
+        earlyBirdCapacity: 50, // NEW
       },
       {
         name: "10km",
@@ -54,6 +56,7 @@ async function main() {
         tier3Min: 60,
         bundlePrice: null,
         bundleSize: null,
+        earlyBirdCapacity: 30, // NEW
       },
     ];
 
