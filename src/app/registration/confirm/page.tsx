@@ -1,208 +1,243 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import { useCart } from "../../context/CartContext";
+import { useState, useEffect } from "react";
 
 export default function ConfirmPaymentPage() {
-	const search = useSearchParams();
-	const router = useRouter();
-	const { items, clearCart, totalPrice } = useCart();
+    const search = useSearchParams();
+    const router = useRouter();
+    const { items, clearCart, totalPrice, userDetails } = useCart();
 
-	const fromCart = search.get("fromCart") === "true";
+    const fromCart = search.get("fromCart") === "true";
 
-	// Personal info from query/sessionStorage
-	const [fullName, setFullName] = useState<string>(search.get("fullName") ?? "");
-	const [email, setEmail] = useState<string>(search.get("email") ?? "");
-	const [phone, setPhone] = useState<string>(search.get("phone") ?? "");
+    // Personal info from context or query/sessionStorage
+    const [fullName, setFullName] = useState<string>("");
+    const [email, setEmail] = useState<string>("");
+    const [phone, setPhone] = useState<string>("");
+    const [birthDate, setBirthDate] = useState<string>("");
+    const [gender, setGender] = useState<string>("");
+    const [currentAddress, setCurrentAddress] = useState<string>("");
+    const [nationality, setNationality] = useState<string>("");
+    const [emergencyPhone, setEmergencyPhone] = useState<string>("");
+    const [medicalHistory, setMedicalHistory] = useState<string>("");
 
-	useEffect(() => {
-		try {
-			if (!fullName) {
-				const s = sessionStorage.getItem("reg_fullName");
-				if (s) setFullName(s);
-			}
-			if (!email) {
-				const s = sessionStorage.getItem("reg_email");
-				if (s) setEmail(s);
-			}
-			if (!phone) {
-				const s = sessionStorage.getItem("reg_phone");
-				if (s) setPhone(s);
-			}
-		} catch (e) {
-			// ignore
-		}
-	}, [fullName, email, phone]);
+    const [proofFile, setProofFile] = useState<File | null>(null);
+    const [fileName, setFileName] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-	const [fileName, setFileName] = useState<string | null>(null);
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+    useEffect(() => {
+        // Load from context first, then fallback to sessionStorage
+        if (userDetails) {
+            setFullName(userDetails.fullName);
+            setEmail(userDetails.email);
+            setPhone(userDetails.phone);
+            setBirthDate(userDetails.birthDate);
+            setGender(userDetails.gender);
+            setCurrentAddress(userDetails.currentAddress);
+            setNationality(userDetails.nationality);
+            setEmergencyPhone(userDetails.emergencyPhone || "");
+            setMedicalHistory(userDetails.medicalHistory || "");
+        } else {
+            setFullName(sessionStorage.getItem("reg_fullName") || search.get("fullName") || "");
+            setEmail(sessionStorage.getItem("reg_email") || search.get("email") || "");
+            setPhone(sessionStorage.getItem("reg_phone") || search.get("phone") || "");
+            setBirthDate(sessionStorage.getItem("reg_birthDate") || "");
+            setGender(sessionStorage.getItem("reg_gender") || "male");
+            setCurrentAddress(sessionStorage.getItem("reg_currentAddress") || "");
+            setNationality(sessionStorage.getItem("reg_nationality") || "WNI");
+            setEmergencyPhone(sessionStorage.getItem("reg_emergencyPhone") || "");
+            setMedicalHistory(sessionStorage.getItem("reg_medicalHistory") || "");
+        }
+    }, [userDetails, search]);
 
-	// Redirect if cart is empty when coming from cart
-	useEffect(() => {
-		if (fromCart && items.length === 0) {
-			router.push("/registration");
-		}
-	}, [fromCart, items, router]);
+    // Redirect if cart is empty when coming from cart
+    useEffect(() => {
+        if (fromCart && items.length === 0) {
+            router.push("/registration");
+        }
+    }, [fromCart, items, router]);
 
-	async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-		e.preventDefault();
-		setError(null);
-		setIsSubmitting(true);
+    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        if (!proofFile) {
+            setError("Please upload payment proof");
+            return;
+        }
 
-		const form = new FormData(e.currentTarget);
-		form.set("fullName", fullName);
-		form.set("email", email);
-		form.set("phone", phone);
-		form.set("amount", String(totalPrice));
-		form.set("registrationType", items[0]?.type || "individual");
+        setError(null);
+        setIsSubmitting(true);
 
-		// Include cart items as JSON
-		form.set("cartItems", JSON.stringify(items));
+        try {
+            const formData = new FormData();
+            formData.append("proof", proofFile);
+            formData.append("amount", String(totalPrice));
+            formData.append("fullName", fullName);
+            formData.append("email", email);
+            formData.append("phone", phone);
+            formData.append("birthDate", birthDate);
+            formData.append("gender", gender);
+            formData.append("currentAddress", currentAddress);
+            formData.append("nationality", nationality);
+            formData.append("emergencyPhone", emergencyPhone);
+            formData.append("medicalHistory", medicalHistory);
+            formData.append("registrationType", items[0]?.type || "individual");
 
-		try {
-			const res = await fetch("/api/payments", {
-				method: "POST",
-				body: form,
-			});
-			if (!res.ok) {
-				let json;
-				try {
-					json = await res.json();
-				} catch {
-					const txt = await res.text();
-					throw new Error(txt || res.statusText);
-				}
-				throw new Error(json?.error || res.statusText);
-			}
+            // Upload ID card photo if available
+            if (userDetails?.idCardPhoto) {
+                formData.append("idCardPhoto", userDetails.idCardPhoto);
+            }
 
-			// Clear cart after successful payment
-			clearCart();
-			router.push(`/registration/confirm?status=success`);
-		} catch (err: any) {
-			setError(err.message || "Upload failed");
-		} finally {
-			setIsSubmitting(false);
-		}
-	}
+            // Add cart items
+            formData.append("items", JSON.stringify(items));
 
-	return (
-		<main className="flex bg-gradient-to-br from-emerald-100/30 via-transparent to-rose-100/30 min-h-screen pt-28 pb-16">
-			<div className="mx-auto w-full max-w-2xl px-4">
-				<h1 className="text-4xl md:text-6xl text-center font-bold mb-8 tracking-wide text-white drop-shadow-lg">
-					CIPUTRA COLOR RUN
-				</h1>
+            const res = await fetch("/api/payments", {
+                method: "POST",
+                body: formData,
+            });
 
-				<section className="bg-white/95 backdrop-blur-md rounded-lg p-8 md:p-10 shadow-lg text-gray-800">
-					<h2 className="text-2xl font-bold text-center mb-1">
-						PAYMENT CONFIRMATION
-					</h2>
-					<p className="text-center text-sm text-gray-600 mb-6">
-						Upload your payment proof to complete registration.
-					</p>
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || "Upload failed");
+            }
 
-					{/* Order Summary */}
-					<div className="mb-6">
-						<h3 className="font-semibold mb-3">Order Summary:</h3>
-						<div className="space-y-2">
-							{items.map((item) => (
-								<div
-									key={item.id}
-									className="flex justify-between text-sm border-b pb-2"
-								>
-									<div>
-										<span className="font-medium">{item.categoryName}</span>
-										<span className="text-gray-500 ml-2">
-											{item.type === "community"
-												? `${item.participants} participants`
-												: `Size ${item.jerseySize}`}
-										</span>
-									</div>
-									<div>
-										Rp{" "}
-										{(
-											item.type === "community"
-												? (item.participants || 0) * item.price
-												: item.price
-										).toLocaleString("id-ID")}
-									</div>
-								</div>
-							))}
-						</div>
+            clearCart();
+            router.push(`/registration/confirm?status=success`);
+        } catch (err: any) {
+            setError(err.message || "Upload failed");
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
 
-						<div className="flex justify-between font-bold text-lg mt-4 pt-4 border-t">
-							<span>Total:</span>
-							<span>Rp {totalPrice.toLocaleString("id-ID")}</span>
-						</div>
-					</div>
+    return (
+        <main
+            className="flex min-h-screen pt-28 pb-16"
+            style={{
+                backgroundImage: "url('/images/generalBg.png')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+            }}
+        >
+            <div className="mx-auto w-full max-w-2xl px-4">
+                <h1 className="text-4xl md:text-6xl text-center font-bold mb-8 tracking-wide text-white drop-shadow-lg">
+                    CIPUTRA COLOR RUN
+                </h1>
 
-					<form
-						onSubmit={handleSubmit}
-						encType="multipart/form-data"
-						className="space-y-6"
-					>
-						<input type="hidden" name="amount" value={String(totalPrice)} />
-						<input type="hidden" name="fullName" value={fullName} />
-						<input type="hidden" name="email" value={email} />
-						<input type="hidden" name="phone" value={phone} />
+                <section className="bg-white/95 backdrop-blur-md rounded-lg p-8 md:p-10 shadow-lg text-gray-800">
+                    <h2 className="text-2xl font-bold text-center mb-1">
+                        PAYMENT CONFIRMATION
+                    </h2>
+                    <p className="text-center text-sm text-gray-600 mb-6">
+                        Upload your payment proof to complete registration.
+                    </p>
 
-						<label className="block font-semibold">Upload Payment Proof*</label>
+                    {/* Order Summary */}
+                    <div className="mb-6">
+                        <h3 className="font-semibold mb-3">Order Summary:</h3>
+                        <div className="space-y-2">
+                            {items.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className="flex justify-between text-sm border-b pb-2"
+                                >
+                                    <div>
+                                        <span className="font-medium">{item.categoryName}</span>
+                                        <span className="text-gray-500 ml-2">
+                                            {item.type === "community"
+                                                ? `${item.participants} participants`
+                                                : `Size ${item.jerseySize}`}
+                                        </span>
+                                    </div>
+                                    <span className="font-medium">
+                                        Rp {(item.type === "community" ? item.price * (item.participants || 0) : item.price).toLocaleString("id-ID")}
+                                    </span>
+                                </div>
+                            ))}
+                            <div className="flex justify-between font-bold text-lg pt-2">
+                                <span>Total:</span>
+                                <span>Rp {totalPrice.toLocaleString("id-ID")}</span>
+                            </div>
+                        </div>
+                    </div>
 
-						<label
-							htmlFor="proof"
-							className="block border border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:bg-gray-50 transition-colors"
-						>
-							<div className="flex flex-col items-center justify-center gap-2">
-								<div className="w-12 h-12 text-gray-400">
-									<Image
-										src="/images/upload-icon.png"
-										alt="upload"
-										width={48}
-										height={48}
-									/>
-								</div>
-								<div className="font-medium">Drag & Drop Files or Browse</div>
-								<div className="text-xs text-gray-500">
-									Supported formats: PNG, JPG, JPEG — Files size under 5 MB
-								</div>
-								{fileName && (
-									<div className="mt-4 text-sm text-green-600 font-medium">
-										Selected: {fileName}
-									</div>
-								)}
-							</div>
-							<input
-								id="proof"
-								name="proof"
-								type="file"
-								accept="image/png,image/jpeg,image/jpg"
-								className="hidden"
-								onChange={(ev) => {
-									const f = (ev.target as HTMLInputElement).files?.[0];
-									setFileName(f?.name ?? null);
-								}}
-								required
-							/>
-						</label>
+                    {/* Personal Info Display */}
+                    <div className="mb-6 p-4 bg-gray-50 rounded">
+                        <h3 className="font-semibold mb-2">Participant Information:</h3>
+                        <div className="text-sm space-y-1">
+                            <p><span className="font-medium">Name:</span> {fullName}</p>
+                            <p><span className="font-medium">Email:</span> {email}</p>
+                            <p><span className="font-medium">Phone:</span> {phone}</p>
+                            <p><span className="font-medium">Birth Date:</span> {birthDate}</p>
+                            <p><span className="font-medium">Nationality:</span> {nationality}</p>
+                            {emergencyPhone && <p><span className="font-medium">Emergency Contact:</span> {emergencyPhone}</p>}
+                        </div>
+                    </div>
 
-						{error && (
-							<div className="text-red-600 text-sm bg-red-50 p-3 rounded">
-								{error}
-							</div>
-						)}
+                    {/* Upload Form */}
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-2">
+                                Upload Payment Proof *
+                            </label>
+                            <label
+                                htmlFor="proofUpload"
+                                className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-emerald-400 transition-colors flex items-center justify-center gap-3"
+                            >
+                                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                <span className="text-sm text-gray-600">
+                                    {fileName || "Click to upload payment proof (PNG, JPG, JPEG)"}
+                                </span>
+                            </label>
+                            <input
+                                id="proofUpload"
+                                type="file"
+                                accept="image/png,image/jpeg,image/jpg"
+                                className="hidden"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        setProofFile(file);
+                                        setFileName(file.name);
+                                    }
+                                }}
+                                required
+                            />
+                        </div>
 
-						<button
-							type="submit"
-							disabled={isSubmitting}
-							className="w-full py-3 rounded-full bg-gradient-to-r from-emerald-200 to-emerald-100 text-white font-bold shadow hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							{isSubmitting ? "Uploading..." : "Submit Payment"}
-						</button>
-					</form>
-				</section>
-			</div>
-		</main>
-	);
+                        {error && (
+                            <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                                {error}
+                            </div>
+                        )}
+
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => router.back()}
+                                className="flex-1 px-6 py-3 rounded-full border-2 border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+                            >
+                                Back
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className={`flex-1 px-6 py-3 rounded-full font-semibold transition-all ${
+                                    isSubmitting
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-gradient-to-r from-emerald-200 to-emerald-100 text-white hover:shadow-lg'
+                                }`}
+                            >
+                                {isSubmitting ? "Uploading..." : "Submit Payment"}
+                            </button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+        </main>
+    );
 }
