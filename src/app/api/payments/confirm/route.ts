@@ -4,10 +4,6 @@ import { authenticateAdmin, unauthorizedResponse } from '../../middleware/auth';
 
 const prisma = new PrismaClient();
 
-/**
- * Generate a simple, readable access code from a name and ensure uniqueness.
- * Inspired by [`generateAccessCode`](src/app/api/payments/route.ts).
- */
 async function makeUniqueAccessCode(baseName: string): Promise<string> {
   const base = (baseName || 'user')
     .toLowerCase()
@@ -27,7 +23,7 @@ async function makeUniqueAccessCode(baseName: string): Promise<string> {
 }
 
 export async function POST(request: Request) {
-  // Authenticate admin (keeps your existing dev bypass logic)
+  // Authenticate admin (keeps your dev bypass logic)
   const auth = await authenticateAdmin(request);
   if (!auth.authenticated) {
     const host = request.headers.get('host') || '';
@@ -45,39 +41,66 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing registrationId' }, { status: 400 });
     }
 
-    // Update registration payment status to confirmed and include user
-    const registration = await prisma.registration.update({
-      where: { id: registrationId },
-      data: { paymentStatus: 'confirmed' },
-      include: { user: true },
+    // 1) perform DB updates in one transaction (payments + registration + ensure accessCode)
+    const registration = await prisma.$transaction(async (tx) => {
+      // mark any pending payments for this registration as confirmed
+      await tx.payment.updateMany({
+        where: { registrationId, status: 'pending' },
+        data: { status: 'confirmed' },
+      });
+
+      // update registration.paymentStatus
+      const reg = await tx.registration.update({
+        where: { id: registrationId },
+        data: { paymentStatus: 'confirmed' },
+        include: { user: true, payments: true },
+      });
+
+      // ensure user has accessCode (create if missing)
+      if (reg.user && !reg.user.accessCode) {
+        const accessCode = await (async () => {
+          const base = reg.user.name || reg.user.email || `user${reg.user.id}`;
+          return await makeUniqueAccessCode(base);
+        })();
+
+        await tx.user.update({
+          where: { id: reg.user.id },
+          data: { accessCode },
+        });
+
+        // reflect in returned object
+        reg.user.accessCode = accessCode;
+      }
+
+      return reg;
     });
 
-    // Ensure the user has an accessCode — create one if missing
-    let accessCode = registration.user?.accessCode;
-    if (!accessCode) {
-      accessCode = await makeUniqueAccessCode(registration.user?.name || registration.user?.email || `user${registration.user?.id}`);
-      await prisma.user.update({
-        where: { id: registration.user.id },
-        data: { accessCode },
-      });
-      // refresh registration.user.accessCode locally
-      registration.user.accessCode = accessCode;
-    }
-
-    // Fire-and-forget: call sendQr endpoint and include accessCode so the email contains it.
+    // 2) Fire-and-forget send QR/email: only attempt if APP_URL/VERCEL_URL set. Errors are logged but won't fail response.
     (async () => {
       try {
-        const sendQrResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/payments/sendQr`, {
+        const baseUrl =
+          process.env.APP_URL ||
+          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+
+        if (!baseUrl) {
+          console.warn('payments/confirm: APP_URL or VERCEL_URL not set — skipping sendQr.');
+          return;
+        }
+
+        // wrap network call in try/catch — do not throw to caller
+        await fetch(`${baseUrl.replace(/\/$/, '')}/api/payments/sendQr`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ registrationId, email: registration.user.email, accessCode }),
+          body: JSON.stringify({
+            registrationId: registration.id,
+            email: registration.user?.email,
+            accessCode: registration.user?.accessCode,
+          }),
+        }).catch((e) => {
+          console.warn('payments/confirm: sendQr fetch failed (caught)', e);
         });
-        if (!sendQrResponse.ok) {
-          const text = await sendQrResponse.text().catch(() => '');
-          console.warn('payments/confirm: sendQr failed', sendQrResponse.status, text);
-        }
-      } catch (err) {
-        console.error('payments/confirm: sendQr error', err);
+      } catch (e) {
+        console.warn('payments/confirm: sendQr unexpected error', e);
       }
     })();
 
