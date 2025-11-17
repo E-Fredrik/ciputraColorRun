@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { authenticateAdmin, unauthorizedResponse } from '../../middleware/auth';
+import nodemailer from "nodemailer";
 
 const prisma = new PrismaClient();
 
@@ -41,75 +42,103 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing registrationId' }, { status: 400 });
     }
 
-    // 1) perform DB updates in one transaction (payments + registration + ensure accessCode)
-    const registration = await prisma.$transaction(async (tx) => {
-      // mark any pending payments for this registration as confirmed
+    // 0) Load registration + user
+    const registration = await prisma.registration.findUnique({
+      where: { id: registrationId },
+      include: { user: true, payments: true },
+    });
+    if (!registration) return NextResponse.json({ error: 'Registration not found' }, { status: 404 });
+
+    // 1) Ensure we have an access code to email (generate but do not persist yet)
+    const accessCode = registration.user?.accessCode || await makeUniqueAccessCode(registration.user?.name || registration.user?.email || `user${Date.now()}`);
+
+    // 2) Build email content (same structure as sendQr route)
+    const accessHtml = accessCode
+      ? `<p><strong>Your access code:</strong> <code style="background:#f3f4f6;padding:4px 8px;border-radius:6px;">${accessCode}</code></p>
+         <p>Use this code in the mobile app or profile page to manage your registration.</p>`
+      : `<p>Your registration has been confirmed. No access code available.</p>`;
+
+    const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
+    const port = Number(process.env.EMAIL_PORT || 465);
+    const secure = (process.env.EMAIL_SECURE || 'true') === 'true';
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
+
+    if (!user || !pass) {
+      console.error('[confirm] Missing EMAIL_USER or EMAIL_PASS environment variables');
+      return NextResponse.json(
+        { error: 'SMTP credentials are not configured. Set EMAIL_USER and EMAIL_PASS.' },
+        { status: 500 }
+      );
+    }
+
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+    });
+
+    // verify and send email before changing DB
+    try {
+      await transporter.verify();
+    } catch (err: any) {
+      console.error('[confirm] Email transporter verification failed:', err);
+      return NextResponse.json(
+        { error: 'Email transporter verification failed. Check EMAIL_USER / EMAIL_PASS and provider settings.' },
+        { status: 500 }
+      );
+    }
+
+    try {
+      const mailOptions = {
+        from: `"Ciputra Color Run" <${user}>`,
+        to: registration.user?.email,
+        subject: 'Ciputra Color Run - Registration Confirmed',
+        html: `
+          <h1>Thank you for registering!</h1>
+          <p>Your payment has been confirmed for registration <strong>#${registration.id}</strong>.</p>
+          ${accessHtml}
+          <p>If you did not expect this email, please contact the event organiser.</p>
+        `,
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log('[confirm] sendMail result:', { accepted: info.accepted, rejected: info.rejected });
+    } catch (err: any) {
+      console.error('[confirm] Error sending confirmation email:', err);
+      return NextResponse.json({ error: 'Failed to send confirmation email' }, { status: 500 });
+    }
+
+    // 3) Email succeeded -> perform DB updates in a transaction
+    const updated = await prisma.$transaction(async (tx) => {
+      // mark payments as confirmed
       await tx.payment.updateMany({
         where: { registrationId, status: 'pending' },
         data: { status: 'confirmed' },
       });
 
-      // update registration.paymentStatus
+      // ensure user accessCode persisted if we generated one
+      if (registration.user && !registration.user.accessCode) {
+        await tx.user.update({
+          where: { id: registration.user.id },
+          data: { accessCode },
+        });
+      }
+
+      // update registration paymentStatus
       const reg = await tx.registration.update({
         where: { id: registrationId },
         data: { paymentStatus: 'confirmed' },
         include: { user: true, payments: true },
       });
 
-      // ensure user has accessCode (create if missing)
-      if (reg.user && !reg.user.accessCode) {
-        const accessCode = await (async () => {
-          const base = reg.user.name || reg.user.email || `user${reg.user.id}`;
-          return await makeUniqueAccessCode(base);
-        })();
-
-        await tx.user.update({
-          where: { id: reg.user.id },
-          data: { accessCode },
-        });
-
-        // reflect in returned object
-        reg.user.accessCode = accessCode;
-      }
-
       return reg;
     });
 
-    // 2) Fire-and-forget send QR/email: only attempt if APP_URL/VERCEL_URL set. Errors are logged but won't fail response.
-    (async () => {
-      try {
-        const baseUrl =
-          process.env.APP_URL ||
-          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
-
-        if (!baseUrl) {
-          console.warn('payments/confirm: APP_URL or VERCEL_URL not set — skipping sendQr.');
-          return;
-        }
-
-        // wrap network call in try/catch — do not throw to caller
-        await fetch(`${baseUrl.replace(/\/$/, '')}/api/payments/sendQr`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            registrationId: registration.id,
-            email: registration.user?.email,
-            accessCode: registration.user?.accessCode,
-          }),
-        }).catch((e) => {
-          console.warn('payments/confirm: sendQr fetch failed (caught)', e);
-        });
-      } catch (e) {
-        console.warn('payments/confirm: sendQr unexpected error', e);
-      }
-    })();
-
-    return NextResponse.json({ success: true, registration });
+    return NextResponse.json({ success: true, registration: updated });
   } catch (error: any) {
-    console.error('Error confirming payment:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
-    );
+    console.error('payments/confirm error:', error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

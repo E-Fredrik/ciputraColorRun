@@ -152,19 +152,33 @@ export default function LODashboard() {
                     filteredPayments.map(payment => (
                       <tr key={payment.registrationId} className="border-b border-[#73e9dd] hover:bg-[#232326]">
                         <td className="p-3 text-[#ffdfc0] font-medium">{payment.userName}</td>
+
+                        {/* Total price: prefer first payment.amount, fallback to registration.totalAmount */}
                         <td className="p-3 text-[#91dcac]">
-                          {payment.registrationType === 'community' ? payment.groupName : payment.totalAmount?.toLocaleString()}
+                          {(() => {
+                            const amt = payment.payments?.[0]?.amount ?? payment.totalAmount ?? null;
+                            return amt ? `Rp ${Number(amt).toLocaleString('id-ID')}` : 'N/A';
+                          })()}
                         </td>
+
+                        {/* Proof thumbnail: use server-side proxy /api/payments/proof/:paymentId when available */}
                         <td className="p-3">
-                          {/* show first proof thumbnail if available */}
-                          {payment.payments && payment.payments.length > 0 && payment.payments[0].proofOfPayment ? (
-                            <a href={payment.payments[0].proofOfPayment} target="_blank" rel="noreferrer">
-                              <img src={payment.payments[0].proofOfPayment} alt="proof" className="w-20 h-14 object-cover rounded-md border" />
-                            </a>
+                          {payment.payments && payment.payments[0] ? (
+                            (() => {
+                              const p = payment.payments[0];
+                              const proxy = p.id ? `/api/payments/proof/${p.id}` : p.proofOfPayment;
+                              return (
+                                <a href={proxy} target="_blank" rel="noreferrer">
+                                  <img src={proxy} alt="proof" className="w-20 h-14 object-cover rounded-md border" />
+                                </a>
+                              );
+                            })()
                           ) : (
                             <span className="text-xs text-[#ffdfc0] opacity-60">No proof</span>
                           )}
                         </td>
+                        
+                        {/* Actions */}
                         <td className="p-3">
                           <button className="bg-[#91dcac] hover:bg-[#73e9dd] text-[#18181b] px-4 py-2 mr-2 rounded transition-colors duration-150 font-bold" onClick={() => handleAccept(payment.registrationId)}>Accept</button>
                           <button className="bg-[#f581a4] hover:bg-[#ffdfc0] text-[#18181b] px-4 py-2 rounded transition-colors duration-150 font-bold" onClick={() => handleDecline(payment.registrationId)}>Decline</button>
