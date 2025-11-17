@@ -130,10 +130,10 @@ export async function POST(req: Request) {
     const S3_BUCKET = process.env.S3_BUCKET_NAME || "";
     const useS3 = !!S3_BUCKET;
 
-    let proofPath: string;
+    // hoist S3 client so we can reuse it for proof + id uploads
+    let s3: S3Client | undefined;
     if (useS3) {
-      // upload to S3 (or compatible) and set public URL or path
-      const s3 = new S3Client({
+      s3 = new S3Client({
         region: process.env.AWS_REGION || "us-east-1",
         credentials:
           process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
@@ -143,14 +143,18 @@ export async function POST(req: Request) {
               }
             : undefined,
       });
+    }
 
+    let proofPath: string;
+    if (useS3 && s3) {
+      // upload to S3 (or compatible) and set public URL or path
       await s3.send(
         new PutObjectCommand({
           Bucket: S3_BUCKET,
           Key: `uploads/${proofFilename}`,
           Body: proofBuffer,
           ContentType: proofFile.type || `image/${proofExt}`,
-          ACL: "public-read", // optional — configure bucket policy instead for security
+          ACL: "public-read",
         })
       );
 
@@ -175,7 +179,7 @@ export async function POST(req: Request) {
         ""
       );
       const idFilename = `${txId}_id.${idExt}`;
-      if (useS3) {
+      if (useS3 && s3) {
         await s3.send(
           new PutObjectCommand({
             Bucket: S3_BUCKET,
