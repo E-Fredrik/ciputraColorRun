@@ -351,7 +351,7 @@ export default function RegistrationPage() {
 
             // If there's a current category being filled, validate it before checkout
             if (currentParticipants > 0) {
-                const totalJerseys = Object.values(jerseys).reduce((sum, val) => sum + (Number(val) || 0), 0);
+                const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
                 if (totalJerseys !== currentParticipants) {
                     alert(`Jersey count (${totalJerseys}) must match participant count (${currentParticipants}). Please complete or clear the current category before checkout.`);
                     return;
