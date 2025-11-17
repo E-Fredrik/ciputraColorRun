@@ -7,21 +7,74 @@ import { PrismaClient, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// --- DEFINISIKAN TIPE UNTUK CART ITEM ---
-// Ini akan memperbaiki error 'any[]'
-interface ApiCartItem {
-  type: "individual" | "community" | "family";
-  categoryId: number;
-  jerseySize?: string;
-  jerseys?: Record<string, number>;
-  // Kita tidak perlu field lain seperti price, categoryName, dll. di backend ini
+/**
+ * Generates a unique access code from a full name.
+ * Example: "Felicia Angelie" -> "felicia_angelie"
+ * Handles collisions by appending numbers: "felicia_angelie_1", "felicia_angelie_2", etc.
+ * @param fullName The user's full name.
+ * @param prismaTx A Prisma transaction client.
+ */
+async function generateAccessCode(
+  fullName: string,
+  prismaTx: Omit<
+    PrismaClient,
+    "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+  >
+): Promise<string> {
+  // 1. Create the base code: lowercase, replace non-alphanumeric with '_', trim trailing '_'
+  const baseCode = fullName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "") // Remove special characters
+    .replace(/\s+/g, "_") // Replace one or more spaces with a single underscore
+    .replace(/_$/, ""); // Remove trailing underscore if any
+
+  let accessCode = baseCode;
+  let counter = 0;
+
+  // 2. Check for uniqueness and append a number if it already exists
+  // We loop until we find a code that is not in the database.
+  while (true) {
+    const existingUser = await prismaTx.user.findUnique({
+      where: { accessCode: accessCode },
+    });
+
+    if (!existingUser) {
+      // This code is unique, we can use it.
+      break;
+    }
+
+    // This code is taken, increment counter and try again
+    counter++;
+    accessCode = `${baseCode}_${counter}`;
+  }
+
+  return accessCode;
 }
 
-async function getAccessCodeFromCookie() {
-  const { cookies } = await import('next/headers');
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token');
-  return token?.value;
+/**
+ * Generate a bib number with category-based prefix and ensure uniqueness.
+ * Example: categoryName "3K" -> prefix "3" -> bib "3XXXX" (4 random digits)
+ */
+async function generateUniqueBib(
+  categoryName: string | undefined,
+  prismaTx: Omit<
+    PrismaClient,
+    "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+  >
+): Promise<string> {
+  const prefixMatch = (categoryName || "").match(/^(\d{1,2})/);
+  const prefix = prefixMatch ? prefixMatch[1] : "0"; // fallback prefix
+
+  const makeCandidate = () => `${prefix}${Math.floor(1000 + Math.random() * 9000)}`;
+
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const candidate = makeCandidate();
+    const exists = await prismaTx.participant.findFirst({ where: { bibNumber: candidate } });
+    if (!exists) return candidate;
+  }
+
+  // Last resort: append timestamp
+  return `${prefix}${Date.now().toString().slice(-6)}`;
 }
 
 export async function POST(req: Request) {
@@ -32,8 +85,12 @@ export async function POST(req: Request) {
     const amountStr = (form.get("amount") as string) || undefined;
     const proofFile = form.get("proof") as File | null;
     const idCardPhotoFile = form.get("idCardPhoto") as File | null;
-    const cartItemsJson = (form.get("items") as string) || (form.get("cartItems") as string) || undefined;
-    
+    const cartItemsJson =
+      (form.get("items") as string) ||
+      (form.get("cartItems") as string) ||
+      undefined;
+
+    // User details
     const fullName = (form.get("fullName") as string) || undefined;
     const email = (form.get("email") as string) || undefined;
     const phone = (form.get("phone") as string) || undefined;
@@ -43,183 +100,232 @@ export async function POST(req: Request) {
     const nationality = (form.get("nationality") as string) || undefined;
     const emergencyPhone = (form.get("emergencyPhone") as string) || undefined;
     const medicalHistory = (form.get("medicalHistory") as string) || undefined;
-    const registrationType = (form.get("registrationType") as string) || "individual";
+    const registrationType =
+      (form.get("registrationType") as string) || "individual";
 
     if (!proofFile) {
-      return NextResponse.json({ error: "proof file is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "proof file is required" },
+        { status: 400 }
+      );
     }
-    const amount = amountStr !== undefined ? Number(amountStr) : undefined;
-    const txId = crypto.randomUUID();
 
-    // --- Simpan file (Proof & ID Card) ---
+    const amount =
+      amountStr !== undefined && amountStr !== "" ? Number(amountStr) : undefined;
+
+    const txId =
+      typeof crypto?.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
     const uploadsDir = path.resolve(process.cwd(), "public", "uploads");
     await fs.mkdir(uploadsDir, { recursive: true });
 
     const proofBuffer = Buffer.from(await proofFile.arrayBuffer());
-    const proofExt = (proofFile.name?.split(".").pop() || "bin").replace(/[^a-zA-Z0-9]/g, "");
+    const proofExt = (proofFile.name?.split(".").pop() || "bin").replace(
+      /[^a-zA-Z0-9]/g,
+      ""
+    );
     const proofFilename = `${txId}_proof.${proofExt}`;
     await fs.writeFile(path.join(uploadsDir, proofFilename), proofBuffer);
 
     let idCardPhotoPath: string | undefined;
     if (idCardPhotoFile) {
       const idBuffer = Buffer.from(await idCardPhotoFile.arrayBuffer());
-      const idExt = (idCardPhotoFile.name?.split(".").pop() || "bin").replace(/[^a-zA-Z0-9]/g, "");
+      const idExt = (idCardPhotoFile.name?.split(".").pop() || "bin").replace(
+        /[^a-zA-Z0-9]/g,
+        ""
+      );
       const idFilename = `${txId}_id.${idExt}`;
       await fs.writeFile(path.join(uploadsDir, idFilename), idBuffer);
       idCardPhotoPath = `/uploads/${idFilename}`;
-    }
-
-    const generateAccessCode = (name?: string) => {
-      return `${(name || "u").replace(/\s+/g, "").slice(0, 6)}-${Date.now().toString(36).slice(-6)}`;
     };
 
-    // --- Transaksi Database ---
-    const result = await prisma.$transaction(async (tx) => {
-      let registrationId: number | undefined;
-      let userId: number | undefined;
+    // parse cart items JSON (if provided)
+    let cartItems: any[] = [];
+    if (cartItemsJson) {
+      try {
+        cartItems = JSON.parse(cartItemsJson);
+      } catch (e) {
+        return NextResponse.json({ error: "invalid items JSON" }, { status: 400 });
+      }
+    }
 
-      // 1. Tentukan User & Registrasi
-      if (registrationIdStr && !Number.isNaN(Number(registrationIdStr))) {
-        registrationId = Number(registrationIdStr);
-        const reg = await tx.registration.findUnique({ where: { id: registrationId }, select: { userId: true }});
-        userId = reg?.userId;
-      } else {
-        if (!email || !fullName || !phone) {
-          throw new Error("Missing registration data (fullName, email, phone).");
-        }
+    // transaction body extracted to a named async function to avoid parsing issues
+    async function createRegistrationAndPayment(prismaTx: any) {
+      // find user by email if available
+      let user =
+        email && email !== ""
+          ? await prismaTx.user.findUnique({ where: { email } })
+          : null;
 
-        let user = await tx.user.findUnique({ where: { email } });
-        if (!user) {
-          user = await tx.user.create({
-            data: {
-              name: fullName,
-              email,
-              phone,
-              accessCode: generateAccessCode(fullName),
-              role: "user",
-              birthDate: birthDate ? new Date(birthDate) : undefined,
-              gender: gender || undefined,
-              currentAddress: currentAddress || undefined,
-              nationality: nationality || undefined,
-              idCardPhoto: idCardPhotoPath || undefined,
-              emergencyPhone: emergencyPhone || undefined,
-              medicalHistory: medicalHistory || undefined,
-            },
-          });
-        } else {
-          user = await tx.user.update({
-            where: { id: user.id },
-            data: {
-              birthDate: birthDate ? new Date(birthDate) : user.birthDate,
-              gender: gender || user.gender,
-              currentAddress: currentAddress || user.currentAddress,
-              nationality: nationality || user.nationality,
-              idCardPhoto: idCardPhotoPath || user.idCardPhoto,
-              emergencyPhone: emergencyPhone || user.emergencyPhone,
-              medicalHistory: medicalHistory || user.medicalHistory,
-            },
-          });
-        }
-        userId = user.id;
+      // helper to create a quick access code if needed
+      const quickAccessCode = (name?: string) =>
+        `${(name || "u").replace(/\s+/g, "").slice(0, 6)}-${Date.now()
+          .toString(36)
+          .slice(-6)}`;
 
-        const registration = await tx.registration.create({
+      if (!user) {
+        const accessCode = quickAccessCode(fullName);
+        user = await prismaTx.user.create({
           data: {
-            userId: user.id,
-            registrationType,
-            totalAmount: new Prisma.Decimal(String(amount ?? 0)),
+            name: fullName,
+            email: email || undefined,
+            phone: phone || undefined,
+            accessCode,
+            role: "user",
+            birthDate: birthDate ? new Date(birthDate) : undefined,
+            gender: gender || undefined,
+            currentAddress: currentAddress || undefined,
+            nationality: nationality || undefined,
+            idCardPhoto: idCardPhotoPath || undefined,
+            emergencyPhone: emergencyPhone || undefined,
+            medicalHistory: medicalHistory || undefined,
           },
         });
-        registrationId = registration.id;
-      }
-
-      if (!registrationId || !userId) {
-        throw new Error("Failed to create or resolve registration/user");
-      }
-      
-      // 2. Buat Participants (Peserta)
-      let totalParticipantsInTx = 0;
-      if (cartItemsJson) {
-        // --- PERBAIKAN ERROR 'any' DI SINI ---
-        let cartItems: ApiCartItem[] = []; // Gunakan tipe yang sudah kita buat
-        try { 
-          cartItems = JSON.parse(cartItemsJson); 
-        } catch (e: unknown) { // Gunakan 'unknown'
-          throw new Error("invalid items JSON"); 
-        }
-
-        const participantRows: Array<{ registrationId: number; categoryId: number; jerseyId: number }> = [];
-
-        for (const item of cartItems) {
-          const categoryId = Number(item.categoryId);
-          if (!categoryId) throw new Error("Missing categoryId in cart item");
-
-          if (item.type === "individual") {
-            const size = item.jerseySize;
-            if (!size) throw new Error("Missing jerseySize for individual");
-            const jersey = await tx.jerseyOption.findUnique({ where: { size } });
-            if (!jersey) throw new Error(`Jersey option not found for size ${size}`);
-            participantRows.push({ registrationId, categoryId, jerseyId: jersey.id });
-
-          } else if (item.type === "community" || item.type === "family") {
-            const jerseys: Record<string, number> = item.jerseys || {};
-            for (const [size, count] of Object.entries(jerseys)) {
-              const cnt = Number(count || 0);
-              if (cnt <= 0) continue;
-              const jersey = await tx.jerseyOption.findUnique({ where: { size } });
-              if (!jersey) throw new Error(`Jersey option not found for size ${size}`);
-              for (let i = 0; i < cnt; i++) {
-                participantRows.push({ registrationId, categoryId, jerseyId: jersey.id });
-              }
-            }
-          }
-        }
-
-        if (participantRows.length > 0) {
-          await tx.participant.createMany({ data: participantRows });
-        }
-        totalParticipantsInTx = participantRows.length;
-      }
-
-      // 3. Buat SATU QR Code
-      const qrCodeDataString = crypto.randomUUID(); 
-      const maxScans = totalParticipantsInTx + 3; 
-      
-      const qrCode = await tx.qrCode.create({
-        data: {
-          registration: {
-            connect: { id: registrationId }
+      } else {
+        await prismaTx.user.update({
+          where: { id: user.id },
+          data: {
+            birthDate: birthDate ? new Date(birthDate) : undefined,
+            gender: gender || undefined,
+            currentAddress: currentAddress || undefined,
+            nationality: nationality || undefined,
+            idCardPhoto: idCardPhotoPath || user.idCardPhoto,
+            emergencyPhone: emergencyPhone || undefined,
+            medicalHistory: medicalHistory || undefined,
           },
-          // category: undefined, // <-- PAKSA undefined
-          categoryId: null,    // <-- ATAU null
-          qrCodeData: qrCodeDataString,
-          totalPacks: totalParticipantsInTx,
-          maxScans: maxScans,
-          scansRemaining: maxScans,
+        });
+      }
+
+      // create registration
+      const registration = await prismaTx.registration.create({
+        data: {
+          userId: user.id,
+          registrationType,
+          totalAmount: new Prisma.Decimal(String(amount ?? 0)),
         },
       });
 
-      // 4. Buat data Pembayaran
-      const paymentData: Prisma.PaymentCreateInput = {
-        registration: { connect: { id: registrationId } },
+      // create participants based on cartItems
+      const participantRows: Array<{
+        registrationId: number;
+        categoryId: number;
+        jerseyId: number;
+        bibNumber?: string;
+      }> = [];
+
+      for (const item of cartItems || []) {
+        const categoryId = Number(item.categoryId);
+        if (Number.isNaN(categoryId)) continue;
+
+        const category = await prismaTx.raceCategory.findUnique({
+          where: { id: categoryId },
+        });
+
+        if (item.type === "individual") {
+          let jerseyId: number | undefined = undefined;
+          if (item.jerseySize) {
+            const j = await prismaTx.jerseyOption.findUnique({
+              where: { size: item.jerseySize },
+            });
+            if (j) jerseyId = j.id;
+          }
+          const bib = await generateUniqueBib(category?.name, prismaTx);
+          participantRows.push({
+            registrationId: registration.id,
+            categoryId,
+            jerseyId: jerseyId ?? (await prismaTx.jerseyOption.findFirst())?.id ?? 1,
+            bibNumber: bib,
+          });
+        } else if (item.type === "community") {
+          const jerseysMap: Record<string, number> = item.jerseys || {};
+          for (const [size, cnt] of Object.entries(jerseysMap)) {
+            const count = Number(cnt) || 0;
+            if (count <= 0) continue;
+            const jOpt = await prismaTx.jerseyOption.findUnique({ where: { size } });
+            const jerseyId = jOpt ? jOpt.id : (await prismaTx.jerseyOption.findFirst())?.id ?? 1;
+            for (let i = 0; i < count; i++) {
+              const bib = await generateUniqueBib(category?.name, prismaTx);
+              participantRows.push({
+                registrationId: registration.id,
+                categoryId,
+                jerseyId,
+                bibNumber: bib,
+              });
+            }
+          }
+        }
+      }
+
+      if (participantRows.length > 0) {
+        await prismaTx.participant.createMany({
+          data: participantRows.map((r) => ({
+            registrationId: r.registrationId,
+            categoryId: r.categoryId,
+            jerseyId: r.jerseyId,
+            bibNumber: r.bibNumber,
+          })),
+        });
+      }
+
+      // Group participants by category to create QR codes
+      const grouped = participantRows.reduce<Record<number, number>>((acc, r) => {
+        acc[r.categoryId] = (acc[r.categoryId] || 0) + 1;
+        return acc;
+      }, {});
+
+      const createdQrCodes: any[] = [];
+      for (const [catIdStr, totalPacks] of Object.entries(grouped)) {
+        const catId = Number(catIdStr);
+        const code =
+          typeof crypto?.randomUUID === "function"
+            ? crypto.randomUUID()
+            : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+        const maxScans = totalPacks + 3;
+        const qr = await prismaTx.qrCode.create({
+          data: {
+            registrationId: registration.id,
+            categoryId: catId,
+            qrCodeData: code,
+            totalPacks,
+            maxScans,
+            scansRemaining: maxScans,
+          },
+        });
+        createdQrCodes.push(qr);
+      }
+
+      // Create payment record
+      const paymentData: any = {
+        registrationId: registration.id,
         transactionId: txId,
         proofOfPayment: `/uploads/${proofFilename}`,
         status: "pending",
         amount: new Prisma.Decimal(String(amount ?? 0)),
       };
 
-      const payment = await tx.payment.create({ data: paymentData });
+      if (amount !== undefined && !Number.isNaN(amount)) {
+        paymentData.amount = new Prisma.Decimal(String(amount));
+      }
 
-      return { payment, qrCode: qrCode };
-    });
+      const payment = await prismaTx.payment.create({ data: paymentData });
 
-    return NextResponse.json({ success: true, payment: result.payment, qrCode: result.qrCode });
-  
-  } catch (err: unknown) { // Gunakan 'unknown'
-    console.error("Payment API error:", err);
-    let errorMessage = "Internal server error";
-    if (err instanceof Error) {
-        errorMessage = err.message;
+      return { registration, payment, createdQrCodes };
     }
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+
+    // run transaction
+    const result = await prisma.$transaction((tx: any) => createRegistrationAndPayment(tx));
+
+    return NextResponse.json({
+      success: true,
+      payment: result.payment,
+      qrCodes: result.createdQrCodes,
+    });
+  } catch (err) {
+    console.error("Payment API error:", err);
+    const message =
+      err && (err as any).message ? (err as any).message : "internal";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
