@@ -584,7 +584,7 @@ export default function RegistrationPage() {
                                     }}
                                     required
                                 />
-                                <p className="text-xs text-gray-500 mt-1">PNG, JPG, JPEG (Max 5MB)</p>
+                                <p className="text-xs text-gray-500 mt-1">PNG, JPG, JPEG (Max 10MB, uploaded to cloud storage)</p>
                             </div>
                         </div>
 

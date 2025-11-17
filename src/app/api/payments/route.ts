@@ -1,13 +1,17 @@
 // src/app/api/payments/route.ts
 
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
-import os from "os";
 import { PrismaClient, Prisma } from "@prisma/client";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { v2 as cloudinary } from "cloudinary";
 
 const prisma = new PrismaClient();
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 /**
  * Generates a unique access code from a full name.
@@ -120,82 +124,48 @@ export async function POST(req: Request) {
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    const proofBuffer = Buffer.from(await proofFile.arrayBuffer());
-    const proofExt = (proofFile.name?.split(".").pop() || "bin").replace(
-      /[^a-zA-Z0-9]/g,
-      ""
-    );
-    const proofFilename = `${txId}_proof.${proofExt}`;
-
-    const S3_BUCKET = process.env.S3_BUCKET_NAME || "";
-    const useS3 = !!S3_BUCKET;
-
-    // hoist S3 client so we can reuse it for proof + id uploads
-    let s3: S3Client | undefined;
-    if (useS3) {
-      s3 = new S3Client({
-        region: process.env.AWS_REGION || "us-east-1",
-        credentials:
-          process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
-            ? {
-                accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-                secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-              }
-            : undefined,
-      });
-    }
-
+    // Upload proof to Cloudinary
     let proofPath: string;
-    if (useS3 && s3) {
-      // upload to S3 (or compatible) and set public URL or path
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: S3_BUCKET,
-          Key: `uploads/${proofFilename}`,
-          Body: proofBuffer,
-          ContentType: proofFile.type || `image/${proofExt}`,
-          ACL: "public-read",
-        })
-      );
+    try {
+      const proofBuffer = Buffer.from(await proofFile.arrayBuffer());
+      const proofBase64 = `data:${proofFile.type};base64,${proofBuffer.toString("base64")}`;
+      
+      const proofUpload = await cloudinary.uploader.upload(proofBase64, {
+        folder: "ciputra-color-run/proofs",
+        public_id: `${txId}_proof`,
+        resource_type: "image",
+      });
 
-      // public URL (adjust if using a custom domain or non-AWS provider)
-      const region = process.env.AWS_REGION || "us-east-1";
-      proofPath = `https://${S3_BUCKET}.s3.${region}.amazonaws.com/uploads/${proofFilename}`;
-    } else {
-      // fallback: write into ephemeral OS temp directory (works on serverless, not persistent)
-      const uploadsDir = path.join(os.tmpdir(), "uploads");
-      await fs.mkdir(uploadsDir, { recursive: true });
-      const proofFullPath = path.join(uploadsDir, proofFilename);
-      await fs.writeFile(proofFullPath, proofBuffer);
-      proofPath = `/tmp/uploads/${proofFilename}`; // store path/marker; note: not publicly accessible
+      proofPath = proofUpload.secure_url;
+      console.log("[payments] Uploaded proof to Cloudinary:", proofPath);
+    } catch (uploadErr) {
+      console.error("Cloudinary proof upload failed:", uploadErr);
+      return NextResponse.json(
+        { error: "Failed to upload proof image. Please try again." },
+        { status: 500 }
+      );
     }
 
-    // Save ID card photo if provided
+    // Upload ID card photo if provided
     let idCardPhotoPath: string | undefined;
     if (idCardPhotoFile) {
-      const idBuffer = Buffer.from(await idCardPhotoFile.arrayBuffer());
-      const idExt = (idCardPhotoFile.name?.split(".").pop() || "bin").replace(
-        /[^a-zA-Z0-9]/g,
-        ""
-      );
-      const idFilename = `${txId}_id.${idExt}`;
-      if (useS3 && s3) {
-        await s3.send(
-          new PutObjectCommand({
-            Bucket: S3_BUCKET,
-            Key: `uploads/${idFilename}`,
-            Body: idBuffer,
-            ContentType: idCardPhotoFile.type || `image/${idExt}`,
-            ACL: "public-read",
-          })
-        );
-        idCardPhotoPath = `https://${S3_BUCKET}.s3.${process.env.AWS_REGION || "us-east-1"}.amazonaws.com/uploads/${idFilename}`;
-      } else {
-        const idPath = path.join(os.tmpdir(), "uploads", idFilename);
-        await fs.writeFile(idPath, idBuffer);
-        idCardPhotoPath = `/tmp/uploads/${idFilename}`;
+      try {
+        const idBuffer = Buffer.from(await idCardPhotoFile.arrayBuffer());
+        const idBase64 = `data:${idCardPhotoFile.type};base64,${idBuffer.toString("base64")}`;
+        
+        const idUpload = await cloudinary.uploader.upload(idBase64, {
+          folder: "ciputra-color-run/id-cards",
+          public_id: `${txId}_id`,
+          resource_type: "image",
+        });
+
+        idCardPhotoPath = idUpload.secure_url;
+        console.log("[payments] Uploaded ID card to Cloudinary:", idCardPhotoPath);
+      } catch (uploadErr) {
+        console.error("Cloudinary ID card upload failed:", uploadErr);
+        // Don't fail the entire request, just log the error
       }
-    };
+    }
 
     // parse cart items JSON (if provided)
     let cartItems: any[] = [];
@@ -352,12 +322,11 @@ export async function POST(req: Request) {
         createdQrCodes.push(qr);
       }
 
-      // Create payment record
+      // Create payment record with Cloudinary URLs
       const paymentData: any = {
         registrationId: registration.id,
         transactionId: txId,
-        // store the actual uploaded path/URL (S3 URL or tmp path)
-        proofOfPayment: proofPath,
+        proofOfPayment: proofPath, // Cloudinary URL
         status: "pending",
         amount: new Prisma.Decimal(String(amount ?? 0)),
       };
@@ -384,9 +353,7 @@ export async function POST(req: Request) {
       qrCodes: result.createdQrCodes,
     });
   } catch (err) {
-    console.error("Payment API error:", err);
-    const message =
-      err && (err as any).message ? (err as any).message : "internal";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("payments POST error:", err);
+    return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
   }
 }
