@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useCart } from "../../context/CartContext";
 import { useState, useEffect } from "react";
 
-export default function ConfirmPaymentPage() {
+export default function ConfirmPaymentClient() {
     const search = useSearchParams();
     const router = useRouter();
     const { items, clearCart, totalPrice, userDetails } = useCart();
