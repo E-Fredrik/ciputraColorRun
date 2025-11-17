@@ -248,7 +248,7 @@ export default function RegistrationPage() {
             }
 
             const bundleSize = category.bundleSize || 4;
-            const totalJerseys = Object.values(jerseys).reduce((sum, val) => sum + (Number(val) || 0), 0);
+            const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
             if (totalJerseys !== bundleSize) {
                 alert(`Jersey count (${totalJerseys}) must match family bundle size (${bundleSize})`);
                 return;
@@ -331,7 +331,7 @@ export default function RegistrationPage() {
                 return;
             }
 
-            const totalJerseys = Object.values(jerseys).reduce((sum, val) => sum + (Number(val) || 0), 0);
+            const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
             if (totalJerseys !== category.bundleSize && totalJerseys > 0) {
                 alert(`Please complete jersey selection (${totalJerseys}/${category.bundleSize}) or clear it before checkout`);
                 return;
@@ -794,7 +794,7 @@ export default function RegistrationPage() {
                                             ))}
                                         </div>
                                         <p className="text-xs text-gray-500 mt-3 text-center">
-                                            Total: {Object.values(jerseys).reduce((sum, val) => sum + (Number(val) || 0), 0)} / {selectedCategory?.bundleSize || 4}
+                                            Total: {Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0)} / {selectedCategory?.bundleSize || 4}
                                         </p>
                                     </div>
 
@@ -931,7 +931,7 @@ export default function RegistrationPage() {
                                             ))}
                                         </div>
                                         <p className="text-xs text-gray-500 mt-3 text-center">
-                                            Total: {Object.values(jerseys).reduce((sum, val) => sum + (Number(val) || 0), 0)} / {participants || 0}
+                                            Total: {Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0)} / {participants || 0}
                                         </p>
                                     </div>
 
