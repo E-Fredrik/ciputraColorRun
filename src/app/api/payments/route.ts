@@ -352,8 +352,14 @@ export async function POST(req: Request) {
       payment: result.payment,
       qrCodes: result.createdQrCodes,
     });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("payments POST error:", err);
-    return NextResponse.json({ error: err?.message || String(err) }, { status: 500 });
+    const message =
+      err instanceof Error
+        ? err.message
+        : typeof err === "string"
+        ? err
+        : JSON.stringify(err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
