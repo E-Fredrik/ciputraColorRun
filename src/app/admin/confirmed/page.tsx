@@ -44,8 +44,14 @@ export default function AdminConfirmedPage() {
               <div className="text-right">
                 <div className="text-sm">Registered: {new Date(r.createdAt).toLocaleString()}</div>
                 <div className="mt-2">
-                  {r.payments && r.payments[0]?.proofOfPayment ? (
-                    <a href={r.payments[0].proofOfPayment} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline">View proof</a>
+                  {/* use the server-side proxy so both S3 urls and /tmp files work */}
+                  {r.payments && r.payments[0] ? (
+                    <>
+                      <a href={`/api/payments/proof/${r.payments[0].id}`} target="_blank" rel="noreferrer" className="text-xs text-blue-600 underline mr-2">View proof</a>
+                      <a href={`/api/payments/proof/${r.payments[0].id}`} target="_blank" rel="noreferrer" className="inline-block">
+                        <img src={`/api/payments/proof/${r.payments[0].id}`} alt="proof" className="w-20 h-14 object-cover rounded-md border" />
+                      </a>
+                    </>
                   ) : null}
                 </div>
               </div>
