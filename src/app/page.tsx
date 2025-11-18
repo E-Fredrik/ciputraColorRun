@@ -17,7 +17,7 @@ export default function Home() {
     }
   }, []);
 
-  const TEMP_LOGO_PATH = '/Images/logo.png';
+  const TEMP_LOGO_PATH = '/images/logo.png';
   
   const partnerLogos = [
     {
@@ -47,11 +47,11 @@ export default function Home() {
 
   return (
     <main className="bg-white overflow-x-hidden">
-      <div className="home_top">
+      <div className="home_top pt-20">
         <div className="home_top_content">
 
           <img
-            src="/Images/logo.png"
+            src="/images/logo.png"
             alt="Ciputra Color Run Logo"
             className="home_top_logo"
             data-aos="zoom-in"
@@ -65,7 +65,7 @@ export default function Home() {
             data-aos-duration="1000"
             data-aos-delay="300"
           >
-            CIPUTRA COLOR RUN
+            CIPUTRA COLOR RUN 2026
           </h1>
         
           <CountdownTimer />
@@ -133,8 +133,8 @@ export default function Home() {
       <section className="w-full relative overflow-hidden">
         <div className="max-w-full mx-auto relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[400px] md:min-h-[600px]">
-            {/* Left: carousel placed inside left grid column (hidden on small screens) */}
-            <div className="hidden md:block about-left" aria-hidden>
+            {/* Left: carousel — show on mobile and desktop */}
+            <div className="about-left" aria-hidden>
               <AboutCarousel />
             </div>
 
@@ -170,7 +170,7 @@ export default function Home() {
       </section>
 
       {/* Pricing Section: semantic table with minimal styling + small decor assets */}
-      <section className="pricing-section max-w-6xl mx-auto px-4 sm:px-6 py-10 relative">
+      <section className="pricing-section max-w-6xl mx-auto px-4 sm:px-6 py-10 relative overflow-y-hidden">
         {/* decorative assets near the table (non-interactive) */}
         <div className="pricing-decor" aria-hidden>
           <img src="/assets/asset4.svg" className="pricing-decor-large" alt="" />
@@ -277,7 +277,7 @@ export default function Home() {
               </div>
               <h4 className="benefit-title">Powder Color War</h4>
               <p className="benefit-description">
-                Nikmati serunya perang warna dengan bubuk warna-warni yang aman
+               
               </p>
             </div>
 
