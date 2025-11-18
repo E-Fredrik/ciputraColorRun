@@ -1409,127 +1409,75 @@
   }
 }
 
-/* Prevent inner vertical scrollbars coming from pricing / benefits area
-   - keep timeline and pricing horizontal scroll intact
-   - ensure benefit icons cannot grow beyond intended size */
-.pricing-table-wrap,
-.benefits-section,
-.benefits-grid,
-.benefit-card {
-  /* prevent these containers from producing their own vertical scrollbars */
+/* --- Force pricing table to be non-scrollable and fully responsive --- */
+/* Place this at the end so it overrides previous rules */
+.pricing-table-wrap {
+  overflow-x: hidden !important;
   overflow-y: hidden !important;
-  max-height: none !important;
-  /* hide vertical scrollbar chrome in WebKit/Firefox for these wrappers */
-  -ms-overflow-style: none; /* IE/Edge */
-  scrollbar-width: none; /* Firefox */
-}
-
-/* Strong override: prevent inner vertical scrollbars while preserving horizontal scroll */
-html body .pricing-table-wrap,
-html body .timeline-scroll-wrap,
-html body .benefits-section,
-html body .benefits-grid,
-html body .benefit-card {
-  /* ensure vertical scroll never appears inside these containers */
-  overflow-y: hidden !important;
-  /* allow horizontal scrolling where intended */
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch !important;
-  /* don't let any accidental height constraints produce scrollbars */
-  max-height: none !important;
-  /* hide any scrollbar chrome defensively (no visual change because overflow-y is hidden) */
-  -ms-overflow-style: none !important; /* IE/Edge */
-  scrollbar-width: none !important; /* Firefox */
-}
-
-/* ensure table wrapper keeps horizontal scrolling and header sticky */
-html body .pricing-table-wrap {
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-}
-
-/* ensure timeline wrapper keeps horizontal scrolling and no vertical */
-html body .timeline-scroll-wrap {
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-}
-
-/* ensure nothing inside forces a vertical overflow */
-html body .pricing-table,
-html body .pricing-table * {
-  max-height: none !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-}
-
-/* --- Fix: prevent <main> from having its own vertical scrollbar --- */
-/* Ensure the document (html/body) is the scroll container and main is content-only. */
-main,
-main[data-slot="main"],
-.app-main {
-  overflow-y: visible !important;   /* don't create internal vertical scroll */
-  overflow-x: visible !important;
-  height: auto !important;
-  min-height: 100vh !important;     /* keep full viewport height but not constrained */
   -webkit-overflow-scrolling: auto !important;
 }
 
-/* Make sure html/body allow normal page scrolling */
-html, body {
-  height: auto !important;
-  overflow-y: auto !important;
+/* Allow the table to shrink instead of forcing horizontal scroll */
+.pricing-table {
+  min-width: 0 !important;
+  width: 100% !important;
+  table-layout: auto !important;
+  border-collapse: collapse;
 }
 
-/* Defensive: some wrappers previously forced scrollbars — ensure they don't create vertical scroll */
-.pricing-table-wrap,
-.timeline-scroll-wrap,
-.benefits-section,
-.partner-loop-with-borders,
-.sponsor-container,
-.home_top,
-.doc-decor,
-.doc-thumb-overlays {
-  overflow-y: hidden !important; /* only inner horizontal scrollers should remain (explicit) */
+/* Make cells wrap instead of forcing wide columns */
+.pricing-table thead th,
+.pricing-table tbody td {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
 }
 
-/* Jersey input: center single-digit placeholders & values consistently across browsers */
-.jersey-input {
-  width: 100%;
-  height: 40px;
-  padding: 0 0.75rem;
-  border: 0;
-  border-bottom: 2px solid #e5e7eb;
-  background: transparent;
-  color: #111827;
-  text-align: center;
-  font-size: 1rem;
-  line-height: 40px;            /* vertically center value */
-  vertical-align: middle;
-  -webkit-appearance: none;
-  -moz-appearance: textfield;
-  appearance: none;
-  outline: none;
+/* Disable sticky header behavior (sticky can force layout that causes scroll) */
+.pricing-table thead th {
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
 }
 
-/* ensure placeholders also use same line-height */
-.jersey-input::placeholder {
-  color: #9ca3af;
-  line-height: 40px;
+/* Mobile: convert rows into stacked cards (no horizontal scroll) */
+@media (max-width: 720px) {
+  .pricing-table {
+    display: block !important;
+  }
+
+  .pricing-table thead {
+    display: none !important;
+  }
+
+  .pricing-table tbody {
+    display: block !important;
+  }
+
+  .pricing-table tbody tr {
+    display: block;
+    margin-bottom: 0.75rem;
+    background: transparent;
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+
+  .pricing-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px dashed rgba(0,0,0,0.04);
+  }
+
+  .pricing-table tbody td.col-item {
+    font-weight: 700;
+  }
 }
 
-/* small horizontal nudge when needed */
-.jersey-input.shift-right {
-  transform: translateX(8px);
-}
-
-/* Focus state */
-.jersey-input:focus {
-  border-bottom-color: #10b981;
-  box-shadow: none;
-}
-
-/* Small screens tweak */
-@media (max-width: 420px) {
-  .jersey-input { height: 36px; line-height: 36px; }
-  .jersey-input::placeholder { line-height: 36px; }
+/* Safety: ensure table wrapper cannot create internal vertical scrollbar */
+html body .pricing-table-wrap,
+html body .pricing-table {
+  max-height: none !important;
+  overflow: visible !important;
 }

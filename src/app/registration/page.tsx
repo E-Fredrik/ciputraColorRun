@@ -30,7 +30,8 @@ export default function RegistrationPage() {
     const router = useRouter();
     const { addItem, items, setUserDetails } = useCart();
     const [type, setType] = useState<"individual" | "community" | "family">("individual");
-
+    
+    const [loading, setLoading] = useState(true);
     // categories loaded from server
     const [categories, setCategories] = useState<Category[]>([]);
     const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -73,9 +74,23 @@ export default function RegistrationPage() {
                 if (data.length > 0) setCategoryId(data[0].id);
             } catch (err) {
                 console.error("Failed to load categories:", err);
+                showToast("Failed to load categories. Please refresh the page.", "error");
+            } finally {
+                setLoading(false);
             }
         })();
     }, []);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-emerald-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600 font-semibold text-lg">Loading registration form...</p>
+                </div>
+            </div>
+        );
+    }
 
     // Check if user has family bundle in cart
     const hasFamilyBundle = useMemo(() => {

@@ -11,7 +11,7 @@ export default function ConfirmPaymentClient() {
 
     const fromCart = search.get("fromCart") === "true";
 
-    // Personal info from context or query/sessionStorage
+    const [loading, setLoading] = useState(true);
     const [fullName, setFullName] = useState<string>("");
     const [email, setEmail] = useState<string>("");
     const [phone, setPhone] = useState<string>("");
@@ -50,14 +50,29 @@ export default function ConfirmPaymentClient() {
             setEmergencyPhone(sessionStorage.getItem("reg_emergencyPhone") || "");
             setMedicalHistory(sessionStorage.getItem("reg_medicalHistory") || "");
         }
+        
+        // Simulate content load
+        const timer = setTimeout(() => setLoading(false), 600);
+        return () => clearTimeout(timer);
     }, [userDetails, search]);
 
     // Redirect if cart is empty when coming from cart
     useEffect(() => {
-        if (fromCart && items.length === 0) {
+        if (!loading && fromCart && items.length === 0) {
             router.push("/registration");
         }
-    }, [fromCart, items, router]);
+    }, [fromCart, items, router, loading]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-emerald-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600 font-semibold text-lg">Preparing payment confirmation...</p>
+                </div>
+            </div>
+        );
+    }
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
