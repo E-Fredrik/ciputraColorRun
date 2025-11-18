@@ -96,7 +96,7 @@ export default function LODashboard() {
   });
 
   return (
-    <div className="lo-dashboard p-8 min-h-screen flex flex-col items-center bg-[#18181b]">
+    <div className="lo-dashboard p-8 pt-28 min-h-screen flex flex-col items-center bg-[#18181b]">
       <div className="w-full max-w-3xl">
         <h1 className="text-3xl pt-5 mt-5 font-bold mb-6 text-[#73e9dd] text-center">LO Dashboard - Pending Payments</h1>
         

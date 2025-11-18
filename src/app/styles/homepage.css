@@ -564,6 +564,23 @@
   .about-divider { display: none; }
 }
 
+/* Previously hidden on small screens — keep it visible but reduce height on mobile */
+@media (max-width: 768px) {
+  .about-left {
+    display: block; /* ensure visible on mobile */
+    min-height: 260px; /* smaller footprint on mobile */
+  }
+
+  .about-divider {
+    display: none; /* keep divider hidden on small screens to avoid overlap */
+  }
+}
+
+/* Keep existing desktop sizing */
+@media (min-width: 769px) {
+  .about-left { min-height: 600px; }
+}
+
 /* Decor assets container (positioned inside .home_top_content) */
 .decor-assets {
   position: absolute;
@@ -1099,114 +1116,50 @@
 .timeline-scroll-wrap {
   position: relative;
   z-index: 2;
-  overflow-x: auto;  /* horizontal only */
-  overflow-y: hidden; /* <- prevent vertical scroll inside this wrapper */
+  overflow-x: visible;        /* no horizontal scrolling */
+  overflow-y: visible;
   padding: 1.5rem 0;
-  -webkit-overflow-scrolling: touch;
+  -webkit-overflow-scrolling: auto;
   scroll-padding: 1rem;
 }
 
+/* Use a responsive grid so cards lay out in rows instead of a single horizontal strip */
 .timeline-cards {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
-  min-width: max-content;
+  width: 100%;
+  margin: 0 auto;
   padding: 0 1rem;
+  align-items: start;
+  justify-items: stretch;
+  box-sizing: border-box;
 }
 
+/* Keep card sizing modest and responsive */
 .timeline-card {
-  position: relative;
-  z-index: 2;
+  width: 100%;
+  max-width: 420px;
+  min-height: 160px;
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 2rem 1.5rem;
-  min-width: 320px;
-  max-width: 380px;
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-  backdrop-filter: blur(8px) saturate(1.02);
-  -webkit-backdrop-filter: blur(8px) saturate(1.02);
-  border: 1px solid rgba(31,98,81,0.08);
-  box-shadow: 0 10px 28px rgba(16,24,40,0.06);
-  flex-shrink: 0;
 }
 
-.timeline-scroll-wrap::-webkit-scrollbar {
-  height: 10px;
-}
-
-.timeline-scroll-wrap::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, #91DCAC, #F581A4);
-  border-radius: 5px;
-}
-
-.timeline-scroll-wrap::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.15);
-  border-radius: 5px;
-}
-
-.timeline-card .timeline-badge {
-  font-family: var(--font-moderniz);
-  font-weight: 700;
-  font-size: 0.75rem;
-  color: #0f5132;
-  background: linear-gradient(90deg, rgba(145,220,172,0.18), rgba(245,129,164,0.08));
-  padding: 0.5rem 1rem;
-  border-radius: 999px;
-  display: inline-block;
-  width: fit-content;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.timeline-card .timeline-date {
-  font-family: var(--font-moderniz);
-  color: #0f5132;
-  font-weight: 800;
-  font-size: 1.05rem;
-  letter-spacing: 0.3px;
-}
-
-.timeline-card .timeline-text {
-  font-family: var(--font-mustica);
-  color: #27443a;
-  font-weight: 600;
-  font-size: 0.95rem;
-  line-height: 1.55;
-}
-
-@media (max-width: 768px) {
+/* Mobile: single column with slightly reduced paddings */
+@media (max-width: 640px) {
+  .timeline-cards {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 0 0.75rem;
+  }
   .timeline-card {
-    min-width: 280px;
-    padding: 1.5rem 1rem;
-  }
-
-  .timeline-card .timeline-date {
-    font-size: 0.95rem;
-  }
-
-  .timeline-card .timeline-text {
-    font-size: 0.9rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .timeline-card {
-    min-width: 260px;
-    padding: 1.25rem 1rem;
-  }
-
-  .timeline-card .timeline-badge {
-    font-size: 0.7rem;
-    padding: 0.4rem 0.8rem;
-  }
-
-  .timeline-card .timeline-date {
-    font-size: 0.9rem;
-  }
-
-  .timeline-card .timeline-text {
-    font-size: 0.85rem;
+    padding: 1rem;
+    min-height: 140px;
   }
 }
 
@@ -1537,4 +1490,46 @@ html, body {
 .doc-decor,
 .doc-thumb-overlays {
   overflow-y: hidden !important; /* only inner horizontal scrollers should remain (explicit) */
+}
+
+/* Jersey input: center single-digit placeholders & values consistently across browsers */
+.jersey-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 0.75rem;
+  border: 0;
+  border-bottom: 2px solid #e5e7eb;
+  background: transparent;
+  color: #111827;
+  text-align: center;
+  font-size: 1rem;
+  line-height: 40px;            /* vertically center value */
+  vertical-align: middle;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  appearance: none;
+  outline: none;
+}
+
+/* ensure placeholders also use same line-height */
+.jersey-input::placeholder {
+  color: #9ca3af;
+  line-height: 40px;
+}
+
+/* small horizontal nudge when needed */
+.jersey-input.shift-right {
+  transform: translateX(8px);
+}
+
+/* Focus state */
+.jersey-input:focus {
+  border-bottom-color: #10b981;
+  box-shadow: none;
+}
+
+/* Small screens tweak */
+@media (max-width: 420px) {
+  .jersey-input { height: 36px; line-height: 36px; }
+  .jersey-input::placeholder { line-height: 36px; }
 }

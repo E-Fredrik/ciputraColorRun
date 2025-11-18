@@ -123,7 +123,7 @@ export default function ConfirmPaymentClient() {
         >
             <div className="mx-auto w-full max-w-2xl px-4">
                 <h1 className="text-4xl md:text-6xl text-center font-bold mb-8 tracking-wide text-white drop-shadow-lg">
-                    CIPUTRA COLOR RUN
+                    CIPUTRA COLOR RUN 2026
                 </h1>
 
                 <section className="bg-white/95 backdrop-blur-md rounded-lg p-8 md:p-10 shadow-lg text-gray-800">
