@@ -72,7 +72,7 @@ export default function App() {
           const participants = reg.participants || [];
           const qrCode = (reg.qrCodes && reg.qrCodes[0]) ? reg.qrCodes[0].qrCodeData : null;
 
-          if (reg.registrationType === 'community' || participants.length > 1) {
+          if (reg.registrationType === 'community' || reg.registrationType === 'family' || participants.length > 1) {
             // aggregate jersey sizes
             const sizesMap: Record<string, number> = {};
             for (const p of participants) {
@@ -82,7 +82,7 @@ export default function App() {
             const jerseySizes = Object.entries(sizesMap).map(([size, count]) => ({ size, count }));
             return {
               type: 'community',
-              category: participants[0]?.category?.name || 'Community',
+              category: participants[0]?.category?.name || (reg.registrationType === 'family' ? 'Family Bundle' : 'Community'),
               participantCount: participants.length,
               jerseySizes,
               totalPrice: Number(reg.totalAmount ?? 0),
