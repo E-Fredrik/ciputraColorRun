@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import "./styles/homepage.css";
@@ -10,14 +10,30 @@ import AboutCarousel from './components/AboutCarousel';
 import DocDecor from './components/DocDecor';
 
 export default function Home() {
+  const [loading, setLoading] = useState(true);
+
   // Refresh AOS animations when page loads
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).AOS) {
       (window as any).AOS.refresh();
     }
+    // Simulate initial content load
+    const timer = setTimeout(() => setLoading(false), 800);
+    return () => clearTimeout(timer);
   }, []);
 
-  const TEMP_LOGO_PATH = '/Images/logo.png';
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-emerald-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-semibold text-lg">Loading Ciputra Color Run...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const TEMP_LOGO_PATH = '/images/logo.png';
   
   const partnerLogos = [
     {
@@ -46,12 +62,12 @@ export default function Home() {
   ];
 
   return (
-    <main className="bg-white overflow-x-hidden">
-      <div className="home_top">
+    <main className="bg-white overflow-hidden">
+      <div className="home_top pt-20">
         <div className="home_top_content">
 
           <img
-            src="/Images/logo.png"
+            src="/images/logo.png"
             alt="Ciputra Color Run Logo"
             className="home_top_logo"
             data-aos="zoom-in"
@@ -65,7 +81,7 @@ export default function Home() {
             data-aos-duration="1000"
             data-aos-delay="300"
           >
-            CIPUTRA COLOR RUN
+            CIPUTRA COLOR RUN 2026
           </h1>
         
           <CountdownTimer />
@@ -128,64 +144,13 @@ export default function Home() {
         </div>
 
       </div>
-      {/* Documentation Section - Grid Layout with Animations */}
-      <section className="relative w-full bg-gradient-to-r from-[#a0d4ac] to-[#e2969c] py-8 md:py-16">
-        {/* decorative floating assets anchored to this documentation section */}
-        <DocDecor />
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
-            { /* Featured top-3 documentation images */ }
-            {[0,1,2].map((n) => (
-              <div
-                key={`featured-doc-${n}`}
-                className="bg-gray-200 rounded-md overflow-hidden p-0 min-h-[160px] md:min-h-[200px]"
-                data-aos="zoom-in"
-                data-aos-duration="1000"
-                data-aos-delay={100 + n * 100}
-              >
-                <img
-                  src={docImages[n]}
-                  alt={`Documentation featured ${n + 1}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).src = "/Homepage/documentation/placeholder.png";
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            {docImages.map((src, i) => (
-              <div
-                key={i}
-                className="bg-gray-200 rounded-md aspect-square w-full overflow-hidden"
-                data-aos="flip-left"
-                data-aos-duration="800"
-                data-aos-delay={i * 100}
-                aria-hidden
-              >
-                <img
-                  src={src}
-                  alt={`Documentation ${i + 1}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // fallback if image missing
-                    (e.currentTarget as HTMLImageElement).src = "/Homepage/documentation/placeholder.png";
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
       
       {/* About Section - Two Column Layout (image fills entire section) */}
       <section className="w-full relative overflow-hidden">
         <div className="max-w-full mx-auto relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[400px] md:min-h-[600px]">
-            {/* Left: carousel placed inside left grid column (hidden on small screens) */}
-            <div className="hidden md:block about-left" aria-hidden>
+            {/* Left: carousel — show on mobile and desktop */}
+            <div className="about-left" aria-hidden>
               <AboutCarousel />
             </div>
 
@@ -221,7 +186,7 @@ export default function Home() {
       </section>
 
       {/* Pricing Section: semantic table with minimal styling + small decor assets */}
-      <section className="pricing-section max-w-6xl mx-auto px-4 sm:px-6 py-10 relative">
+      <section className="pricing-section max-w-6xl mx-auto px-4 sm:px-6 py-10 relative overflow-y-hidden">
         {/* decorative assets near the table (non-interactive) */}
         <div className="pricing-decor" aria-hidden>
           <img src="/assets/asset4.svg" className="pricing-decor-large" alt="" />
@@ -328,7 +293,7 @@ export default function Home() {
               </div>
               <h4 className="benefit-title">Powder Color War</h4>
               <p className="benefit-description">
-                Nikmati serunya perang warna dengan bubuk warna-warni yang aman
+               
               </p>
             </div>
 

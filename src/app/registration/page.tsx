@@ -3,6 +3,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "../context/CartContext";
+import "../styles/homepage.css"
+import { showToast } from "../../lib/toast";
+
 
 interface Category {
     id: number;
@@ -27,7 +30,8 @@ export default function RegistrationPage() {
     const router = useRouter();
     const { addItem, items, setUserDetails } = useCart();
     const [type, setType] = useState<"individual" | "community" | "family">("individual");
-
+    
+    const [loading, setLoading] = useState(true);
     // categories loaded from server
     const [categories, setCategories] = useState<Category[]>([]);
     const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -70,10 +74,14 @@ export default function RegistrationPage() {
                 if (data.length > 0) setCategoryId(data[0].id);
             } catch (err) {
                 console.error("Failed to load categories:", err);
+                showToast("Failed to load categories. Please refresh the page.", "error");
+            } finally {
+                setLoading(false);
             }
         })();
     }, []);
 
+    // --- Move all hook-based computations here so they always run in the same order ---
     // Check if user has family bundle in cart
     const hasFamilyBundle = useMemo(() => {
         return items.some(item => item.type === "family");
@@ -189,17 +197,17 @@ export default function RegistrationPage() {
 
     function validatePersonalDetails(): boolean {
         if (!fullName || !email || !phone || !birthDate || !currentAddress || !idCardPhoto) {
-            alert("Please fill in all required fields (Name, Email, Phone, Birth Date, Address, and ID Card/Passport Photo)");
+            showToast("Please fill all required fields (Name, Email, Phone, Birth Date, Address, and ID Card/Passport Photo)", "error");
             return false;
         }
 
         if (type === "individual") {
             if (!emergencyPhone) {
-                alert("Please provide an emergency contact number");
+                showToast("Please provide an emergency contact number", "error");
                 return false;
             }
             if (!medicalHistory) {
-                alert("Please provide medical history information (or write 'None' if not applicable)");
+                showToast("Please provide medical history information (or write 'None')", "error");
                 return false;
             }
         }
@@ -248,7 +256,7 @@ export default function RegistrationPage() {
             }
 
             const bundleSize = category.bundleSize || 4;
-            const totalJerseys = Object.values(jerseys).reduce((sum, val) => sum + (Number(val) || 0), 0);
+            const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
             if (totalJerseys !== bundleSize) {
                 alert(`Jersey count (${totalJerseys}) must match family bundle size (${bundleSize})`);
                 return;
@@ -267,7 +275,7 @@ export default function RegistrationPage() {
                 ),
             });
 
-            alert(`Family bundle added! ${bundleSize} people at Rp ${currentPrice.toLocaleString("id-ID")}/person`);
+            showToast(`Family bundle added! ${bundleSize} people at Rp ${currentPrice.toLocaleString("id-ID")}/person`, "success");
             setJerseys({ XS: "", S: "", M: "", L: "", XL: "", XXL: "" });
             return;
         }
@@ -276,17 +284,17 @@ export default function RegistrationPage() {
         const currentParticipants = Number(participants || 0);
         
         if (currentParticipants < 10) {
-            alert("Community registration requires a minimum of 10 participants per category");
+            showToast("Community registration requires a minimum of 10 participants per category", "error");
             return;
         }
 
         if (hasFamilyBundle) {
-            alert("You cannot add community registration when you have a family bundle in cart. Please checkout separately.");
+            showToast("You cannot add community registration when you have a family bundle in cart. Please checkout separately.", "error");
             return;
         }
 
         // Validate jersey distribution matches participant count
-        const totalJerseys = Object.values(jerseys).reduce((sum, val) => sum + (Number(val) || 0), 0);
+        const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
         if (totalJerseys !== currentParticipants) {
             alert(`Jersey count (${totalJerseys}) must match participant count (${currentParticipants}) for this category`);
             return;
@@ -309,8 +317,8 @@ export default function RegistrationPage() {
             ),
         });
 
-        alert(`Category added! Total participants: ${totalWithCurrent}. Price per person: Rp ${pricePerPerson.toLocaleString("id-ID")}`);
-        
+        showToast(`Category added! Total participants: ${totalWithCurrent}. Price per person: Rp ${pricePerPerson.toLocaleString("id-ID")}`, "success");
+
         // Reset community fields to allow adding another category
         setParticipants("");
         setJerseys({ XS: "", S: "", M: "", L: "", XL: "", XXL: "" });
@@ -327,13 +335,13 @@ export default function RegistrationPage() {
         } else if (type === "family") {
             const category = categories.find((c) => c.id === categoryId);
             if (!category || !category.bundleSize) {
-                alert("Invalid family bundle selection");
+                showToast("Invalid family bundle selection", "error");
                 return;
             }
 
-            const totalJerseys = Object.values(jerseys).reduce((sum, val) => sum + (Number(val) || 0), 0);
+            const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
             if (totalJerseys !== category.bundleSize && totalJerseys > 0) {
-                alert(`Please complete jersey selection (${totalJerseys}/${category.bundleSize}) or clear it before checkout`);
+                showToast(`Please complete jersey selection (${totalJerseys}/${category.bundleSize}) or clear it before checkout`, "error");
                 return;
             }
 
@@ -351,9 +359,9 @@ export default function RegistrationPage() {
 
             // If there's a current category being filled, validate it before checkout
             if (currentParticipants > 0) {
-                const totalJerseys = Object.values(jerseys).reduce((sum, val) => sum + (Number(val) || 0), 0);
+                const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
                 if (totalJerseys !== currentParticipants) {
-                    alert(`Jersey count (${totalJerseys}) must match participant count (${currentParticipants}). Please complete or clear the current category before checkout.`);
+                    showToast(`Jersey count (${totalJerseys}) must match participant count (${currentParticipants}). Please complete or clear the current category before checkout.`, "error");
                     return;
                 }
             }
@@ -442,7 +450,7 @@ export default function RegistrationPage() {
         >
             <div className="mx-auto w-full max-w-2xl px-4">
                 <h1 className="text-4xl md:text-6xl text-center font-bold mb-8 tracking-wide text-white drop-shadow-lg font-moderniz" data-aos="fade-down">
-                    CIPUTRA COLOR RUN
+                    CIPUTRA COLOR RUN 2026
                 </h1>
 
                 <section className="bg-white/95 backdrop-blur-md rounded-lg p-8 md:p-10 shadow-lg text-gray-800" data-aos="zoom-in" data-aos-delay="200">
@@ -584,7 +592,7 @@ export default function RegistrationPage() {
                                     }}
                                     required
                                 />
-                                <p className="text-xs text-gray-500 mt-1">PNG, JPG, JPEG (Max 5MB)</p>
+                                <p className="text-xs text-gray-500 mt-1">PNG, JPG, JPEG (Max 10MB, uploaded to cloud storage)</p>
                             </div>
                         </div>
 
@@ -783,18 +791,18 @@ export default function RegistrationPage() {
                                                 <div key={size} className="flex flex-col items-center">
                                                     <span className="text-xs font-medium text-gray-500 mb-2">{size}</span>
                                                     <input
-                                                        type="number"
-                                                        min={0}
-                                                        value={jerseys[size]}
-                                                        onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                                        className="w-full px-3 py-2 border-b-2 border-gray-200 bg-transparent text-center text-gray-800 placeholder-gray-400 focus:border-purple-500 focus:outline-none transition-colors text-base"
-                                                        placeholder="0"
+                                                      type="number"
+                                                      min={0}
+                                                      value={jerseys[size]}
+                                                      onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
+                                                      className="jersey-input shift-right"
+                                                      placeholder="0"
                                                     />
                                                 </div>
                                             ))}
                                         </div>
                                         <p className="text-xs text-gray-500 mt-3 text-center">
-                                            Total: {Object.values(jerseys).reduce((sum, val) => sum + (Number(val) || 0), 0)} / {selectedCategory?.bundleSize || 4}
+                                            Total: {Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0)} / {selectedCategory?.bundleSize || 4}
                                         </p>
                                     </div>
 
@@ -920,18 +928,18 @@ export default function RegistrationPage() {
                                                 <div key={size} className="flex flex-col items-center">
                                                     <span className="text-xs font-medium text-gray-500 mb-2">{size}</span>
                                                     <input
-                                                        type="number"
-                                                        min={0}
-                                                        value={jerseys[size]}
-                                                        onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                                        className="w-full px-3 py-2 border-b-2 border-gray-200 bg-transparent text-center text-gray-800 placeholder-gray-400 focus:border-emerald-500 focus:outline-none transition-colors text-base"
-                                                        placeholder="0"
+                                                      type="number"
+                                                      min={0}
+                                                      value={jerseys[size]}
+                                                      onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
+                                                      className="jersey-input shift-right"
+                                                      placeholder="0"
                                                     />
                                                 </div>
                                             ))}
                                         </div>
                                         <p className="text-xs text-gray-500 mt-3 text-center">
-                                            Total: {Object.values(jerseys).reduce((sum, val) => sum + (Number(val) || 0), 0)} / {participants || 0}
+                                            Total: {Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0)} / {participants || 0}
                                         </p>
                                     </div>
 

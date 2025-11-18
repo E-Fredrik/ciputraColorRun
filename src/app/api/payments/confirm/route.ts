@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { authenticateAdmin, unauthorizedResponse } from '../../middleware/auth';
+import nodemailer from "nodemailer";
 
 const prisma = new PrismaClient();
 
-/**
- * Generate a simple, readable access code from a name and ensure uniqueness.
- * Inspired by [`generateAccessCode`](src/app/api/payments/route.ts).
- */
 async function makeUniqueAccessCode(baseName: string): Promise<string> {
   const base = (baseName || 'user')
     .toLowerCase()
@@ -27,7 +24,7 @@ async function makeUniqueAccessCode(baseName: string): Promise<string> {
 }
 
 export async function POST(request: Request) {
-  // Authenticate admin (keeps your existing dev bypass logic)
+  // Authenticate admin (keeps your dev bypass logic)
   const auth = await authenticateAdmin(request);
   if (!auth.authenticated) {
     const host = request.headers.get('host') || '';
@@ -45,48 +42,103 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing registrationId' }, { status: 400 });
     }
 
-    // Update registration payment status to confirmed and include user
-    const registration = await prisma.registration.update({
+    // 0) Load registration + user
+    const registration = await prisma.registration.findUnique({
       where: { id: registrationId },
-      data: { paymentStatus: 'confirmed' },
-      include: { user: true },
+      include: { user: true, payments: true },
     });
+    if (!registration) return NextResponse.json({ error: 'Registration not found' }, { status: 404 });
 
-    // Ensure the user has an accessCode — create one if missing
-    let accessCode = registration.user?.accessCode;
-    if (!accessCode) {
-      accessCode = await makeUniqueAccessCode(registration.user?.name || registration.user?.email || `user${registration.user?.id}`);
-      await prisma.user.update({
-        where: { id: registration.user.id },
-        data: { accessCode },
-      });
-      // refresh registration.user.accessCode locally
-      registration.user.accessCode = accessCode;
+    // 1) Ensure we have an access code to email (generate but do not persist yet)
+    const accessCode = registration.user?.accessCode || await makeUniqueAccessCode(registration.user?.name || registration.user?.email || `user${Date.now()}`);
+
+    // 2) Build email content (same structure as sendQr route)
+    const accessHtml = accessCode
+      ? `<p><strong>Your access code:</strong> <code style="background:#f3f4f6;padding:4px 8px;border-radius:6px;">${accessCode}</code></p>
+         <p>Use this code in the mobile app or profile page to manage your registration.</p>`
+      : `<p>Your registration has been confirmed. No access code available.</p>`;
+
+    const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
+    const port = Number(process.env.EMAIL_PORT || 465);
+    const secure = (process.env.EMAIL_SECURE || 'true') === 'true';
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
+
+    if (!user || !pass) {
+      console.error('[confirm] Missing EMAIL_USER or EMAIL_PASS environment variables');
+      return NextResponse.json(
+        { error: 'SMTP credentials are not configured. Set EMAIL_USER and EMAIL_PASS.' },
+        { status: 500 }
+      );
     }
 
-    // Fire-and-forget: call sendQr endpoint and include accessCode so the email contains it.
-    (async () => {
-      try {
-        const sendQrResponse = await fetch(`${process.env.APP_URL || 'http://localhost:3000'}/api/payments/sendQr`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ registrationId, email: registration.user.email, accessCode }),
-        });
-        if (!sendQrResponse.ok) {
-          const text = await sendQrResponse.text().catch(() => '');
-          console.warn('payments/confirm: sendQr failed', sendQrResponse.status, text);
-        }
-      } catch (err) {
-        console.error('payments/confirm: sendQr error', err);
-      }
-    })();
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+    });
 
-    return NextResponse.json({ success: true, registration });
+    // verify and send email before changing DB
+    try {
+      await transporter.verify();
+    } catch (err: any) {
+      console.error('[confirm] Email transporter verification failed:', err);
+      return NextResponse.json(
+        { error: 'Email transporter verification failed. Check EMAIL_USER / EMAIL_PASS and provider settings.' },
+        { status: 500 }
+      );
+    }
+
+    try {
+      const mailOptions = {
+        from: `"Ciputra Color Run" <${user}>`,
+        to: registration.user?.email,
+        subject: 'Ciputra Color Run - Registration Confirmed',
+        html: `
+          <h1>Thank you for registering!</h1>
+          <p>Your payment has been confirmed for registration <strong>#${registration.id}</strong>.</p>
+          ${accessHtml}
+          <p>If you did not expect this email, please contact the event organiser.</p>
+        `,
+      };
+
+      const info = await transporter.sendMail(mailOptions);
+      console.log('[confirm] sendMail result:', { accepted: info.accepted, rejected: info.rejected });
+    } catch (err: any) {
+      console.error('[confirm] Error sending confirmation email:', err);
+      return NextResponse.json({ error: 'Failed to send confirmation email' }, { status: 500 });
+    }
+
+    // 3) Email succeeded -> perform DB updates in a transaction
+    const updated = await prisma.$transaction(async (tx) => {
+      // mark payments as confirmed
+      await tx.payment.updateMany({
+        where: { registrationId, status: 'pending' },
+        data: { status: 'confirmed' },
+      });
+
+      // ensure user accessCode persisted if we generated one
+      if (registration.user && !registration.user.accessCode) {
+        await tx.user.update({
+          where: { id: registration.user.id },
+          data: { accessCode },
+        });
+      }
+
+      // update registration paymentStatus
+      const reg = await tx.registration.update({
+        where: { id: registrationId },
+        data: { paymentStatus: 'confirmed' },
+        include: { user: true, payments: true },
+      });
+
+      return reg;
+    });
+
+    return NextResponse.json({ success: true, registration: updated });
   } catch (error: any) {
-    console.error('Error confirming payment:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
-    );
+    console.error('payments/confirm error:', error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

@@ -1,5 +1,10 @@
+// src/app/profilePage/PurchaseCard.tsx
+"use client";
+
+import * as React from "react";
 import { Card } from './components/ui/card';
 import { QrCode, Users, ShoppingBag, DollarSign } from 'lucide-react';
+import { toDataURL } from 'qrcode'; // generate QR image data URL instead of qrcode.react
 
 interface JerseySize {
   size: string;
@@ -25,6 +30,7 @@ type PurchaseData = CommunityPurchase | IndividualPurchase;
 
 interface PurchaseCardProps {
   purchase: PurchaseData;
+  qrCodeData: string | null; // QR payload (string) or null
 }
 
 // Format number to Indonesian Rupiah
@@ -32,7 +38,43 @@ function formatRupiah(amount: number): string {
   return 'Rp ' + amount.toLocaleString('id-ID');
 }
 
-export function PurchaseCard({ purchase }: PurchaseCardProps) {
+export function PurchaseCard({ purchase, qrCodeData }: PurchaseCardProps) {
+  const [qrImage, setQrImage] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+    async function gen() {
+      if (!qrCodeData) {
+        if (mounted) setQrImage(null);
+        return;
+      }
+
+      try {
+        // If qrCodeData already looks like a full URL, use it.
+        // Otherwise build absolute claim URL -> /claim/[token]
+        const payload =
+          typeof qrCodeData === "string" && qrCodeData.startsWith("http")
+            ? qrCodeData
+            : `${(typeof window !== "undefined" && window.location?.origin) || (process.env.NEXT_PUBLIC_APP_URL || "")}/claim/${qrCodeData}`;
+
+        const dataUrl = await toDataURL(payload, {
+          margin: 1,
+          color: {
+            dark: '#682950',
+            light: '#ffffff',
+          },
+        });
+
+        if (mounted) setQrImage(dataUrl);
+      } catch (e) {
+        console.error('Failed to generate QR data URL', e);
+        if (mounted) setQrImage(null);
+      }
+    }
+    gen();
+    return () => { mounted = false; };
+  }, [qrCodeData]);
+
   return (
     <Card className="overflow-hidden bg-white/70 backdrop-blur-xl border-white/90 shadow-2xl relative">
       {/* Gradient top accent - colorful gradient */}
@@ -52,7 +94,7 @@ export function PurchaseCard({ purchase }: PurchaseCardProps) {
         <div className="space-y-6 mb-8">
           {purchase.type === 'community' ? (
             <>
-              {/* Participant Count - turquoise/green gradient */}
+              {/* Participant Count */}
               <div className="flex items-start gap-4 p-4 rounded-2xl bg-gradient-to-br from-[#4EF9CD]/20 to-[#73E9DD]/20 border border-[#4EF9CD]/50 transition-all hover:shadow-lg hover:border-[#73E9DD]/70">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#73E9DD] to-[#4EF9CD] flex items-center justify-center shadow-lg flex-shrink-0">
                   <Users className="w-6 h-6 text-white" />
@@ -63,7 +105,7 @@ export function PurchaseCard({ purchase }: PurchaseCardProps) {
                 </div>
               </div>
 
-              {/* Jersey Sizes - soft green gradient */}
+              {/* Jersey Sizes */}
               <div className="p-4 rounded-2xl bg-gradient-to-br from-[#94DCAD]/20 to-[#4EF9CD]/15 border border-[#94DCAD]/50 transition-all hover:shadow-lg hover:border-[#94DCAD]/70">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#94DCAD] to-[#73E9DD] flex items-center justify-center shadow-lg">
@@ -86,7 +128,7 @@ export function PurchaseCard({ purchase }: PurchaseCardProps) {
                 </div>
               </div>
 
-              {/* Total Price - green background */}
+              {/* Total Price */}
               <div className="flex items-start gap-4 p-4 rounded-2xl bg-[#91DDAF] border border-[#91DDAF] transition-all hover:shadow-lg">
                 <div className="w-12 h-12 rounded-xl bg-white/30 flex items-center justify-center shadow-lg flex-shrink-0">
                   <DollarSign className="w-6 h-6 text-white" />
@@ -99,7 +141,7 @@ export function PurchaseCard({ purchase }: PurchaseCardProps) {
             </>
           ) : (
             <>
-              {/* Jersey Size - soft green gradient */}
+              {/* Jersey Size */}
               <div className="flex items-start gap-4 p-4 rounded-2xl bg-gradient-to-br from-[#94DCAD]/20 to-[#4EF9CD]/15 border border-[#94DCAD]/50 transition-all hover:shadow-lg hover:border-[#94DCAD]/70">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#94DCAD] to-[#73E9DD] flex items-center justify-center shadow-lg flex-shrink-0">
                   <ShoppingBag className="w-6 h-6 text-white" />
@@ -110,7 +152,7 @@ export function PurchaseCard({ purchase }: PurchaseCardProps) {
                 </div>
               </div>
 
-              {/* Price - green background */}
+              {/* Price */}
               <div className="flex items-start gap-4 p-4 rounded-2xl bg-[#91DDAF] border border-[#91DDAF] transition-all hover:shadow-lg">
                 <div className="w-12 h-12 rounded-xl bg-white/30 flex items-center justify-center shadow-lg flex-shrink-0">
                   <DollarSign className="w-6 h-6 text-white" />
@@ -123,25 +165,31 @@ export function PurchaseCard({ purchase }: PurchaseCardProps) {
             </>
           )}
         </div>
+        {/* ... Akhir dari detail pembelian ... */}
+
 
         {/* Divider */}
         <div className="h-px bg-gradient-to-r from-transparent via-[#D9D9D9]/60 to-transparent mb-8"></div>
 
-        {/* QR Code Section - cream background with colorful accents */}
+        {/* QR Code Section */}
         <div>
           <p className="text-sm text-[#682950]/70 mb-4 text-center">Registration QR Code</p>
           <div className="relative group">
-            <div className="w-full aspect-square max-w-xs mx-auto bg-gradient-to-br from-[#FFF1C5]/50 to-[#FFDFC0]/50 rounded-3xl flex items-center justify-center border-4 border-white shadow-2xl relative overflow-hidden transition-all hover:shadow-xl">
-              {/* Animated glow border - green gradient */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#66EBE4]/25 via-[#91DCAC]/25 to-[#9DD290]/25 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="w-full aspect-square max-w-xs mx-auto bg-gradient-to-br from-[#FFF1C5]/50 to-[#FFDFC0]/50 rounded-3xl flex items-center justify-center border-4 border-white shadow-2xl relative overflow-hidden transition-all hover:shadow-xl p-6"> {/* Tambahkan padding 'p-6' */}
               
-              {/* QR Icon */}
-              <div className="relative z-10 flex flex-col items-center gap-3">
-                <QrCode className="w-24 h-24 text-[#682950]/50" />
-                <p className="text-sm text-[#682950]/60">Scan to access</p>
-              </div>
+              {/* --- 4. GANTI BAGIAN INI --- */}
+              {qrImage ? (
+                <img src={qrImage} alt="QR Code" style={{ width: '100%', height: 'auto' }} />
+              ) : (
+                // Fallback jika tidak ada data QR
+                <div className="relative z-10 flex flex-col items-center gap-3">
+                  <QrCode className="w-24 h-24 text-[#682950]/50" />
+                  <p className="text-sm text-[#682950]/60">QR Code Not Available</p>
+                </div>
+              )}
+              {/* --- AKHIR DARI PENGGANTIAN --- */}
 
-              {/* Corner accents - green corners */}
+              {/* Corner accents */}
               <div className="absolute top-2 left-2 w-6 h-6 border-t-4 border-l-4 border-[#66EBE4] rounded-tl-2xl"></div>
               <div className="absolute top-2 right-2 w-6 h-6 border-t-4 border-r-4 border-[#91DCAC] rounded-tr-2xl"></div>
               <div className="absolute bottom-2 left-2 w-6 h-6 border-b-4 border-l-4 border-[#9DD290] rounded-bl-2xl"></div>

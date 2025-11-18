@@ -1,9 +1,17 @@
+// src/app/api/payments/route.ts
+
 import { NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
 import { PrismaClient, Prisma } from "@prisma/client";
+import { v2 as cloudinary } from "cloudinary";
 
 const prisma = new PrismaClient();
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 /**
  * Generates a unique access code from a full name.
@@ -19,34 +27,28 @@ async function generateAccessCode(
     "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
   >
 ): Promise<string> {
-  // 1. Create the base code: lowercase, replace non-alphanumeric with '_', trim trailing '_'
-  const baseCode = fullName
+  // Normalize name -> ascii, lowercase, remove non-alphanumeric, spaces -> underscore
+  const normalized = (fullName || "user")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip diacritics
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, "") // Remove special characters
-    .replace(/\s+/g, "_") // Replace one or more spaces with a single underscore
-    .replace(/_$/, ""); // Remove trailing underscore if any
+    .replace(/[^a-z0-9\s]/g, "") // remove punctuation
+    .trim()
+    .replace(/\s+/g, "_") // spaces -> underscore
+    .replace(/^_+|_+$/g, ""); // trim leading/trailing underscores
 
-  let accessCode = baseCode;
+  const base = normalized || `user`;
+
+  let code = base;
   let counter = 0;
 
-  // 2. Check for uniqueness and append a number if it already exists
-  // We loop until we find a code that is not in the database.
   while (true) {
-    const existingUser = await prismaTx.user.findUnique({
-      where: { accessCode: accessCode },
-    });
-
-    if (!existingUser) {
-      // This code is unique, we can use it.
-      break;
-    }
-
-    // This code is taken, increment counter and try again
-    counter++;
-    accessCode = `${baseCode}_${counter}`;
+    const exists = await prismaTx.user.findUnique({ where: { accessCode: code } });
+    if (!exists) return code;
+    counter += 1;
+    code = `${base}_${counter}`;
   }
-
-  return accessCode;
 }
 
 /**
@@ -78,6 +80,7 @@ async function generateUniqueBib(
 export async function POST(req: Request) {
   try {
     const form = await req.formData();
+    
     const registrationIdStr = form.get("registrationId") as string | null;
     const amountStr = (form.get("amount") as string) || undefined;
     const proofFile = form.get("proof") as File | null;
@@ -115,32 +118,48 @@ export async function POST(req: Request) {
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    const uploadsDir = path.resolve(process.cwd(), "public", "uploads");
-    await fs.mkdir(uploadsDir, { recursive: true });
+    // Upload proof to Cloudinary
+    let proofPath: string;
+    try {
+      const proofBuffer = Buffer.from(await proofFile.arrayBuffer());
+      const proofBase64 = `data:${proofFile.type};base64,${proofBuffer.toString("base64")}`;
+      
+      const proofUpload = await cloudinary.uploader.upload(proofBase64, {
+        folder: "ciputra-color-run/proofs",
+        public_id: `${txId}_proof`,
+        resource_type: "image",
+      });
 
-    // Save payment proof
-    const proofBuffer = Buffer.from(await proofFile.arrayBuffer());
-    const proofExt = (proofFile.name?.split(".").pop() || "bin").replace(
-      /[^a-zA-Z0-9]/g,
-      ""
-    );
-    const proofFilename = `${txId}_proof.${proofExt}`;
-    const proofPath = path.join(uploadsDir, proofFilename);
-    await fs.writeFile(proofPath, proofBuffer);
+      proofPath = proofUpload.secure_url;
+      console.log("[payments] Uploaded proof to Cloudinary:", proofPath);
+    } catch (uploadErr) {
+      console.error("Cloudinary proof upload failed:", uploadErr);
+      return NextResponse.json(
+        { error: "Failed to upload proof image. Please try again." },
+        { status: 500 }
+      );
+    }
 
-    // Save ID card photo if provided
+    // Upload ID card photo if provided
     let idCardPhotoPath: string | undefined;
     if (idCardPhotoFile) {
-      const idBuffer = Buffer.from(await idCardPhotoFile.arrayBuffer());
-      const idExt = (idCardPhotoFile.name?.split(".").pop() || "bin").replace(
-        /[^a-zA-Z0-9]/g,
-        ""
-      );
-      const idFilename = `${txId}_id.${idExt}`;
-      const idPath = path.join(uploadsDir, idFilename);
-      await fs.writeFile(idPath, idBuffer);
-      idCardPhotoPath = `/uploads/${idFilename}`;
-    };
+      try {
+        const idBuffer = Buffer.from(await idCardPhotoFile.arrayBuffer());
+        const idBase64 = `data:${idCardPhotoFile.type};base64,${idBuffer.toString("base64")}`;
+        
+        const idUpload = await cloudinary.uploader.upload(idBase64, {
+          folder: "ciputra-color-run/id-cards",
+          public_id: `${txId}_id`,
+          resource_type: "image",
+        });
+
+        idCardPhotoPath = idUpload.secure_url;
+        console.log("[payments] Uploaded ID card to Cloudinary:", idCardPhotoPath);
+      } catch (uploadErr) {
+        console.error("Cloudinary ID card upload failed:", uploadErr);
+        // Don't fail the entire request, just log the error
+      }
+    }
 
     // parse cart items JSON (if provided)
     let cartItems: any[] = [];
@@ -160,14 +179,8 @@ export async function POST(req: Request) {
           ? await prismaTx.user.findUnique({ where: { email } })
           : null;
 
-      // helper to create a quick access code if needed
-      const quickAccessCode = (name?: string) =>
-        `${(name || "u").replace(/\s+/g, "").slice(0, 6)}-${Date.now()
-          .toString(36)
-          .slice(-6)}`;
-
       if (!user) {
-        const accessCode = quickAccessCode(fullName);
+        const accessCode = await generateAccessCode(fullName || "user", prismaTx);
         user = await prismaTx.user.create({
           data: {
             name: fullName,
@@ -297,12 +310,13 @@ export async function POST(req: Request) {
         createdQrCodes.push(qr);
       }
 
-      // Create payment record
+      // Create payment record with Cloudinary URLs
       const paymentData: any = {
         registrationId: registration.id,
         transactionId: txId,
-        proofOfPayment: `/uploads/${proofFilename}`,
+        proofOfPayment: proofPath, // Cloudinary URL
         status: "pending",
+        amount: new Prisma.Decimal(String(amount ?? 0)),
       };
 
       if (amount !== undefined && !Number.isNaN(amount)) {
@@ -314,18 +328,26 @@ export async function POST(req: Request) {
       return { registration, payment, createdQrCodes };
     }
 
-    // run transaction
-    const result = await prisma.$transaction((tx: any) => createRegistrationAndPayment(tx));
+    // run transaction (increase interactive transaction timeout to avoid 5s default)
+    // configurable via PRISMA_TX_TIMEOUT (ms). Accelerate enforces a 15000 ms max.
+    // Clamp to 15000 to avoid P6005 errors from the platform.
+    const configured = Number(process.env.PRISMA_TX_TIMEOUT || 15000);
+    const txTimeout = Math.min(Math.max(0, configured || 15000), 15000);
+     const result = await prisma.$transaction((tx: any) => createRegistrationAndPayment(tx), { timeout: txTimeout });
 
     return NextResponse.json({
       success: true,
       payment: result.payment,
       qrCodes: result.createdQrCodes,
     });
-  } catch (err) {
-    console.error("Payment API error:", err);
+  } catch (err: unknown) {
+    console.error("payments POST error:", err);
     const message =
-      err && (err as any).message ? (err as any).message : "internal";
+      err instanceof Error
+        ? err.message
+        : typeof err === "string"
+        ? err
+        : JSON.stringify(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

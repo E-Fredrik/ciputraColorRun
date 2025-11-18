@@ -564,6 +564,23 @@
   .about-divider { display: none; }
 }
 
+/* Previously hidden on small screens — keep it visible but reduce height on mobile */
+@media (max-width: 768px) {
+  .about-left {
+    display: block; /* ensure visible on mobile */
+    min-height: 260px; /* smaller footprint on mobile */
+  }
+
+  .about-divider {
+    display: none; /* keep divider hidden on small screens to avoid overlap */
+  }
+}
+
+/* Keep existing desktop sizing */
+@media (min-width: 769px) {
+  .about-left { min-height: 600px; }
+}
+
 /* Decor assets container (positioned inside .home_top_content) */
 .decor-assets {
   position: absolute;
@@ -1099,114 +1116,50 @@
 .timeline-scroll-wrap {
   position: relative;
   z-index: 2;
-  overflow-x: auto;  /* horizontal only */
-  overflow-y: hidden; /* <- prevent vertical scroll inside this wrapper */
+  overflow-x: visible;        /* no horizontal scrolling */
+  overflow-y: visible;
   padding: 1.5rem 0;
-  -webkit-overflow-scrolling: touch;
+  -webkit-overflow-scrolling: auto;
   scroll-padding: 1rem;
 }
 
+/* Use a responsive grid so cards lay out in rows instead of a single horizontal strip */
 .timeline-cards {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
-  min-width: max-content;
+  width: 100%;
+  margin: 0 auto;
   padding: 0 1rem;
+  align-items: start;
+  justify-items: stretch;
+  box-sizing: border-box;
 }
 
+/* Keep card sizing modest and responsive */
 .timeline-card {
-  position: relative;
-  z-index: 2;
+  width: 100%;
+  max-width: 420px;
+  min-height: 160px;
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 2rem 1.5rem;
-  min-width: 320px;
-  max-width: 380px;
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-  backdrop-filter: blur(8px) saturate(1.02);
-  -webkit-backdrop-filter: blur(8px) saturate(1.02);
-  border: 1px solid rgba(31,98,81,0.08);
-  box-shadow: 0 10px 28px rgba(16,24,40,0.06);
-  flex-shrink: 0;
 }
 
-.timeline-scroll-wrap::-webkit-scrollbar {
-  height: 10px;
-}
-
-.timeline-scroll-wrap::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, #91DCAC, #F581A4);
-  border-radius: 5px;
-}
-
-.timeline-scroll-wrap::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.15);
-  border-radius: 5px;
-}
-
-.timeline-card .timeline-badge {
-  font-family: var(--font-moderniz);
-  font-weight: 700;
-  font-size: 0.75rem;
-  color: #0f5132;
-  background: linear-gradient(90deg, rgba(145,220,172,0.18), rgba(245,129,164,0.08));
-  padding: 0.5rem 1rem;
-  border-radius: 999px;
-  display: inline-block;
-  width: fit-content;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.timeline-card .timeline-date {
-  font-family: var(--font-moderniz);
-  color: #0f5132;
-  font-weight: 800;
-  font-size: 1.05rem;
-  letter-spacing: 0.3px;
-}
-
-.timeline-card .timeline-text {
-  font-family: var(--font-mustica);
-  color: #27443a;
-  font-weight: 600;
-  font-size: 0.95rem;
-  line-height: 1.55;
-}
-
-@media (max-width: 768px) {
+/* Mobile: single column with slightly reduced paddings */
+@media (max-width: 640px) {
+  .timeline-cards {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 0 0.75rem;
+  }
   .timeline-card {
-    min-width: 280px;
-    padding: 1.5rem 1rem;
-  }
-
-  .timeline-card .timeline-date {
-    font-size: 0.95rem;
-  }
-
-  .timeline-card .timeline-text {
-    font-size: 0.9rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .timeline-card {
-    min-width: 260px;
-    padding: 1.25rem 1rem;
-  }
-
-  .timeline-card .timeline-badge {
-    font-size: 0.7rem;
-    padding: 0.4rem 0.8rem;
-  }
-
-  .timeline-card .timeline-date {
-    font-size: 0.9rem;
-  }
-
-  .timeline-card .timeline-text {
-    font-size: 0.85rem;
+    padding: 1rem;
+    min-height: 140px;
   }
 }
 
@@ -1456,85 +1409,75 @@
   }
 }
 
-/* Prevent inner vertical scrollbars coming from pricing / benefits area
-   - keep timeline and pricing horizontal scroll intact
-   - ensure benefit icons cannot grow beyond intended size */
-.pricing-table-wrap,
-.benefits-section,
-.benefits-grid,
-.benefit-card {
-  /* prevent these containers from producing their own vertical scrollbars */
+/* --- Force pricing table to be non-scrollable and fully responsive --- */
+/* Place this at the end so it overrides previous rules */
+.pricing-table-wrap {
+  overflow-x: hidden !important;
   overflow-y: hidden !important;
-  max-height: none !important;
-  /* hide vertical scrollbar chrome in WebKit/Firefox for these wrappers */
-  -ms-overflow-style: none; /* IE/Edge */
-  scrollbar-width: none; /* Firefox */
-}
-
-/* Strong override: prevent inner vertical scrollbars while preserving horizontal scroll */
-html body .pricing-table-wrap,
-html body .timeline-scroll-wrap,
-html body .benefits-section,
-html body .benefits-grid,
-html body .benefit-card {
-  /* ensure vertical scroll never appears inside these containers */
-  overflow-y: hidden !important;
-  /* allow horizontal scrolling where intended */
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch !important;
-  /* don't let any accidental height constraints produce scrollbars */
-  max-height: none !important;
-  /* hide any scrollbar chrome defensively (no visual change because overflow-y is hidden) */
-  -ms-overflow-style: none !important; /* IE/Edge */
-  scrollbar-width: none !important; /* Firefox */
-}
-
-/* ensure table wrapper keeps horizontal scrolling and header sticky */
-html body .pricing-table-wrap {
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-}
-
-/* ensure timeline wrapper keeps horizontal scrolling and no vertical */
-html body .timeline-scroll-wrap {
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-}
-
-/* ensure nothing inside forces a vertical overflow */
-html body .pricing-table,
-html body .pricing-table * {
-  max-height: none !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-}
-
-/* --- Fix: prevent <main> from having its own vertical scrollbar --- */
-/* Ensure the document (html/body) is the scroll container and main is content-only. */
-main,
-main[data-slot="main"],
-.app-main {
-  overflow-y: visible !important;   /* don't create internal vertical scroll */
-  overflow-x: visible !important;
-  height: auto !important;
-  min-height: 100vh !important;     /* keep full viewport height but not constrained */
   -webkit-overflow-scrolling: auto !important;
 }
 
-/* Make sure html/body allow normal page scrolling */
-html, body {
-  height: auto !important;
-  overflow-y: auto !important;
+/* Allow the table to shrink instead of forcing horizontal scroll */
+.pricing-table {
+  min-width: 0 !important;
+  width: 100% !important;
+  table-layout: auto !important;
+  border-collapse: collapse;
 }
 
-/* Defensive: some wrappers previously forced scrollbars — ensure they don't create vertical scroll */
-.pricing-table-wrap,
-.timeline-scroll-wrap,
-.benefits-section,
-.partner-loop-with-borders,
-.sponsor-container,
-.home_top,
-.doc-decor,
-.doc-thumb-overlays {
-  overflow-y: hidden !important; /* only inner horizontal scrollers should remain (explicit) */
+/* Make cells wrap instead of forcing wide columns */
+.pricing-table thead th,
+.pricing-table tbody td {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* Disable sticky header behavior (sticky can force layout that causes scroll) */
+.pricing-table thead th {
+  position: static !important;
+  top: auto !important;
+  z-index: auto !important;
+}
+
+/* Mobile: convert rows into stacked cards (no horizontal scroll) */
+@media (max-width: 720px) {
+  .pricing-table {
+    display: block !important;
+  }
+
+  .pricing-table thead {
+    display: none !important;
+  }
+
+  .pricing-table tbody {
+    display: block !important;
+  }
+
+  .pricing-table tbody tr {
+    display: block;
+    margin-bottom: 0.75rem;
+    background: transparent;
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+
+  .pricing-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px dashed rgba(0,0,0,0.04);
+  }
+
+  .pricing-table tbody td.col-item {
+    font-weight: 700;
+  }
+}
+
+/* Safety: ensure table wrapper cannot create internal vertical scrollbar */
+html body .pricing-table-wrap,
+html body .pricing-table {
+  max-height: none !important;
+  overflow: visible !important;
 }
