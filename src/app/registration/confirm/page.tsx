@@ -5,6 +5,9 @@ import { useCart } from "../../context/CartContext";
 import { useState, useEffect } from "react";
 
 export default function ConfirmPaymentPage() {
+    const [showPopup, setShowPopup] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
+
     const search = useSearchParams();
     const router = useRouter();
     const { items, clearCart, totalPrice, userDetails } = useCart();
@@ -52,11 +55,12 @@ export default function ConfirmPaymentPage() {
         }
     }, [userDetails, search]);
 
-    // Redirect if cart is empty when coming from cart
+    // Redirect if cart is empty when coming from cart\
     useEffect(() => {
-        if (fromCart && items.length === 0) {
+        if (!submitted && fromCart && items.length === 0) {
             router.push("/registration");
         }
+
     }, [fromCart, items, router]);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -102,8 +106,10 @@ export default function ConfirmPaymentPage() {
                 throw new Error(errorData.error || "Upload failed");
             }
 
-            clearCart();
-            router.push(`/registration/confirm?status=success`);
+            clearCart();    
+            setSubmitted(true);
+            setShowPopup(true);
+            
         } catch (err: any) {
             setError(err.message || "Upload failed");
         } finally {
@@ -238,6 +244,31 @@ export default function ConfirmPaymentPage() {
                     </form>
                 </section>
             </div>
+            {showPopup && (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl p-6 max-w-sm w-full text-center shadow-xl animate-fadeIn">
+            <h3 className="text-xl font-bold mb-2">Pembayaran Berhasil!</h3>
+            <p className="text-gray-600 mb-6">
+                Terima kasih! Silakan gabung ke grup WhatsApp untuk info penting acara.
+            </p>
+
+            <a
+                href="https://chat.whatsapp.com/GROUP_LINK_DI_SINI"
+                target="_blank"
+                className="block w-full bg-green-500 text-white py-3 rounded-full font-semibold hover:bg-green-600 transition"
+            >
+                Join Grup WhatsApp
+            </a>
+
+            <button
+                onClick={() => router.push("/")}
+                className="mt-3 w-full py-3 rounded-full border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50"
+            >
+                Kembali ke Beranda
+            </button>
+        </div>
+    </div>
+)}
         </main>
     );
 }
