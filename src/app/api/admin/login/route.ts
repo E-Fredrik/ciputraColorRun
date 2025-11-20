@@ -11,8 +11,7 @@ export async function POST(request: Request) {
     // Get credentials from environment variables
     const ADMIN_USER = process.env.ADMIN_USER;
     const ADMIN_PASS = process.env.ADMIN_PASS;
-    const ADMIN_ACCESS_CODE =
-      process.env.ADMIN_ACCESS_CODE;
+    const ADMIN_ACCESS_CODE = process.env.ADMIN_ACCESS_CODE;
 
     // Validate input
     if (!username || !password) {
@@ -31,6 +30,12 @@ export async function POST(request: Request) {
 
     if (!adminUser || adminUser.role !== "admin") {
       return NextResponse.json({ error: "Admin user not found in database" }, { status: 401 });
+    }
+
+    // ensure env access code is present before encoding
+    if (!ADMIN_ACCESS_CODE) {
+      console.error("POST /api/admin/login: missing ADMIN_ACCESS_CODE env var");
+      return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
     }
 
     // Set secure cookie
