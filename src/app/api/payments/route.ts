@@ -306,7 +306,7 @@ export async function POST(req: Request) {
           if (capacity && capacity > 0) {
             const claimsCount = await prismaTx.earlyBirdClaim.count({ where: { categoryId: catId } });
             const toCreate = Math.max(0, Math.min(
-              createdParticipants.filter(r => r.categoryId === catId).length,
+              createdParticipants.filter((r: any) => r.categoryId === catId).length,
               capacity - claimsCount
             ));
             if (toCreate > 0) {
