@@ -12,7 +12,7 @@ import DocDecor from "./components/DocDecor";
 export default function Home() {
     const [loading, setLoading] = useState(true);
 	// Jumbotron image path (move from CSS to inline so Vercel serves it reliably)
-	const jumbotronImage = "/Homepage/home_bg.jpg";
+	const jumbotronImage = "/homepage/home_bg.jpg";
 
      // Refresh AOS animations when page loads
      useEffect(() => {
@@ -56,13 +56,13 @@ export default function Home() {
 
 	// list documentation images placed in /public/Homepage/documentation
 	const docImages = [
-		"/Homepage/documentation/doc1.jpg",
-		"/Homepage/documentation/doc2.jpg",
-		"/Homepage/documentation/doc3.jpg",
-		"/Homepage/documentation/doc4.jpg",
-		"/Homepage/documentation/doc5.jpg",
-		"/Homepage/documentation/doc6.jpg",
-		"/Homepage/documentation/doc7.jpg",
+		"/homepage/documentation/doc1.jpg",
+		"/homepage/documentation/doc2.jpg",
+		"/homepage/documentation/doc3.jpg",
+		"/homepage/documentation/doc4.jpg",
+		"/homepage/documentation/doc5.jpg",
+		"/homepage/documentation/doc6.jpg",
+		"/homepage/documentation/doc7.jpg",
 	];
 
 	return (
@@ -341,7 +341,7 @@ export default function Home() {
 						>
 							<div className="benefit-icon-wrap">
 								<img
-									src="/Homepage/jersey-medal.png"
+									src="/homepage/jersey-medal.png"
 									alt="Jersey & Medali"
 									className="benefit-image"
 								/>
