@@ -60,9 +60,11 @@ export async function POST(request: Request) {
       if (participants && participants.length > 0) {
         const categoryMap: Record<number, number> = {};
         participants.forEach((p) => {
-          categoryMap[p.categoryId] = (categoryMap[p.categoryId] || 0) + 1;
+          const cid = typeof p.categoryId === "number" ? p.categoryId : null;
+          if (cid === null) return; // skip participants without a category
+          categoryMap[cid] = (categoryMap[cid] || 0) + 1;
         });
-
+ 
         for (const [catIdStr, count] of Object.entries(categoryMap)) {
           const catId = Number(catIdStr);
           const claims = await tx.earlyBirdClaim.findMany({
