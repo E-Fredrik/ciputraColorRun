@@ -68,6 +68,9 @@ export default function LODashboard() {
   const [error, setError] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentDetail | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [declineReason, setDeclineReason] = useState("");
+  const [showDeclineModal, setShowDeclineModal] = useState(false);
+  const [pendingDeclineId, setPendingDeclineId] = useState<number | null>(null);
 
   // Fetch status counts for all tabs
   useEffect(() => {
@@ -147,14 +150,27 @@ export default function LODashboard() {
   };
 
   const handleDecline = async (registrationId: number) => {
-    if (!confirm('Decline this payment? Early-bird slots will be restored if applicable.')) return;
+    setPendingDeclineId(registrationId);
+    setShowDeclineModal(true);
+  };
+
+  const confirmDecline = async () => {
+    if (!pendingDeclineId) return;
+    
+    if (!declineReason.trim()) {
+      alert('Please provide a reason for declining this payment');
+      return;
+    }
     
     try {
       const res = await fetch('/api/payments/decline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ registrationId }),
+        body: JSON.stringify({ 
+          registrationId: pendingDeclineId,
+          reason: declineReason 
+        }),
       });
 
       const body = await res.json().catch(() => ({}));
@@ -162,10 +178,13 @@ export default function LODashboard() {
         throw new Error(body?.error || 'Failed to decline');
       }
 
-      alert('Payment declined successfully.');
+      alert('Payment declined successfully. Email notification sent to user.');
       fetchPayments();
-      fetchStatusCounts(); // Refresh counts
+      fetchStatusCounts();
       setShowDetailsModal(false);
+      setShowDeclineModal(false);
+      setDeclineReason("");
+      setPendingDeclineId(null);
     } catch (err: any) {
       alert('Error: ' + err.message);
     }
@@ -339,7 +358,7 @@ export default function LODashboard() {
                             <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#73e9dd]/20 text-[#73e9dd] border border-[#73e9dd]/50 capitalize">
                               {payment.registrationType}
                             </span>
-re                          </div>
+                          </div>
                           <div className="flex flex-wrap gap-4 text-sm text-[#ffdfc0]/60">
                             <span className="flex items-center gap-1">
                               <Mail size={14} /> {payment.email}
@@ -652,6 +671,45 @@ re                          </div>
                   Close
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Decline Reason Modal */}
+      {showDeclineModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-[#232326] rounded-2xl max-w-md w-full p-6 border-2 border-red-500/30">
+            <h3 className="text-xl font-bold text-red-300 mb-4">Decline Payment</h3>
+            <p className="text-[#ffdfc0]/80 text-sm mb-4">
+              Please provide a reason for declining this payment. This will be sent to the user via email.
+            </p>
+            <textarea
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+              className="w-full px-4 py-3 bg-[#18181b] border border-red-500/30 text-[#ffdfc0] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+              placeholder="e.g., Payment proof is unclear, amount doesn't match, transfer not found..."
+              rows={4}
+              required
+            />
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowDeclineModal(false);
+                  setDeclineReason("");
+                  setPendingDeclineId(null);
+                }}
+                className="flex-1 px-4 py-2 border border-[#73e9dd]/30 text-[#ffdfc0] rounded-lg hover:bg-[#18181b] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDecline}
+                disabled={!declineReason.trim()}
+                className="flex-1 px-4 py-2 bg-red-500/20 border border-red-500/50 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Confirm Decline
+              </button>
             </div>
           </div>
         </div>

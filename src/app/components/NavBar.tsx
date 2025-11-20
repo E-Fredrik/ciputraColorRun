@@ -191,7 +191,7 @@ export default function NavBar() {
                     {/* Mobile Menu */}
                     {isMenuOpen && (
                         <div className="absolute top-full left-0 right-0 md:hidden">
-                            <div className="bg-[#0f1724]/95 backdrop-blur-lg border-b border-white/10">
+                            <div className="nav-glass backdrop-blur-lg border-b ">
                                 <div className="flex flex-col items-end px-6 py-6 gap-6">
                                     <nav className="flex flex-col items-end gap-4 w-full">
                                         <Link

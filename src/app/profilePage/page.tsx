@@ -67,38 +67,84 @@ export default function App() {
         }
         const { registrations } = await res.json();
 
-        // map registrations -> PurchaseData expected by PurchaseCard
-        const mapped: PurchaseData[] = (registrations || []).map((reg: any) => {
-          const participants = reg.participants || [];
-          const qrCode = (reg.qrCodes && reg.qrCodes[0]) ? reg.qrCodes[0].qrCodeData : null;
+        // Split each registration into one PurchaseData per category.
+        const mapped: PurchaseData[] = [];
 
-          if (reg.registrationType === 'community' || reg.registrationType === 'family' || participants.length > 1) {
-            // aggregate jersey sizes
+        (registrations || []).forEach((reg: any) => {
+          const participants = reg.participants || [];
+          // group participants by categoryId
+          const byCat: Record<number, any[]> = {};
+          participants.forEach((p: any) => {
+            const cid = Number(p.category?.id ?? 0);
+            byCat[cid] = byCat[cid] || [];
+            byCat[cid].push(p);
+          });
+
+          const totalAmountAll = Number(reg.totalAmount ?? 0);
+          const totalParts = participants.length || 1;
+
+          // First try to compute per-category totals from explicit per-participant prices (if present)
+          const explicitPerParticipant = participants.every((p: any) => p.price != null || p.unitPrice != null);
+
+          // accumulate computed amounts to fix rounding remainder later
+          let accumulated = 0;
+          const catEntries = Object.entries(byCat);
+
+          catEntries.forEach(([catIdStr, parts], idx) => {
+            const catId = Number(catIdStr);
+            const qrForCat = Array.isArray(reg.qrCodes) ? reg.qrCodes.find((q: any) => Number(q.categoryId) === catId) : null;
+            const qrCodeData = qrForCat?.qrCodeData ?? null;
+
+            // jersey aggregation
             const sizesMap: Record<string, number> = {};
-            for (const p of participants) {
+            parts.forEach((p: any) => {
               const size = p.jersey?.size || 'M';
               sizesMap[size] = (sizesMap[size] || 0) + 1;
-            }
+            });
             const jerseySizes = Object.entries(sizesMap).map(([size, count]) => ({ size, count }));
-            return {
-              type: 'community',
-              category: participants[0]?.category?.name || (reg.registrationType === 'family' ? 'Family Bundle' : 'Community'),
-              participantCount: participants.length,
-              jerseySizes,
-              totalPrice: Number(reg.totalAmount ?? 0),
-              qrCodeData: qrCode,
-            } as PurchaseData;
-          } else {
-            // individual
-            const p = participants[0] || {};
-            return {
-              type: 'individual',
-              category: p.category?.name || reg.registrationType || 'Individual',
-              jerseySize: p.jersey?.size || 'M',
-              price: Number(reg.totalAmount ?? 0),
-              qrCodeData: qrCode,
-            } as PurchaseData;
-          }
+
+            const categoryLabel = parts[0]?.category?.name ?? (reg.registrationType === 'family' ? 'Family Bundle' : 'Community');
+
+            let totalPriceForCat = 0;
+
+            if (explicitPerParticipant) {
+              // sum explicit per-participant prices (prefer p.price then p.unitPrice)
+              totalPriceForCat = parts.reduce((s: number, p: any) => s + Number(p.price ?? p.unitPrice ?? 0), 0);
+            } else {
+              // fallback: proportional share by headcount
+              // compute raw share (not rounded) and round to integer; last category absorbs remainder
+              const rawShare = (totalAmountAll * parts.length) / totalParts;
+              if (idx === catEntries.length - 1) {
+                // last group: give remaining amount to ensure sum matches totalAmountAll
+                totalPriceForCat = totalAmountAll - accumulated;
+              } else {
+                totalPriceForCat = Math.round(rawShare);
+              }
+            }
+
+            accumulated += totalPriceForCat;
+
+            // decide shape
+            if (parts.length === 1 && reg.registrationType === 'individual') {
+              const p = parts[0];
+              mapped.push({
+                type: 'individual',
+                category: p.category?.name || categoryLabel,
+                jerseySize: p.jersey?.size || 'M',
+                price: totalPriceForCat,
+                qrCodeData,
+              } as PurchaseData);
+            } else {
+              mapped.push({
+                type: 'community',
+                category: categoryLabel,
+                participantCount: parts.length,
+                jerseySizes,
+                totalPrice: totalPriceForCat,
+                qrCodeData,
+              } as PurchaseData);
+            }
+          });
         });
 
         setPurchases(mapped);

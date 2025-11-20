@@ -10,10 +10,12 @@ import AboutCarousel from "./components/AboutCarousel";
 import DocDecor from "./components/DocDecor";
 
 export default function Home() {
-	const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
+	// Jumbotron image path (move from CSS to inline so Vercel serves it reliably)
+	const jumbotronImage = "/Homepage/home_bg.jpg";
 
-	// Refresh AOS animations when page loads
-	useEffect(() => {
+     // Refresh AOS animations when page loads
+     useEffect(() => {
 		if (typeof window !== "undefined" && (window as any).AOS) {
 			(window as any).AOS.refresh();
 		}
@@ -65,7 +67,13 @@ export default function Home() {
 
 	return (
 		<main className="bg-white overflow-hidden">
-			<div className="home_top pt-20">
+			{/* Jumbotron with inline background image (gradient overlay kept inline) */}
+			<div
+				className="home_top pt-20"
+				style={{
+					backgroundImage: `linear-gradient(rgba(141,214,166,0.6) 0%, rgba(203,220,209,0.4) 50%, rgba(239,146,155,0.5) 100%), url('${jumbotronImage}')`,
+				}}
+			>
 				<div className="home_top_content">
 					<img
 						src="/images/logo.png"

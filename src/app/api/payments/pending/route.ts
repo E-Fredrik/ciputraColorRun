@@ -53,6 +53,7 @@ export async function GET(request: Request) {
           id: p.id,
           amount: p.amount,
           proofOfPayment: p.proofOfPayment,
+          proofSenderName: p.proofSenderName, // NEW
           status: p.status,
         })),
         user: {

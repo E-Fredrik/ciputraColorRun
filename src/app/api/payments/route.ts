@@ -52,29 +52,27 @@ async function generateAccessCode(
 }
 
 /**
- * Generate a bib number with category-based prefix and ensure uniqueness.
- * Example: categoryName "3K" -> prefix "3" -> bib "3XXXX" (4 random digits)
+ * Generate a bib number with category-based prefix and participant ID suffix.
+ * - 3km: "3" + 4-digit padded ID (e.g., "30001")
+ * - 5km: "5" + 4-digit padded ID (e.g., "50002")
+ * - 10km: "10" + 4-digit padded ID (e.g., "100003")
+ * 
+ * @param categoryName The race category name (e.g., "3km", "5km", "10km")
+ * @param participantId The participant's unique ID from the database
  */
-async function generateUniqueBib(
-  categoryName: string | undefined,
-  prismaTx: Omit<
-    PrismaClient,
-    "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
-  >
-): Promise<string> {
-  const prefixMatch = (categoryName || "").match(/^(\d{1,2})/);
-  const prefix = prefixMatch ? prefixMatch[1] : "0"; // fallback prefix
-
-  const makeCandidate = () => `${prefix}${Math.floor(1000 + Math.random() * 9000)}`;
-
-  for (let attempt = 0; attempt < 8; attempt++) {
-    const candidate = makeCandidate();
-    const exists = await prismaTx.participant.findFirst({ where: { bibNumber: candidate } });
-    if (!exists) return candidate;
-  }
-
-  // Last resort: append timestamp
-  return `${prefix}${Date.now().toString().slice(-6)}`;
+function generateBibNumber(categoryName: string | undefined, participantId: number): string {
+  // Extract numeric prefix from category name
+  const match = (categoryName || "").match(/^(\d{1,2})/);
+  const prefix = match ? match[1] : "0"; // "3", "5", or "10"
+  
+  // Determine padding based on prefix length
+  // "3" or "5" -> 4 digits (total 5), "10" -> 4 digits (total 6)
+  const paddingLength = prefix === "10" ? 4 : 4;
+  
+  // Pad participant ID to ensure consistent length
+  const paddedId = participantId.toString().padStart(paddingLength, "0");
+  
+  return `${prefix}${paddedId}`;
 }
 
 export async function POST(req: Request) {
@@ -102,6 +100,7 @@ export async function POST(req: Request) {
     const medicalHistory = (form.get("medicalHistory") as string) || undefined;
     const registrationType =
       (form.get("registrationType") as string) || "individual";
+    const proofSenderName = (form.get("proofSenderName") as string) || undefined;
 
     if (!proofFile) {
       return NextResponse.json(
@@ -226,7 +225,6 @@ export async function POST(req: Request) {
         registrationId: number;
         categoryId: number;
         jerseyId: number;
-        bibNumber?: string;
       }> = [];
 
       for (const item of cartItems || []) {
@@ -245,12 +243,10 @@ export async function POST(req: Request) {
             });
             if (j) jerseyId = j.id;
           }
-          const bib = await generateUniqueBib(category?.name, prismaTx);
           participantRows.push({
             registrationId: registration.id,
             categoryId,
             jerseyId: jerseyId ?? (await prismaTx.jerseyOption.findFirst())?.id ?? 1,
-            bibNumber: bib,
           });
         } else if (item.type === "community" || item.type === "family") {
           const jerseysMap: Record<string, number> = item.jerseys || {};
@@ -259,34 +255,50 @@ export async function POST(req: Request) {
             if (count <= 0) continue;
             const jOpt = await prismaTx.jerseyOption.findUnique({ where: { size } });
             const jerseyId = jOpt ? jOpt.id : (await prismaTx.jerseyOption.findFirst())?.id ?? 1;
+
             for (let i = 0; i < count; i++) {
-              const bib = await generateUniqueBib(category?.name, prismaTx);
               participantRows.push({
                 registrationId: registration.id,
                 categoryId,
                 jerseyId,
-                bibNumber: bib,
               });
             }
           }
         }
       }
 
+      // Create participants WITHOUT bib numbers first (to get their IDs)
       if (participantRows.length > 0) {
         await prismaTx.participant.createMany({
           data: participantRows.map((r) => ({
             registrationId: r.registrationId,
             categoryId: r.categoryId,
             jerseyId: r.jerseyId,
-            bibNumber: r.bibNumber,
+            bibNumber: null, // will be updated below
           })),
+        });
+      }
+
+      // Now fetch the created participants and assign bib numbers based on their IDs
+      const createdParticipants = await prismaTx.participant.findMany({
+        where: { registrationId: registration.id },
+        include: { category: true },
+        orderBy: { id: 'asc' },
+      });
+
+      // Update each participant with their bib number
+      for (const participant of createdParticipants) {
+        const bibNumber = generateBibNumber(participant.category?.name, participant.id);
+        await prismaTx.participant.update({
+          where: { id: participant.id },
+          data: { bibNumber },
         });
       }
 
       // --- NEW: create EarlyBirdClaim when applicable (for individual registrations) ---
       // This ensures categories API will reflect consumed early-bird slots immediately.
       if (registrationType === "individual") {
-        const claimedByCategory = Array.from(new Set(participantRows.map(r => r.categoryId)));
+        const claimedByCategory = Array.from(new Set(createdParticipants.map(r => r.categoryId)));
         for (const catId of claimedByCategory) {
           const cat = await prismaTx.raceCategory.findUnique({ where: { id: catId } });
           if (!cat) continue;
@@ -294,9 +306,7 @@ export async function POST(req: Request) {
           if (capacity && capacity > 0) {
             const claimsCount = await prismaTx.earlyBirdClaim.count({ where: { categoryId: catId } });
             const toCreate = Math.max(0, Math.min(
-              // number of participants for this category in this registration
-              participantRows.filter(r => r.categoryId === catId).length,
-              // remaining capacity
+              createdParticipants.filter(r => r.categoryId === catId).length,
               capacity - claimsCount
             ));
             if (toCreate > 0) {
@@ -311,7 +321,7 @@ export async function POST(req: Request) {
       // --- END NEW CODE ---
 
       // Group participants by category to create QR codes
-      const grouped = participantRows.reduce<Record<number, number>>((acc, r) => {
+      const grouped = createdParticipants.reduce<Record<number, number>>((acc, r) => {
         acc[r.categoryId] = (acc[r.categoryId] || 0) + 1;
         return acc;
       }, {});
@@ -344,6 +354,7 @@ export async function POST(req: Request) {
         proofOfPayment: proofPath, // Cloudinary URL
         status: "pending",
         amount: new Prisma.Decimal(String(amount ?? 0)),
+        proofSenderName: proofSenderName, // NEW
       };
 
       if (amount !== undefined && !Number.isNaN(amount)) {

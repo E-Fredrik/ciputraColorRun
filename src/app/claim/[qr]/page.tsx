@@ -294,7 +294,8 @@ export default function ClaimPage() {
                 value={claimedBy}
                 onChange={(e) => setClaimedBy(e.target.value)}
                 className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all text-base"
-                placeholder="Enter staff name (optional)"
+                placeholder="Enter staff name (required)"
+                required
               />
               <p className="text-xs text-gray-500 mt-2">Name of the staff member claiming the packs</p>
             </div>

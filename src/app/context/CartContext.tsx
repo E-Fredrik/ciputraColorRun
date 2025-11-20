@@ -37,6 +37,7 @@ interface CartContextType {
   totalPrice: number;
   totalItems: number; // <- added
   setUserDetails: (details: UserDetails) => void;
+  updateItem: (item: CartItem) => void; // <-- new helper to update items (price, participants, jerseys, etc.)
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -87,6 +88,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setUserDetailsState(details);
   }
 
+  // NEW: update a single cart item (used to update recalculated prices)
+  function updateItem(updated: CartItem) {
+    setItems((prev) => prev.map((it) => (it.id === updated.id ? updated : it)));
+  }
+
   const totalPrice = items.reduce((sum, item) => {
     if (item.type === "individual") {
       return sum + item.price;
@@ -106,6 +112,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         totalPrice,
         totalItems, // <- expose here
         setUserDetails,
+        updateItem, // <-- exposed
       }}
     >
       {children}
