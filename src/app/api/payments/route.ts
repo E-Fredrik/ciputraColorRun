@@ -321,10 +321,11 @@ export async function POST(req: Request) {
       // --- END NEW CODE ---
 
       // Group participants by category to create QR codes
-      const grouped = createdParticipants.reduce<Record<number, number>>((acc, r) => {
-        acc[r.categoryId] = (acc[r.categoryId] || 0) + 1;
+      const grouped = createdParticipants.reduce((acc: Record<number, number>, r: any) => {
+        const cid = typeof r.categoryId === "number" ? r.categoryId : 0;
+        acc[cid] = (acc[cid] || 0) + 1;
         return acc;
-      }, {});
+      }, {} as Record<number, number>);
 
       const createdQrCodes: any[] = [];
       for (const [catIdStr, totalPacks] of Object.entries(grouped)) {
