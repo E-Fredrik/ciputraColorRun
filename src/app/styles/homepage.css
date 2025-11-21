@@ -21,6 +21,22 @@
     justify-content: center; 
     align-items: center;
     margin-top: 5.8rem;
+    transition: opacity 360ms cubic-bezier(.2,.9,.2,1), transform 360ms cubic-bezier(.2,.9,.2,1);
+    will-change: opacity, transform;
+}
+
+/* Hide animation for jumbotron content when About section scrolls into view */
+.home_top_hide {
+  opacity: 0 !important;
+  transform: translateY(-18px) scale(0.995) !important;
+  pointer-events: none !important;
+}
+
+/* small tweak: animate children delays for nicer effect */
+.home_top_hide .home_title {
+  transition: opacity 280ms ease, transform 360ms ease;
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 .home_top_logo {

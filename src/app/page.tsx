@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import "./styles/homepage.css";
@@ -10,12 +10,46 @@ import AboutCarousel from "./components/AboutCarousel";
 import DocDecor from "./components/DocDecor";
 
 export default function Home() {
-    const [loading, setLoading] = useState(true);
+	const homeTopRef = useRef<HTMLDivElement | null>(null); // now attached to outer .home_top
+	const aboutRef = useRef<HTMLElement | null>(null);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		const outer = homeTopRef.current;
+		if (!outer) return;
+
+		// Observe the outer jumbotron element:
+		const io = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (entry.isIntersecting) {
+						outer.classList.remove("home_top_hide");
+						try {
+							(window as any).AOS?.refresh?.();
+						} catch (e) {}
+					} else {
+						outer.classList.add("home_top_hide");
+						setTimeout(() => {
+							try {
+								(window as any).AOS?.refresh?.();
+							} catch (e) {}
+						}, 240);
+					}
+				}
+			},
+			{ root: null, rootMargin: "-10% 0px 0px 0px", threshold: 0.05 }
+		);
+
+		io.observe(outer);
+		return () => io.disconnect();
+	}, []);
+
+	const [loading, setLoading] = useState(true);
 	// Jumbotron image path - use the actual path from public folder
 	const jumbotronImage = "/homepage/home_bg.jpg"; // match actual file path
 
-     // Refresh AOS animations when page loads
-     useEffect(() => {
+	// Refresh AOS animations when page loads
+	useEffect(() => {
 		if (typeof window !== "undefined" && (window as any).AOS) {
 			(window as any).AOS.refresh();
 		}
@@ -68,6 +102,7 @@ export default function Home() {
 	return (
 		<main className="bg-white overflow-hidden">
 			<div
+				ref={homeTopRef} // attach ref to outer jumbotron
 				className="home_top pt-20"
 				style={{
 					// gradient overlay above the image
@@ -169,7 +204,7 @@ export default function Home() {
 			</div> */}
 
 			{/* About Section - Two Column Layout (image fills entire section) */}
-			<section className="w-full relative overflow-hidden pt-20">
+			<section ref={aboutRef} className="w-full relative overflow-hidden pt-20">
 				<div className="max-w-full mx-auto relative z-10">
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[400px] md:min-h-[600px]">
 						{/* Left: carousel — show on mobile and desktop */}

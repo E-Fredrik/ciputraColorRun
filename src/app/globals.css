@@ -3,7 +3,40 @@
 /* Add Google Fonts for Moderniz (fallback to Montserrat) and Mustica Pro SemiBold (Poppins 600 used) */
 
 
+/* --- Add local font loading for Moderniz and Mustica Pro (semi-bold) --- */
+/* Place your font files in /public/fonts/ (see notes below) */
+@font-face {
+  font-family: "Moderniz";
+  src: url("/fonts/Moderniz-Regular.woff2") format("woff2"),
+       url("/fonts/Moderniz-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Moderniz";
+  src: url("/fonts/Moderniz-SemiBold.woff2") format("woff2"),
+       url("/fonts/Moderniz-SemiBold.woff") format("woff");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Mustica Pro";
+  src: url("/fonts/MusticaPro-SemiBold.woff2") format("woff2"),
+       url("/fonts/MusticaPro-SemiBold.woff") format("woff");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Fallbacks if local fonts aren't available:
+   Moderniz -> system sans-serif fallback
+   Mustica Pro -> Poppins / system sans-serif */
 :root {
+  --font-moderniz: "Moderniz", "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mustica: "Mustica Pro", "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
   --background: #ffffff;
   --foreground: #171717;
 
@@ -40,7 +73,9 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-moderniz);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Prevent accidental horizontal overflow on small/embedded devices (iPad, Nest Hub) */
