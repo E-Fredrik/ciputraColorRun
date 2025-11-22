@@ -735,6 +735,28 @@ export default function ClaimPacksPage() {
                   <p className="text-xs text-gray-500 text-center mt-2">Click to view full size</p>
                 </div>
               )}
+
+             {/* ID Card/Passport Photo */}
+             {selectedRegistration.user?.idCardPhoto && (
+               <div className="bg-gray-50 rounded-lg p-4">
+                 <h3 className="font-semibold text-gray-800 mb-3">
+                   {selectedRegistration.user.nationality === 'WNI' ? 'KTP Photo' : 'Passport Photo'}
+                 </h3>
+                 <a
+                   href={selectedRegistration.user.idCardPhoto}
+                   target="_blank"
+                   rel="noreferrer"
+                   className="block"
+                 >
+                   <img
+                     src={selectedRegistration.user.idCardPhoto}
+                     alt={selectedRegistration.user.nationality === 'WNI' ? 'KTP' : 'Passport'}
+                     className="w-full max-w-md mx-auto rounded-lg border-2 border-gray-300 hover:border-emerald-500 transition-all cursor-pointer"
+                   />
+                 </a>
+                 <p className="text-xs text-gray-500 text-center mt-2">Click to view full size</p>
+               </div>
+             )}
             </div>
             <div className="p-6 border-t border-gray-200 bg-gray-50">
               <button
@@ -751,4 +773,3 @@ export default function ClaimPacksPage() {
   );
 }
 
-            

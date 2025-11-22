@@ -26,6 +26,7 @@ export interface UserDetails {
   medicalHistory?: string;
   idCardPhoto?: File;
   registrationType: string;
+  groupName?: string; // Add this
 }
 
 interface CartContextType {

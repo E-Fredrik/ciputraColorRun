@@ -27,6 +27,7 @@ export default function ConfirmPaymentClient() {
     const [nationality, setNationality] = useState<string>("");
     const [emergencyPhone, setEmergencyPhone] = useState<string>("");
     const [medicalHistory, setMedicalHistory] = useState<string>("");
+    const [groupName, setGroupName] = useState<string>("");
 
     const [proofFile, setProofFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
@@ -45,6 +46,7 @@ export default function ConfirmPaymentClient() {
             setNationality(userDetails.nationality);
             setEmergencyPhone(userDetails.emergencyPhone || "");
             setMedicalHistory(userDetails.medicalHistory || "");
+            setGroupName(userDetails.groupName || "");
         } else {
             setFullName(sessionStorage.getItem("reg_fullName") || search.get("fullName") || "");
             setEmail(sessionStorage.getItem("reg_email") || search.get("email") || "");
@@ -55,6 +57,7 @@ export default function ConfirmPaymentClient() {
             setNationality(sessionStorage.getItem("reg_nationality") || "WNI");
             setEmergencyPhone(sessionStorage.getItem("reg_emergencyPhone") || "");
             setMedicalHistory(sessionStorage.getItem("reg_medicalHistory") || "");
+            setGroupName(sessionStorage.getItem("reg_groupName") || "");
         }
     }, [userDetails, search]);
 
@@ -94,6 +97,10 @@ export default function ConfirmPaymentClient() {
             formData.append("emergencyPhone", emergencyPhone);
             formData.append("medicalHistory", medicalHistory);
             formData.append("registrationType", items[0]?.type || "individual");
+            // Add group name for community registrations
+            if (groupName && groupName.trim() !== "") {
+                formData.append("groupName", groupName.trim());
+            }
 
             // Upload ID card photo if available
             if (userDetails?.idCardPhoto) {
@@ -200,6 +207,9 @@ export default function ConfirmPaymentClient() {
                                 Transfer Destination
                             </h3>
                             <div className="space-y-1">
+                                <p className="text-sm text-gray-700">
+                                    <span className="font-semibold">Bank Name:</span> BCA
+                                </p>
                                 <p className="text-sm text-gray-700">
                                     <span className="font-semibold">Account Number:</span> 8620762491
                                 </p>

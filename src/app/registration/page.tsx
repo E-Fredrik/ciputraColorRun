@@ -57,6 +57,9 @@ export default function RegistrationPage() {
     const [idCardPhotoName, setIdCardPhotoName] = useState<string | null>(null);
     const [registrationType, setRegistrationType] = useState<"individual" | "community" | "family">("individual");
 
+    // Group/Community name state
+    const [groupName, setGroupName] = useState("");
+
     // modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -253,6 +256,13 @@ export default function RegistrationPage() {
             }
         }
 
+        if (type === "community") {
+            if (!groupName || groupName.trim() === "") {
+                showToast("Please provide a community/group name", "error");
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -268,6 +278,7 @@ export default function RegistrationPage() {
             sessionStorage.setItem("reg_nationality", nationality);
             sessionStorage.setItem("reg_medicalHistory", medicalHistory);
             sessionStorage.setItem("reg_registrationType", registrationType);
+            sessionStorage.setItem("reg_groupName", groupName);
 
             if (idCardPhoto) {
                 sessionStorage.setItem("reg_idCardPhotoName", idCardPhoto.name);
@@ -437,6 +448,7 @@ export default function RegistrationPage() {
             medicalHistory,
             idCardPhoto: idCardPhoto || undefined,
             registrationType,
+            groupName: type === "community" ? groupName : undefined,
         });
 
         if (type === "individual") {
@@ -551,9 +563,9 @@ export default function RegistrationPage() {
                 backgroundRepeat: "no-repeat",
             }}
         >
-            <div className="mx-auto w-full max-w-2xl px-4">
-                <h1 className="text-4xl md:text-6xl text-center font-bold mb-8 tracking-wide text-white drop-shadow-lg font-moderniz" data-aos="fade-down">
-                    CIPUTRA COLOR RUN 2026
+            <div className="mx-auto w-full max-w-5xl px-4">
+                <h1 className="text-4xl md:text-6xl text-center font-bold mb-8 tracking-wide text-white drop-shadow-lg font-moderniz">
+                    CIPUTRA COLOR RUN
                 </h1>
 
                 <section className="bg-white/95 backdrop-blur-md rounded-lg p-8 md:p-10 shadow-lg text-gray-800" data-aos="zoom-in" data-aos-delay="200">
@@ -619,6 +631,25 @@ export default function RegistrationPage() {
                                 required
                             />
                         </div>
+
+                        {/* Community/Group Name - Only show for community type */}
+                        {type === "community" && (
+                            <div className="grid gap-3">
+                                <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                                    Community/Group Name *
+                                </label>
+                                <input
+                                    value={groupName}
+                                    onChange={(e) => setGroupName(e.target.value)}
+                                    className="w-full px-4 py-3 border-b-2 border-gray-200 bg-transparent text-gray-800 placeholder-gray-400 focus:border-emerald-500 focus:outline-none transition-colors text-base"
+                                    placeholder="Enter your community or group name"
+                                    required
+                                />
+                                <p className="text-xs text-gray-500">
+                                    This name will be used for all participants in your community registration
+                                </p>
+                            </div>
+                        )}
 
                         <div className="grid gap-4 md:grid-cols-2">
                             <div className="grid gap-3">

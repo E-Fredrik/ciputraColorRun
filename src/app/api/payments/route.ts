@@ -101,6 +101,7 @@ export async function POST(req: Request) {
     const registrationType =
       (form.get("registrationType") as string) || "individual";
     const proofSenderName = (form.get("proofSenderName") as string) || undefined;
+    const groupName = (form.get("groupName") as string) || undefined;
 
     if (!proofFile) {
       return NextResponse.json(
@@ -217,6 +218,7 @@ export async function POST(req: Request) {
           userId: user.id,
           registrationType,
           totalAmount: new Prisma.Decimal(String(amount ?? 0)),
+          groupName: groupName || undefined, // Add group name
         },
       });
 
@@ -381,14 +383,11 @@ export async function POST(req: Request) {
       payment: result.payment,
       qrCodes: result.createdQrCodes,
     });
-  } catch (err: unknown) {
-    console.error("payments POST error:", err);
-    const message =
-      err instanceof Error
-        ? err.message
-        : typeof err === "string"
-        ? err
-        : JSON.stringify(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (error: any) {
+    console.error("POST /api/payments error:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
   }
 }
