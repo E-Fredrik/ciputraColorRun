@@ -999,7 +999,7 @@ export default function RegistrationPage() {
                                                       min={0}
                                                       value={jerseys[size]}
                                                       onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                                      className="jersey-input shift-right"
+                                                      className="jersey-input shift-right accent-[#e687a4]"
                                                       placeholder="0"
                                                     />
                                                 </div>
@@ -1221,7 +1221,7 @@ export default function RegistrationPage() {
                                     type="checkbox"
                                     checked={agreedToTerms}
                                     onChange={(e) => setAgreedToTerms(e.target.checked)}
-                                    className="mt-1 w-5 h-5 accent-emerald-500 cursor-pointer"
+                                    className="mt-1 w-5 h-5 accent-[#e687a4] cursor-pointer"
                                 />
                                 <span className="text-sm text-gray-700">
                                     I have read and agree to the Terms & Conditions and confirm that all information provided is accurate.

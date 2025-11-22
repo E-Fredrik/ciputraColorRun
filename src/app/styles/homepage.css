@@ -1440,7 +1440,12 @@
 
 /* Focus state */
 .jersey-input:focus {
-  border-bottom-color: #10b981;
+  border-bottom-color: #e687a4 !important;
+  box-shadow: none;
+}
+
+input:focus, textarea:focus, select:focus{
+  border-bottom-color: #e687a4 !important;
   box-shadow: none;
 }
 
@@ -1552,4 +1557,11 @@
 .venue-map-card:hover .venue-iframe {
   filter: none;
   transform: scale(1.001);
+}
+
+/* Add this for hover underline color on file upload label */
+label[for="idCardPhoto"]:hover,
+label[for="idCardPhoto"]:focus-within {
+  border-bottom-color: #e687a4 !important;
+  transition: border-color 0.18s;
 }
