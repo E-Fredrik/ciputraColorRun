@@ -35,7 +35,18 @@ export default function Footer() {
                                 </svg>
                                 <div>
                                     <p className="text-white font-semibold text-sm">Abel</p>
-                                    <p className="text-white/60 text-sm">WhatsApp: 0895410319676</p>
+                                    <p className="text-white/60 text-sm">
+                                        WhatsApp:
+                                        <a
+                                            href="https://wa.me/62895410319676"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="ml-2 text-white/70 hover:text-white underline"
+                                            aria-label="Chat with Abel on WhatsApp"
+                                        >
+                                            0895410319676
+                                        </a>
+                                    </p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
@@ -44,7 +55,18 @@ export default function Footer() {
                                 </svg>
                                 <div>
                                     <p className="text-white font-semibold text-sm">Elysian</p>
-                                    <p className="text-white/60 text-sm">WhatsApp: 0811306658</p>
+                                    <p className="text-white/60 text-sm">
+                                        WhatsApp:
+                                        <a
+                                            href="https://wa.me/62811306658"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="ml-2 text-white/70 hover:text-white underline"
+                                            aria-label="Chat with Elysian on WhatsApp"
+                                        >
+                                            0811306658
+                                        </a>
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -72,7 +94,7 @@ export default function Footer() {
 
                     {/* Column 3: Organized By */}
                     <div className="flex items-center justify-center md:justify-end" data-aos="fade-left">
-                        <div className="relative w-28 h-28 sm:w-32 sm:h-32">
+                        <div className="relative w-36 h-36 sm:w-44 sm:h-44">
                             <Image 
                                 src="/images/logoWajib.png" 
                                 alt="Ciputra Color Run Logo" 
