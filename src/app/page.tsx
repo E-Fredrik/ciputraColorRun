@@ -509,7 +509,7 @@ export default function Home() {
 
 			{/* Timeline Section */}
 			<section className="timeline-section py-12 md:py-16">
-				<div className="max-w-6xl mx-auto px-4 sm:px-6">
+				<div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col items-center">
 					<h2
 						className="text-3xl md:text-4xl font-bold text-center text-[#1F6251] mb-8 font-moderniz"
 						data-aos="fade-up"
@@ -518,47 +518,43 @@ export default function Home() {
 					</h2>
 					
 
-					{/* Horizontal xable timeline cards */}
-					<div
-						className="timeline-scroll-wrap"
+					{/* Timeline bullet list */}
+					<ul
+						className="max-w-sm space-y-6"
 						data-aos="fade-up"
 						data-aos-delay="200"
 					>
-						<div className="timeline-cards">
-							<div className="timeline-card">
-								<div className="timeline-badge">OPEN REGISTRATION</div>
-								<div className="timeline-date">
-									1 December 2025 — 28 March 2026
-								</div>
-								<p className="timeline-text">
-								
-								</p>
+						<li className="flex text-lg text-gray-700">
+							<span className="inline-block w-3 h-3 bg-[#1F6251] rounded-full shrink-0 mt-2 mr-4"></span>
+							<div>
+								<strong className="text-[#1F6251]">OPEN REGISTRATION</strong>
+								<div className="text-sm text-gray-600">1 December 2025 — 28 March 2026</div>
 							</div>
+						</li>
 
-							<div className="timeline-card">
-								<div className="timeline-badge">RACE PACK COLLECTION</div>
-								<div className="timeline-date">9 — 11 April 2026</div>
-								<p className="timeline-text">
-									
-								</p>
+						<li className="flex text-lg text-gray-700">
+							<span className="inline-block w-3 h-3 bg-[#1F6251] rounded-full shrink-0 mt-2 mr-4"></span>
+							<div>
+								<strong className="text-[#1F6251]">RACE PACK COLLECTION</strong>
+								<div className="text-sm text-gray-600">9 — 11 April 2026</div>
 							</div>
+						</li>
 
-							<div className="timeline-card">
-								<div className="timeline-badge">RACE DAY</div>
-								<div className="timeline-date">12 April 2026</div>
-								<p className="timeline-text">
-								
-								</p>
+						<li className="flex text-lg text-gray-700">
+							<span className="inline-block w-3 h-3 bg-[#1F6251] rounded-full shrink-0 mt-2 mr-4"></span>
+							<div>
+								<strong className="text-[#1F6251]">RACE DAY</strong>
+								<div className="text-sm text-gray-600">12 April 2026</div>
 							</div>
-						</div>
-					</div>
+						</li>
+					</ul>
 				</div>
 			</section>
 
 			{/* Claim Racepack & Venue Section */}
 			<section className="claim-venue-section py-10">
 				<div className="max-w-6xl mx-auto px-4 sm:px-6">
-					<div className="grid md:grid-cols-2 gap-8 items-stretch">
+					<div className="max-w-2xl mx-auto space-y-8">
 						<div className="claim-card" data-aos="fade-up">
 							<div className="claim-card-header">
 								<h3 className="font-moderniz text-xl text-[#1F6251]">
