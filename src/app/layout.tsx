@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./styles/homepage.css";
 import NavBar from "./components/NavBar";
-import { CartProvider } from "./context/CartContext";
+// import { CartProvider } from "./context/CartContext";
 import Script from "next/script";
 import Footer from "./components/Footer";
 import ClientToaster from "./components/ClientToaster";
@@ -129,11 +129,11 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <CartProvider>
-          <NavBar />
+        {/* <CartProvider> */}
+          {/* <NavBar /> */}
           {/* ensure page content is pushed below fixed navbar */}
           <div className="">{children}</div>
-        </CartProvider>
+        {/* </CartProvider> */}
 
         {/* Client-only toast container */}
         <ClientToaster />

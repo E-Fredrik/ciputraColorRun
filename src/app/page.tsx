@@ -141,7 +141,7 @@ export default function Home() {
 						data-aos-delay="500"
 					>
 						<Link
-							href="/registration"
+							href="https://docs.google.com/forms/d/e/1FAIpQLSepeoJFSpQKHP9TrISD1HNKFI3Mkwe2XNnnyi0oeBOYBHSHFg/formResponse?pli=1"
 							className="home_register_button register-btn"
 						>
 							REGISTER NOW
