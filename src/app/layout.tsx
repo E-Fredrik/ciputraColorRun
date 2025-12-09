@@ -135,8 +135,8 @@ export default function RootLayout({
           <div className="">{children}</div>
         {/* </CartProvider> */}
 
-        {/* Client-only toast container */}
-        <ClientToaster />
+        {/* Client-only toast container
+        <ClientToaster /> */}
 
         {/* AOS script / init */}
         <Script
