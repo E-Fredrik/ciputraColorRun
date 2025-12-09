@@ -1,8 +1,8 @@
-"use client";
+// "use client";
 
-import React from "react";
-import { Toaster } from "../profilePage/components/ui/sonner";
+// import React from "react";
+// import { Toaster } from "../profilePage/components/ui/sonner";
 
-export default function ClientToaster() {
-  return <Toaster />;
-}
+// export default function ClientToaster() {
+//   return <Toaster />;
+// }
