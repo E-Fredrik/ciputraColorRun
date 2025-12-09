@@ -238,7 +238,7 @@ export default function Home() {
 							</p>
 							<div className="flex flex-col sm:flex-row gap-3">
 								<Link
-									href="/registration"
+									href="https://docs.google.com/forms/d/e/1FAIpQLSepeoJFSpQKHP9TrISD1HNKFI3Mkwe2XNnnyi0oeBOYBHSHFg/formResponse?pli=1"
 									className="inline-block px-5 py-2 rounded-full bg-white text-[#1F6251] font-semibold text-center shadow hover:shadow-lg transition-all"
 								>
 									Register Now
