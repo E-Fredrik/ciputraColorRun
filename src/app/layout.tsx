@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./styles/homepage.css";
-import NavBar from "./components/NavBar";
+// import NavBar from "./components/NavBar";
 // import { CartProvider } from "./context/CartContext";
 import Script from "next/script";
 import Footer from "./components/Footer";
-import ClientToaster from "./components/ClientToaster";
+// import ClientToaster from "./components/ClientToaster";
 
 export const metadata: Metadata = {
   title: "Ciputra Color Run 2026 - The Most Vibrant Fun Run in Surabaya",
