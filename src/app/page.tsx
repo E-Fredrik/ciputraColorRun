@@ -4,10 +4,10 @@ import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import "./styles/homepage.css";
-import LogoLoop from "./components/LogoLoop";
+// import LogoLoop from "./components/LogoLoop";
 import CountdownTimer from "./components/CountdownTimer";
 import AboutCarousel from "./components/AboutCarousel";
-import DocDecor from "./components/DocDecor";
+// import DocDecor from "./components/DocDecor";
 
 export default function Home() {
 	const homeTopRef = useRef<HTMLDivElement | null>(null); // now attached to outer .home_top
