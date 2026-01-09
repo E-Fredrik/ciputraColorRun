@@ -1065,7 +1065,7 @@ export default function RegistrationPage() {
                                         // setRegistrationType("community");
                                         // Redirect to contact person's WhatsApp (Abel)
                                         if (typeof window !== "undefined") {
-                                          window.location.href = "https://wa.me/6289541031967";
+                                          window.location.href = "https://wa.me/62895410319676";
                                         }
                                     }}
                                     className="sr-only"
