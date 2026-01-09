@@ -1059,7 +1059,15 @@ export default function RegistrationPage() {
                                     name="regType"
                                     value="community"
                                     checked={type === "community"}
-                                    onChange={() => { setType("community"); setRegistrationType("community"); }}
+                                    // onChange={() => { setType("community"); setRegistrationType("community"); }}
+                                    onChange={() => {
+                                        // setType("community");
+                                        // setRegistrationType("community");
+                                        // Redirect to contact person's WhatsApp (Abel)
+                                        if (typeof window !== "undefined") {
+                                          window.location.href = "https://wa.me/6289541031967";
+                                        }
+                                    }}
                                     className="sr-only"
                                 />
                                 <div className="flex flex-col items-center gap-2">
