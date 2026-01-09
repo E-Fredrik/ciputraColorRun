@@ -342,3 +342,68 @@ html, body {
 .nav-glass:not(.nav-hidden) {
   /* keep the vibrant gradient / shadow you already set */
 }
+
+/* Larger background loading bar BEHIND the text */
+.register-loading {
+  position: relative;
+  display: inline-block;
+  z-index: 1;
+
+  /* Controls bar height */
+  padding: 0.35em 0.6em;
+}
+
+.register-loading::before {
+  content: "";
+  position: absolute;
+
+  /* Extend bar beyond text width */
+  top: 50%;
+  left: -0em;
+  right: -4em;
+  height: 2.4em;
+  transform: translateY(-50%) scaleX(0);
+
+  /* Gradient from left to right */
+  background: linear-gradient(90deg, #CC898E 0%, #BCE9D5 100%);
+
+  z-index: -1;
+  transform-origin: left;
+
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px; /* pill-shaped bar */
+}
+
+.register-loading:hover::before {
+  transform: translateY(-50%) scaleX(1);
+}
+
+
+
+
+
+/* Underline loading bar for contact names only */
+.contact-loading {
+  position: relative;
+  display: inline-block;
+}
+
+.contact-loading::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -5px;          /* space below text */
+  width: 100%;
+  height: 3px;
+
+  background: linear-gradient(90deg, #7324B6 0%, #A52D5D 100%);
+
+  transform: scaleX(0);
+  transform-origin: left;
+
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.contact-loading:hover::after {
+  transform: scaleX(1);
+}
