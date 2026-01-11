@@ -9,16 +9,17 @@ datasource db {
 
 model User {
   id              Int            @id @default(autoincrement())
-  name            String
-  email           String         @unique
+  name            String?
+  email           String
   phone           String
   accessCode      String         @unique
   role            String         @default("user")
   password        String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
-
-  // New fields
+  registrations   Registration[]
+  
+  // Personal details
   birthDate       DateTime?
   gender          String?
   currentAddress  String?
@@ -26,8 +27,7 @@ model User {
   idCardPhoto     String?
   emergencyPhone  String?
   medicalHistory  String?
-
-  registrations   Registration[]
+  medicationAllergy String?
 }
 
 model RaceCategory {
@@ -60,10 +60,13 @@ model RaceCategory {
 }
 
 model JerseyOption {
-  id           Int           @id @default(autoincrement())
-  size         String        @unique
-  price        Decimal       @db.Decimal(10, 2)
-  quantity     Int
+  id           Int            @id @default(autoincrement())
+  size         String         @unique
+  type         String         @default("adult") // "adult" or "kids"
+  price        Decimal        @db.Decimal(10, 2) // Price for extra charge (e.g., 10000 for 6XL+)
+  quantity     Int?
+  isExtraSize  Boolean        @default(false) // NEW: Flag for sizes with extra charge
+  description  String?        // NEW: Description for extra sizes
   participants Participant[]
 }
 
@@ -77,7 +80,9 @@ model Registration {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   participants     Participant[]
-  payments         Payment[]
+  // NEW: link to the transaction-level payment that covers this registration
+  paymentId        Int?
+  payment          Payment?      @relation(fields: [paymentId], references: [id])
   qrCodes          QrCode[]
   user             User          @relation(fields: [userId], references: [id])
 }
@@ -97,17 +102,17 @@ model Participant {
 
 model Payment {
   id               Int       @id @default(autoincrement())
-  registrationId   Int
   transactionId    String
   proofOfPayment   String?
   proofSenderName  String?
-  paidAt           DateTime?   // NEW: time of settlement / external paid timestamp
+  paidAt           DateTime?   // time of settlement / external paid timestamp
   status           String    @default("pending")
   amount           Decimal?
   createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  updatedAt        DateTime  @default(now()) @updatedAt
 
-  registration     Registration @relation(fields: [registrationId], references: [id])
+  // NEW: one Payment covers many Registrations
+  registrations    Registration[]
 }
 
 model QrCode {

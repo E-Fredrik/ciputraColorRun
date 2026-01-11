@@ -2,16 +2,77 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingCart, User, Menu, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { User, Menu, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useCart } from "../context/CartContext";
 
 export default function NavBar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
-    const { totalItems } = useCart();
+
+    // hide on scroll down, show on scroll up
+    const [isNavHidden, setIsNavHidden] = useState(false);
+
+    // accumulate small scroll deltas so slow scrolls are detected reliably
+    const scrollAccRef = useRef(0);
+    const lastYRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        let ticking = false;
+
+        const MIN_HIDE_DELTA = 6;  // immediate hide on fast scroll down
+        const MIN_SHOW_DELTA = -2; // show on small upward movement
+        const ACC_SHOW_THRESHOLD = -12; // accumulated upward delta to force-show
+        const ACC_HIDE_THRESHOLD = 20;  // accumulated downward delta to force-hide
+
+        function onScroll() {
+            const currentY = window.scrollY || 0;
+            const lastY = lastYRef.current ?? currentY;
+            const delta = currentY - lastY;
+
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    // always show when near top
+                    if (currentY <= 40) {
+                        scrollAccRef.current = 0;
+                        setIsNavHidden(false);
+                        lastYRef.current = currentY;
+                        ticking = false;
+                        return;
+                    }
+
+                    // accumulate small deltas so slow pacing still triggers
+                    if (Math.abs(delta) < MIN_HIDE_DELTA) {
+                        scrollAccRef.current = (scrollAccRef.current + delta);
+                        // clamp accumulation
+                        scrollAccRef.current = Math.max(-100, Math.min(100, scrollAccRef.current));
+                    } else {
+                        // large movement resets to that delta
+                        scrollAccRef.current = delta;
+                    }
+
+                    // Decide: fast downward scroll -> hide immediately
+                    if (delta > MIN_HIDE_DELTA || scrollAccRef.current > ACC_HIDE_THRESHOLD) {
+                        setIsNavHidden(true);
+                    }
+                    // Any noticeable upward scroll or accumulated upward movement -> show
+                    else if (delta < MIN_SHOW_DELTA || scrollAccRef.current < ACC_SHOW_THRESHOLD) {
+                        setIsNavHidden(false);
+                    }
+
+                    lastYRef.current = currentY;
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        }
+
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
+    }, []);
 
     // Track auth status (null=unknown, false=not logged in, true=logged in)
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -105,8 +166,8 @@ export default function NavBar() {
     };
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 nav-glass border-b font-moderniz">
-            <div className="max-w-7xl mx-auto px-6 py-4">
+        <nav className={`fixed top-0 left-0 right-0 z-50 nav-glass border-b font-moderniz ${isNavHidden ? "nav-hidden" : ""}`}>
+            <div className="max-w-7xl mx-auto px-4 py-2">
                 <div className="flex items-center justify-between">
                     <Link href="/" className="flex items-center">
                         <Image
@@ -132,52 +193,35 @@ export default function NavBar() {
                             REGISTER
                         </Link>
 
-                        {/* Icons */}
-                        <div className="flex items-center gap-6">
-                            {/* Cart */}
-                            <button
-                                onClick={() => router.push("/cart")}
-                                className="relative text-white hover:text-white/80 transition-colors mr-2"
-                                aria-label="Shopping Cart"
-                            >
-                                <ShoppingCart size={32} strokeWidth={2.5} />
-                                {totalItems > 0 && (
-                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                                        {totalItems}
-                                    </span>
-                                )}
-                            </button>
-
-                            {/* Auth: show LOGIN when not logged in; show icon + name + logout when logged in */}
-                            {isAuthenticated === null ? (
-                                // Loading state
-                                <div className="w-20 h-8 bg-white/10 rounded animate-pulse"></div>
-                            ) : isAuthenticated ? (
-                                <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={goToProfile}
-                                        className="flex items-center text-white hover:text-white/80 transition-colors gap-2"
-                                        aria-label="User Profile"
-                                    >
-                                        <User size={28} strokeWidth={2.5} />
-                                        <span className="hidden sm:inline font-medium">{userName ?? "Profile"}</span>
-                                    </button>
-                                    <button
-                                        onClick={logout}
-                                        className="text-white/90 hover:text-white px-3 py-1 border border-white/10 rounded-md text-sm"
-                                    >
-                                        Logout
-                                    </button>
-                                </div>
-                            ) : (
+                        {/* Auth: show LOGIN when not logged in; show icon + name + logout when logged in */}
+                        {isAuthenticated === null ? (
+                            // Loading state
+                            <div className="w-20 h-8 bg-white/10 rounded animate-pulse"></div>
+                        ) : isAuthenticated ? (
+                            <div className="flex items-center gap-3">
                                 <button
-                                    onClick={() => router.push("/auth/login")}
-                                    className="text-white font-semibold"
+                                    onClick={goToProfile}
+                                    className="flex items-center text-white hover:text-white/80 transition-colors gap-2"
+                                    aria-label="User Profile"
                                 >
-                                    LOGIN
+                                    <User size={26} strokeWidth={2.2} />
+                                    <span className="hidden sm:inline font-medium">{userName ?? "Profile"}</span>
                                 </button>
-                            )}
-                        </div>
+                                <button
+                                    onClick={logout}
+                                    className="text-white/90 hover:text-white px-3 py-1 border border-white/10 rounded-md text-sm"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => router.push("/auth/login")}
+                                className="text-white font-bold"
+                            >
+                                LOGIN
+                            </button>
+                        )}
                     </div>
 
                     <button
@@ -185,7 +229,7 @@ export default function NavBar() {
                         className="md:hidden text-white p-2"
                         aria-label="Toggle menu"
                     >
-                        {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                        {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
                     </button>
 
                     {/* Mobile Menu */}
@@ -209,23 +253,8 @@ export default function NavBar() {
                                             REGISTER
                                         </Link>
 
-                                        {/* Bottom actions: cart + auth (right aligned) */}
+                                        {/* Bottom actions: auth (right aligned) */}
                                         <div className="flex items-center gap-4 pt-4 border-t border-white/10 w-full justify-end">
-                                            <button
-                                                onClick={() => {
-                                                    setIsMenuOpen(false);
-                                                    router.push("/cart");
-                                                }}
-                                                className="relative text-white hover:text-white/80 transition-colors"
-                                                aria-label="Shopping Cart"
-                                            >
-                                                <ShoppingCart size={28} strokeWidth={2.5} />
-                                                {totalItems > 0 && (
-                                                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                                                        {totalItems}
-                                                    </span>
-                                                )}
-                                            </button>
 
                                             {isAuthenticated === null ? (
                                                 <div className="w-20 h-8 bg-white/10 rounded animate-pulse"></div>

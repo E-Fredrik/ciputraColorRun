@@ -8,10 +8,37 @@ import LogoLoop from "./components/LogoLoop";
 import CountdownTimer from "./components/CountdownTimer";
 import AboutCarousel from "./components/AboutCarousel";
 import DocDecor from "./components/DocDecor";
+import RouteImageModal from "./components/RouteImageModal";
+
+interface Category {
+    id: number;
+    name: string;
+    basePrice: string;
+    earlyBirdPrice?: string;
+    tier1Price?: string;
+    tier1Min?: number;
+    tier1Max?: number;
+    tier2Price?: string;
+    tier2Min?: number;
+    tier2Max?: number | null;
+    tier3Price?: string;
+    tier3Min?: number;
+    bundlePrice?: string;
+    bundleSize?: number;
+    earlyBirdCapacity?: number;
+    earlyBirdRemaining?: number | null;
+}
 
 export default function Home() {
 	const homeTopRef = useRef<HTMLDivElement | null>(null); // now attached to outer .home_top
 	const aboutRef = useRef<HTMLElement | null>(null);
+	
+	// State for route image modal
+	const [routeModalOpen, setRouteModalOpen] = useState(false);
+	const [selectedRoute, setSelectedRoute] = useState({ src: "", title: "" });
+
+	// State for categories
+	const [categories, setCategories] = useState<Category[]>([]);
 
 	useEffect(() => {
 		if (typeof window === "undefined") return;
@@ -53,6 +80,22 @@ export default function Home() {
 		if (typeof window !== "undefined" && (window as any).AOS) {
 			(window as any).AOS.refresh();
 		}
+
+		// Fetch categories
+		(async () => {
+			try {
+				const res = await fetch(`/api/categories`, {
+					cache: 'no-store',
+					headers: { 'Cache-Control': 'no-cache' }
+				});
+				if (!res.ok) throw new Error("Failed to load categories");
+				const data = await res.json();
+				setCategories(data);
+			} catch (err) {
+				console.error("Failed to load categories:", err);
+			}
+		})();
+
 		// Simulate initial content load
 		const timer = setTimeout(() => setLoading(false), 800);
 		return () => clearTimeout(timer);
@@ -99,14 +142,38 @@ export default function Home() {
 		"/homepage/documentation/doc7.jpg",
 	];
 
+	// Route maps data
+	const routeMaps = [
+		{
+			distance: "3K",
+			title: "3K Route Map",
+			image: "/images/routes/3k.png", 
+		},
+		{
+			distance: "5K",
+			title: "5K Route Map",
+			image: "/images/routes/5k.png", 
+		},
+		{
+			distance: "10K",
+			title: "10K Route Map",
+			image: "/images/routes/10k.png",
+		},
+	];
+
+	const openRouteModal = (imageSrc: string, title: string) => {
+		setSelectedRoute({ src: imageSrc, title });
+		setRouteModalOpen(true);
+	};
+
 	return (
 		<main className="bg-white overflow-hidden">
 			<div
-				ref={homeTopRef} // attach ref to outer jumbotron
-				className="home_top pt-20"
+				ref={homeTopRef}
+				className="home_top pt-8"
 				style={{
 					// gradient overlay above the image
-					backgroundImage: `linear-gradient(rgba(152,232,206,0.6) 0%, rgba(255,225,196,0.4) 50%, rgba(238,150,157,0.5) 100%), url('${jumbotronImage}')`,
+					backgroundImage: `linear-gradient(rgba(152,232,206,0.85) 0%, rgba(255,225,196,0.7) 50%, rgba(238,150,157,0.8) 100%), url('${jumbotronImage}')`,
 					backgroundSize: "cover",
 					backgroundPosition: "center",
 					backgroundRepeat: "no-repeat",
@@ -214,24 +281,24 @@ export default function Home() {
 
 						{/* Right: Text content overlays the background image */}
 						<div
-							className="relative bg-gradient-to-r from-[#a0d4ac]/50 to-[#e2969c]/90 p-6 sm:p-8 md:p-12 md:pl-20 flex flex-col justify-center min-h-[400px]"
+							className="about-right relative p-6 sm:p-8 md:p-12 md:pl-20 flex flex-col justify-center min-h-[400px]"
 							data-aos="fade-left"
 							data-aos-duration="1200"
 						>
-							<h2 className="text-2xl md:text-4xl font-bold mb-4 md:mb-6 text-white">
+							<h2 className="text-2xl md:text-4xl font-bold mb-4 md:mb-6 unified-gradient-title">
 								About Ciputra Color Run
 							</h2>
-							<p className="text-base md:text-lg text-white/90 mb-3 md:mb-4 leading-relaxed">
+							<p className="text-sm text-justify md:text-lg text-[#1F6251] mb-3 leading-relaxed">
 								Ciputra Color Run is the most vibrant celebration of health and
 								happiness in Surabaya. Proudly organized by the Student Council
 								of Universitas Ciputra, this annual Fun Run takes you through
 								CitraLand and ends with a twist.
 							</p>
-							<p className="text-sm md:text-base text-white/80 mb-4 md:mb-6 leading-relaxed">
+							<p className="text-sm text-justify md:text-lg text-[#1F6251] mb-3 leading-relaxed">
 								The finish line is just the beginning. Get ready for our
-							
-								celebrate under a shower of colorful powder. <br />
-								<br />
+								celebrate under a shower of colorful powder.
+							</p>
+							<p className="text-sm text-justify md:text-lg text-[#1F6251] mb-5 leading-relaxed">
 								From casuals to professionals, individuals to families, everyone
 								is welcome to run and have fun with us. Let’s make colorful
 								memories at Ciputra Color Run 2026!
@@ -245,6 +312,81 @@ export default function Home() {
 								</Link>
 							</div>
 						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Route Maps Section */}
+			<section className="route-maps-section py-16 bg-gradient-to-br from-emerald-50 to-teal-50">
+				<div className="max-w-6xl mx-auto px-4 sm:px-6">
+					<h2
+						className="text-3xl md:text-4xl font-moderniz font-extrabold text-center mb-4 benefit-section-title"
+						data-aos="fade-up"
+					>
+						RACE ROUTES
+					</h2>
+					<p
+						className="text-center text-gray-600 mb-10 max-w-2xl mx-auto"
+						data-aos="fade-up"
+						data-aos-delay="100"
+					>
+						Explore the routes for each distance category. Click on any map to view it in full size.
+					</p>
+
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+						{routeMaps.map((route, index) => (
+							<div
+								key={route.distance}
+								className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+								data-aos="zoom-in"
+								data-aos-delay={index * 100}
+							>
+								{/* Route Badge */}
+								<div className="bg-gradient-to-r from-[#91DCAC] to-[#4EF9CD] px-4 py-3 text-center">
+									<h3 className="text-2xl font-bold text-white">
+										{route.distance}
+									</h3>
+								</div>
+
+								{/* Image Container - Clickable */}
+								<div
+									className="relative aspect-[4/3] bg-gray-100 cursor-pointer group overflow-hidden"
+									onClick={() => openRouteModal(route.image, route.title)}
+								>
+									<Image
+										src={route.image}
+										alt={route.title}
+										fill
+										className="object-cover transition-transform duration-300 group-hover:scale-110"
+									/>
+									{/* Overlay on hover */}
+									<div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+										<div className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center">
+											<svg
+												className="w-12 h-12 mb-2"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+												/>
+											</svg>
+											<span className="font-semibold text-lg">Click to Expand</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						))}
+					</div>
+
+					<div className="text-center mt-8">
+						<p className="text-sm text-gray-500">
+							Maps are for reference only. Actual routes may vary slightly on race day.
+						</p>
 					</div>
 				</div>
 			</section>
@@ -265,32 +407,35 @@ export default function Home() {
 					/>
 				</div>
 
-				<h2 className="pricing-title text-2xl md:text-3xl font-moderniz font-bold text-center mb-6">
-					<span className="pricing-title-gradient">TICKET PRICES</span>
-				</h2>
+				<h3 className="text-3xl md:text-4xl font-moderniz font-extrabold text-center mb-10 benefit-section-title">
+						TICKET PRICES
+					</h3>
 
-				<div className="pricing-table-wrap">
+				<div className="pricing-table-wrap ">
 					<table
 						className="pricing-table"
 						role="table"
 						aria-label="Ciputra Color Run Ticket Prices"
+						data-aos="fade-up"
+						data-aos-delay="300"
+						data-aos-duration="900"
 					>
 						<thead>
-							<tr>
+							<tr className="text-center justify-center items-center">
 								<th scope="col" className="col-item">
 									Category
 								</th>
 								<th scope="col" className="col-main">
-									Base Price
+									Normal Price
 								</th>
 								<th scope="col" className="col-tier">
-									Community 10-29
+									Community 10-29 Person
 								</th>
 								<th scope="col" className="col-tier">
-									Community 30-59
+									Community 30-59 Person
 								</th>
 								<th scope="col" className="col-tier">
-									Community ≥60
+									Community ≥60 Person
 								</th>
 								<th scope="col" className="col-note">
 									Early bird / Bundle
@@ -298,68 +443,97 @@ export default function Home() {
 							</tr>
 						</thead>
 						<tbody>
-							<tr>
+							<tr className="text-center justify-center items-center">
 								<td className="col-item" data-label="Kategori">
 									10K
 								</td>
 								<td className="col-main font-mustica" data-label="Harga Dasar">
-									Rp 250.000
+									Rp 250.000 / Pax
 								</td>
 								<td className="col-tier" data-label="Komunitas 10-29">
-									Rp 235.000
+									Rp 235.000 / Pax
 								</td>
 								<td className="col-tier" data-label="Komunitas 30-59">
-									Rp 225.000
+									Rp 225.000 / Pax
 								</td>
 								<td className="col-tier" data-label="Komunitas ≥60">
-									Rp 215.000
+									Rp 215.000 / Pax
 								</td>
 								<td className="col-note" data-label="Promo">
-									Early bird: Rp 220.000
+									{categories.find(c => c.name.toLowerCase().includes('10'))?.earlyBirdRemaining && categories.find(c => c.name.toLowerCase().includes('10'))?.earlyBirdRemaining! > 0 ? (
+										<>
+											Early bird: Rp {Number(categories.find(c => c.name.toLowerCase().includes('10'))?.earlyBirdPrice).toLocaleString("id-ID")} / Pax
+										</>
+									) : (
+										<span className="text-red-500 font-semibold">SOLD OUT</span>
+									)}
 								</td>
 							</tr>
-							<tr>
+							<tr className="text-center justify-center items-center">
 								<td className="col-item" data-label="Kategori">
 									5K
 								</td>
 								<td className="col-main font-mustica" data-label="Harga Dasar">
-									Rp 200.000
+									Rp 200.000 / Pax
 								</td>
 								<td className="col-tier" data-label="Komunitas 10-29">
-									Rp 190.000
+									Rp 190.000 / Pax
 								</td>
 								<td className="col-tier" data-label="Komunitas 30-59">
-									Rp 180.000
+									Rp 180.000 / Pax
 								</td>
 								<td className="col-tier" data-label="Komunitas ≥60">
-									Rp 170.000
+									Rp 170.000 / Pax
 								</td>
 								<td className="col-note" data-label="Promo">
-									Early bird: Rp 180.000
+									{categories.find(c => c.name.toLowerCase().includes('5'))?.earlyBirdRemaining && categories.find(c => c.name.toLowerCase().includes('5'))?.earlyBirdRemaining! > 0 ? (
+										<>
+											Early bird: Rp {Number(categories.find(c => c.name.toLowerCase().includes('5'))?.earlyBirdPrice).toLocaleString("id-ID")}
+										</>
+									) : (
+										<span className="text-red-500 font-semibold">SOLD OUT</span>
+									)}
 								</td>
 							</tr>
-							<tr>
-								<td className="col-item" data-label="Kategori">
-									3K
-								</td>
-								<td className="col-main font-mustica" data-label="Harga Dasar">
-									Rp 150.000
-								</td>
-								<td className="col-tier" data-label="Komunitas 10-29">
-									Rp 140.000
-								</td>
-								<td className="col-tier" data-label="Komunitas 30-59">
-									Rp 135.000
-								</td>
-								<td className="col-tier" data-label="Komunitas ≥60">
-									Rp 135.000
-								</td>
-								<td className="col-note" data-label="Promo">
-									Early bird: Rp 130.000
-									<br />
-									Bundling family (4 people): Rp 145.000 / person
-								</td>
-							</tr>
+							<tr className="text-center justify-center items-center">
+                                <td className="col-item" data-label="Kategori">
+                                    3K
+                                </td>
+                                <td className="col-main font-mustica" data-label="Harga Dasar">
+                                    Rp 150.000 / Pax
+                                </td>
+                                <td className="col-tier" data-label="Komunitas 10-29">
+                                    Rp 140.000 / Pax
+                                </td>
+                                <td className="col-tier" data-label="Komunitas 30-59">
+                                    Rp 135.000 / Pax
+                                </td>
+                                <td className="col-tier" data-label="Komunitas ≥60">
+                                    Rp 135.000 / Pax
+                                </td>
+                                <td className="col-note" data-label="Promo">
+                                    {(() => {
+                                        const three = categories.find(c => c.name.toLowerCase().includes('3'));
+                                        const earlyAvailable = Boolean(three?.earlyBirdRemaining && three!.earlyBirdRemaining! > 0);
+                                        const bundlePrice = Number(three?.bundlePrice ?? three?.basePrice ?? 0);
+                                        return (
+                                            <>
+                                                {earlyAvailable ? (
+                                                    <>
+                                                        Early bird: Rp {Number(three?.earlyBirdPrice ?? 0).toLocaleString("id-ID")}
+                                                        <br />
+                                                    </>
+                                                ) : (
+                                                    <span className="text-red-500 font-semibold">Early bird: SOLD OUT</span>
+                                                )}
+                                                <div>
+                                                    Bundling family (4 people): Rp 145.000 / Pax
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </td>
+                            </tr>
 						</tbody>
 					</table>
 				</div>
@@ -463,10 +637,14 @@ export default function Home() {
 									/>
 								</svg>
 							</div>
-							<h4 className="benefit-title">Powder Color War</h4>
+							<h4 className="benefit-title">Color War</h4>
 							<p className="benefit-description">
-								Immerse yourself in the euphoria of our signature Color War using safe, non-toxic powder. (Note: This part is fully optional if you prefer to stay clean!)
+								Immerse yourself in the euphoria of our signature Color War.
 							</p>
+						</div>
+						
+						{/* agar other benefits ditengah */}
+						<div className="hidden md:block">
 						</div>
 
 						{/* Additional Benefits Card */}
@@ -509,63 +687,52 @@ export default function Home() {
 
 			{/* Timeline Section */}
 			<section className="timeline-section py-12 md:py-16">
-				<div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col items-center">
-					<h2
-						className="text-3xl md:text-4xl font-bold text-center text-[#1F6251] mb-8 font-moderniz"
-						data-aos="fade-up"
-					>
-						TIMELINE
-					</h2>
-					
+                <div className="max-w-6xl mx-auto px-4 sm:px-6">
+                    <h2
+                        className="text-3xl md:text-4xl font-moderniz font-extrabold text-center mb-8 benefit-section-title"
+                        data-aos="fade-up"
+                    >
+                        TIMELINE
+                    </h2>
 
-					{/* Timeline bullet list */}
-					<ul
-						className="max-w-sm space-y-6"
-						data-aos="fade-up"
-						data-aos-delay="200"
-					>
-						<li className="flex text-lg text-gray-700">
-							<span className="inline-block w-3 h-3 bg-[#1F6251] rounded-full shrink-0 mt-2 mr-4"></span>
-							<div>
-								<strong className="text-[#1F6251]">OPEN REGISTRATION</strong>
-								<div className="text-sm text-gray-600">1 December 2025 — 28 March 2026</div>
-							</div>
-						</li>
+					{/* Minimal semantic list timeline */}
+					<div className="timeline-scroll-wrap" data-aos="fade-up" data-aos-delay="200">
+                        <ul className="timeline-list minimal" aria-label="Event timeline">
+                            <li className="timeline-item minimal">
+                                <div className="timeline-date">1 Dec 2025 — 28 Mar 2026</div>
+                                <div className="timeline-title">Open Registration</div>
+                            </li>
 
-						<li className="flex text-lg text-gray-700">
-							<span className="inline-block w-3 h-3 bg-[#1F6251] rounded-full shrink-0 mt-2 mr-4"></span>
-							<div>
-								<strong className="text-[#1F6251]">RACE PACK COLLECTION</strong>
-								<div className="text-sm text-gray-600">9 — 11 April 2026</div>
-							</div>
-						</li>
+                            <li className="timeline-item minimal">
+                                <div className="timeline-date">9 — 11 Apr 2026</div>
+                                <div className="timeline-title">Race Pack Collection</div>
+                            </li>
 
-						<li className="flex text-lg text-gray-700">
-							<span className="inline-block w-3 h-3 bg-[#1F6251] rounded-full shrink-0 mt-2 mr-4"></span>
-							<div>
-								<strong className="text-[#1F6251]">RACE DAY</strong>
-								<div className="text-sm text-gray-600">12 April 2026</div>
-							</div>
-						</li>
-					</ul>
-				</div>
-			</section>
+                            <li className="timeline-item minimal">
+                                <div className="timeline-date">12 Apr 2026</div>
+                                <div className="timeline-title">Race Day</div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
 
 			{/* Claim Racepack & Venue Section */}
 			<section className="claim-venue-section py-10">
 				<div className="max-w-6xl mx-auto px-4 sm:px-6">
-					<div className="max-w-2xl mx-auto space-y-8">
+					<div className="space-y-8">
+						{/* Race Pack Claim card — full-width block */}
 						<div className="claim-card" data-aos="fade-up">
 							<div className="claim-card-header">
-								<h3 className="font-moderniz text-xl text-[#1F6251]">
+								<h3 className="font-moderniz text-xl text-[#1F6251] mt-1">
 									Race Pack Claim
 								</h3>
-								<span className="badge-small"><strong>Important</strong></span>
+								<span className="badge-small text-[#1F6251]"><strong>Important</strong></span>
 							</div>
 							<p className="font-mustica text-[#52605f] mt-3">
 								Get your gear ready for the big day! You can pick up your Race Pack at:
 							</p>
-							<ul className="claim-list mt-4">
+							<ul className="claim-list mt-4 text-[#52605f]">
 								<li>
 									<strong>Location:</strong> Corepreneur 1st Floor, UC Tower
 								</li>
@@ -576,10 +743,11 @@ export default function Home() {
 									<strong>What to Bring:</strong> Valid ID card (KTP/Birth Certificate/Passport) and your registration QR Code.
 								</li>
 							</ul>
-							<strong className="mt-4 text-sm text-[#52605f]">
+							<br/>
+							<strong className="mt-4 text-[#52605f]">
 								Representative Collection
 							</strong>
-							<ul className="claim-list mt-4">
+							<ul className="claim-list text-[#52605f]">
 								<li>
 									<strong>Individuals:</strong> If someone is collecting for you, they must bring a power of attorney letter.
 								</li>
@@ -589,10 +757,11 @@ export default function Home() {
 							</ul>
 						</div>
 
+						{/* Start / Finish card — full-width block */}
 						<div className="venue-card" data-aos="fade-up" data-aos-delay="80">
 							<div className="venue-card-header">
 								<h3 className="font-moderniz text-xl text-[#1F6251]">
-									Start / Finish
+									Start and Finish
 								</h3>
 							</div>
                             <p className="font-mustica text-[#52605f] mt-2">
@@ -628,20 +797,20 @@ export default function Home() {
                                 </div>
 							</div>
 							<p className="mt-4 text-sm text-[#52605f]">
-								Assembly point and route will be announced later via registered e-mail and event’s homepage. Additionally follow our Instagram <a className = "underline font-bold" href = "https://instagram.com/ciputrarun.uc">@ciputrarun.uc</a> as well for additional information.
+								More information on our Instagram <a className = "underline font-bold" href = "https://instagram.com/ciputrarun.uc">@ciputrarun.uc</a>
 							</p>
-							<div className="mt-4">
-								{/* <Link
-									href="/registration"
-									className="inline-block btn-register-ghost"
-								>
-									Need help? Contact us
-								</Link> */}
-							</div>
-                        </div>
+						</div>
 					</div>
 				</div>
 			</section>
+
+			{/* Route Image Modal */}
+			<RouteImageModal
+				isOpen={routeModalOpen}
+				onClose={() => setRouteModalOpen(false)}
+				imageSrc={selectedRoute.src}
+				title={selectedRoute.title}
+			/>
 		</main>
 	);
 }

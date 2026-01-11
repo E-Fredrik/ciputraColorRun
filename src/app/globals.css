@@ -201,14 +201,35 @@ html, body {
   }
 }
 
-/* Nav glassmorphism helper -> simplified translucent navbar (no heavy blur) */
+/* Nav glassmorphism helper -> stronger translucent gradient + subtle green hue */
 .nav-glass {
-  /* slightly translucent dark bar (similar to bg-black/30) */
-  background-color: rgba(0, 0, 0, 0.28);
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.12);
+  /* more vibrant translucent gradient (green -> peach) so gradient is visibly noticeable */
+  background: linear-gradient(
+    90deg,
+    rgba(161, 213, 173, 0.38) 0%,
+    rgba(222, 159, 169, 0.38) 100%
+  );
+
+  /* stronger fallback background color for better contrast */
+  background-color: rgba(0, 0, 0, 0.36);
+
+  /* slightly stronger blur + saturation so the gradient pops against content */
+  -webkit-backdrop-filter: blur(8px) saturate(1.08);
+  backdrop-filter: blur(8px) saturate(1.08);
+
+  /* slightly more visible border */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+  /* deepen neutral shadow and increase green tint for warmth */
+  box-shadow:
+    0 6px 20px rgba(2, 6, 23, 0.14),
+    0 10px 30px rgba(161, 213, 173, 0.09);
+}
+
+/* Optional: tighten inner wrapper if other places rely on .max-w-7xl spacing */
+.nav-glass > .max-w-7xl {
+  padding-top: 0.25rem;   /* align with NavBar component py-2 */
+  padding-bottom: 0.25rem;
 }
 
 /* Dark mode variant: slightly stronger translucency */
@@ -222,4 +243,102 @@ html, body {
 .w-full.max-w-md.dark\:bg-black\/28 {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* === BASE RESET === */
+.pricing-table tr {
+  background-color: transparent !important;
+}
+
+.pricing-table th,
+.pricing-table td {
+  background-color: transparent !important;
+  border: none;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 14px 10px !important;
+}
+
+/* === HEADER === */
+.pricing-table th {
+  background-color: #dbdbdb !important;
+  color: #3d8b5f !important;
+  font-weight: 600;
+  white-space: nowrap !important; /* biar tidak turun baris */
+  font-size: 15px !important;
+}
+
+/* === BODY CELLS === */
+.pricing-table td {
+  background-color: #dbdbdb !important;
+  color: #333;
+}
+
+/* Zebra effect */
+.pricing-table tbody tr:nth-child(even) td {
+  background-color: #f7f3f3 !important;
+}
+
+/* === COLUMN-SPECIFIC STYLES === */
+.pricing-table .col-item,
+.pricing-table .col-main,
+.pricing-table .col-tier,
+.pricing-table .col-note {
+  background-color: #f7f3f3 !important;
+}
+
+/* Bundle column (lebih lebar & multiline) */
+.pricing-table th:nth-child(6),
+.pricing-table td:nth-child(6) {
+  width: 25%;
+}
+
+.pricing-table .col-note {
+  white-space: normal;
+  line-height: 1.4;
+}
+
+/* === COLUMN WIDTHS (1–5) === */
+.pricing-table th:nth-child(1),
+.pricing-table td:nth-child(1),
+.pricing-table th:nth-child(2),
+.pricing-table td:nth-child(2),
+.pricing-table th:nth-child(3),
+.pricing-table td:nth-child(3),
+.pricing-table th:nth-child(4),
+.pricing-table td:nth-child(4),
+.pricing-table th:nth-child(5),
+.pricing-table td:nth-child(5) {
+  width: 15%;
+}
+
+/* Navbar hide on scroll */
+.nav-glass {
+  transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 260ms ease, box-shadow 260ms ease;
+  transform: translateY(0);
+  will-change: transform, opacity;
+}
+
+/* Hidden state: slide up and fade out */
+.nav-hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+/* Don't animate for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .nav-glass,
+  .nav-hidden {
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+}
+
+/* Optional: small visible hint when user scrolls (keeps nav accessible) */
+.nav-glass:not(.nav-hidden) {
+  /* keep the vibrant gradient / shadow you already set */
 }

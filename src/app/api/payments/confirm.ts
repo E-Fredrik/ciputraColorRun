@@ -1,8 +1,20 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { authenticateAdmin, unauthorizedResponse } from '../middleware/auth';
 
 const prisma = new PrismaClient();
+
+function generateBibNumber(categoryName: string | undefined, participantId: number): string {
+  const catLower = (categoryName || "").toLowerCase().replace(/\s+/g, "");
+  let prefix = "0";
+  
+  if (catLower.includes("3k") || catLower === "3km") prefix = "3";
+  else if (catLower.includes("5k") || catLower === "5km") prefix = "5";
+  else if (catLower.includes("10k") || catLower === "10km") prefix = "10";
+  
+  return `${prefix}${String(participantId).padStart(4, "0")}`;
+}
+
 
 export async function POST(request: Request) {
   // Authenticate admin (existing logic kept)
@@ -22,22 +34,70 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing registrationId' }, { status: 400 });
     }
 
-    // Update registration + its pending payments in a single transaction
-    const registration = await prisma.$transaction(async (tx) => {
-      // mark payments for this registration as confirmed
-      await tx.payment.updateMany({
-        where: { registrationId, status: 'pending' },
-        data: { status: 'confirmed' },
-      });
+    // Load registration (include payment relation) so we can target the transaction-level Payment
+    const registrationBefore = await prisma.registration.findUnique({
+      where: { id: registrationId },
+      include: { user: true, payment: true },
+    });
+    if (!registrationBefore) {
+      return NextResponse.json({ error: 'Registration not found' }, { status: 404 });
+    }
+
+    const paymentIdForReg = registrationBefore.payment?.id ?? null;
+
+    // Update registration + its pending payment(s) in a single transaction
+    const registration = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      if (paymentIdForReg) {
+        // Update the transaction-level payment by id
+        await tx.payment.updateMany({
+          where: { id: paymentIdForReg, status: 'pending' },
+          data: { status: 'confirmed' },
+        });
+      } else {
+        // Fallback for legacy schemas where Payment may have registrationId
+        await tx.payment.updateMany({
+          where: { registrationId, status: 'pending' } as any,
+          data: { status: 'confirmed' },
+        });
+      }
 
       // update registration paymentStatus
       const reg = await tx.registration.update({
         where: { id: registrationId },
         data: { paymentStatus: 'confirmed' },
-        include: { user: true },
+        include: { user: true, payment: true },
       });
 
-      return reg;
+      // NEW: Assign bib numbers now that payment is confirmed
+      const participants = await tx.participant.findMany({
+        where: { registrationId: registrationId },
+        include: { category: true },
+        orderBy: { id: 'asc' },
+      });
+
+      const updatedParticipants: typeof participants = [];
+      for (const participant of participants) {
+        try {
+          if (!participant.bibNumber) {
+            const bibNumber = generateBibNumber(participant.category?.name, participant.id);
+            const updated = await tx.participant.update({
+              where: { id: participant.id },
+              data: { bibNumber },
+            });
+            updatedParticipants.push({ ...updated, category: participant.category });
+            console.log(`[confirm] Assigned bib ${updated.bibNumber} -> participant ${participant.id}`);
+          } else {
+            updatedParticipants.push(participant);
+            console.log(`[confirm] Participant ${participant.id} already has bib ${participant.bibNumber}`);
+          }
+        } catch (e) {
+          console.error(`[confirm] Failed to set bib for participant ${participant.id}:`, e);
+          throw e; // bubble to rollback transaction
+        }
+      }
+
+      // return registration with participants so caller can verify saved bibs
+      return { ...reg, participants: updatedParticipants };
     });
 
     // optional: fire-and-forget email/QR send (log errors but don't fail)

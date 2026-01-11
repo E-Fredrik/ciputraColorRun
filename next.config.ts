@@ -1,8 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  reactCompiler: true,
+  // Increase body size limit for API routes
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "50mb",
+    },
+  },
+
+  // No need for external images config anymore - everything is local
 };
 
 export default nextConfig;

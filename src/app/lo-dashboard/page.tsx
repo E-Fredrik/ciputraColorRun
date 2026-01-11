@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Mail, Phone, Calendar, MapPin, AlertCircle, LogOut, FileText, IdCard } from 'lucide-react';
+import { X, User, Mail, Phone, Calendar, MapPin, AlertCircle, LogOut, FileText, IdCard, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { getImageUrl, getPaymentProofUrl } from '../../lib/imageUrl';
 
 const TABS = [
   { key: 'pending', label: 'Pending', status: 'pending', color: 'yellow' },
@@ -18,7 +19,10 @@ const TYPE_FILTERS = [
 ];
 
 interface PaymentDetail {
+  // compatibility fields kept
   registrationId: number;
+  registrationIds?: number[];
+  transactionId?: string;
   userName: string;
   email: string;
   phone: string;
@@ -33,8 +37,11 @@ interface PaymentDetail {
   payments: Array<{
     id: number;
     amount: number;
-    proofOfPayment: string;
-    status: string;
+    proofOfPayment?: string;
+    status?: string;
+    transactionId?: string;
+    registrationId?: number;
+    proofSenderName?: string;
   }>;
   user?: {
     birthDate?: string;
@@ -45,6 +52,16 @@ interface PaymentDetail {
     medicalHistory?: string;
     idCardPhoto?: string;
   };
+
+  // NEW: include registration objects for the payment (populated from API.registrations)
+  registrations?: Array<{
+    registrationId: number;
+    registrationType: string;
+    totalAmount: number;
+    groupName?: string;
+    participantCount: number;
+    createdAt: string;
+  }>;
 }
 
 interface StatusCounts {
@@ -80,6 +97,7 @@ export default function LODashboard() {
   // Fetch payments when tab changes
   useEffect(() => {
     fetchPayments();
+    fetchCounts();
   }, [activeTab]);
 
   async function fetchStatusCounts() {
@@ -95,27 +113,34 @@ export default function LODashboard() {
   }
 
   async function fetchPayments() {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      const currentStatus = TABS.find(t => t.key === activeTab)?.status || 'pending';
+      // FIX: Use the correct admin endpoint
+      const url = activeTab === 'all' 
+        ? '/api/admin/payments/all'
+        : `/api/admin/payments/all?status=${activeTab}`;
       
-      const endpoint = currentStatus === 'pending' 
-        ? '/api/payments/pending'
-        : `/api/payments/all?status=${currentStatus}`;
+      console.log('[LODashboard] Fetching from:', url);
       
-      const res = await fetch(endpoint, { credentials: 'include' });
-      if (!res.ok) {
-        if (res.status === 401) {
-          router.push('/admin/login');
-          return;
-        }
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || 'Failed to fetch payments');
+      const response = await fetch(url, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch payments: ${response.statusText}`);
       }
-      const data = await res.json();
+
+      const data = await response.json();
+      console.log('[LODashboard] Received data:', data);
+      console.log('[LODashboard] First payment:', JSON.stringify(data[0], null, 2));
       
-      const paymentsData = Array.isArray(data) ? data : data.registrations || [];
-      setPayments(paymentsData);
+      // The admin endpoint returns the correct format directly
+      setPayments(data as PaymentDetail[]);
+      
     } catch (err: any) {
       setError(err.message);
       console.error('Error fetching payments:', err);
@@ -124,71 +149,110 @@ export default function LODashboard() {
     }
   }
 
-  const handleAccept = async (registrationId: number) => {
-    if (!confirm('Confirm this payment? QR code will be sent to user email.')) return;
-    
+  async function fetchCounts() {
     try {
-      const res = await fetch('/api/payments/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch('/api/payments/counts', {
         credentials: 'include',
-        body: JSON.stringify({ registrationId }),
       });
-
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(body?.error || body?.message || 'Failed to confirm');
+      if (response.ok) {
+        const data = await response.json();
+        setStatusCounts(data.counts);
       }
-
-      alert('Payment confirmed successfully! QR code sent to user email.');
-      fetchPayments();
-      fetchStatusCounts(); // Refresh counts
-      setShowDetailsModal(false);
-    } catch (err: any) {
-      alert('Error: ' + err.message);
+    } catch (err) {
+      console.error('Error fetching counts:', err);
     }
-  };
+  }
 
-  const handleDecline = async (registrationId: number) => {
-    setPendingDeclineId(registrationId);
-    setShowDeclineModal(true);
-  };
-
-  const confirmDecline = async () => {
-    if (!pendingDeclineId) return;
-    
-    if (!declineReason.trim()) {
-      alert('Please provide a reason for declining this payment');
-      return;
-    }
-    
+  async function handleAccept(payment: PaymentDetail) {
+    if (!confirm(`Confirm payment for transaction ${payment.transactionId || payment.registrationId}? This will confirm all linked registrations.`)) return;
     try {
-      const res = await fetch('/api/payments/decline', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ 
-          registrationId: pendingDeclineId,
-          reason: declineReason 
-        }),
-      });
-
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(body?.error || 'Failed to decline');
+      const regIds = payment.registrationIds && payment.registrationIds.length > 0 ? payment.registrationIds : [payment.registrationId];
+      for (const regId of regIds) {
+        const res = await fetch('/api/payments/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ registrationId: regId }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.error || body?.message || 'Failed to confirm registration ' + regId);
       }
-
-      alert('Payment declined successfully. Email notification sent to user.');
+      alert('All registrations in transaction confirmed. QR codes will be sent.');
       fetchPayments();
       fetchStatusCounts();
       setShowDetailsModal(false);
-      setShowDeclineModal(false);
-      setDeclineReason("");
-      setPendingDeclineId(null);
     } catch (err: any) {
       alert('Error: ' + err.message);
     }
-  };
+  }
+
+  async function handleDecline(payment: PaymentDetail) {
+    if (!confirm(`Decline payment for transaction ${payment.transactionId || payment.registrationId}? This will decline all linked registrations.`)) return;
+    try {
+      const regIds = payment.registrationIds && payment.registrationIds.length > 0 ? payment.registrationIds : [payment.registrationId];
+      for (const regId of regIds) {
+        const res = await fetch('/api/payments/decline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ registrationId: regId, reason: 'Declined by admin' }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.error || body?.message || 'Failed to decline registration ' + regId);
+      }
+      alert('Transaction declined. Notifications sent.');
+      fetchPayments();
+      fetchStatusCounts();
+      setShowDetailsModal(false);
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    }
+  }
+
+  // Confirm decline from the modal — decline all registrations for the selected payment (or the pending id)
+  async function confirmDecline() {
+    const reason = declineReason?.trim() || 'Declined by admin';
+    // Determine registration IDs to decline: prefer selectedPayment.registrationIds, fallback to pendingDeclineId
+    const regIds: number[] = [];
+    if (selectedPayment?.registrationIds && selectedPayment.registrationIds.length > 0) {
+      regIds.push(...selectedPayment.registrationIds);
+    } else if (pendingDeclineId) {
+      regIds.push(pendingDeclineId);
+    } else if (selectedPayment?.registrationId) {
+      regIds.push(selectedPayment.registrationId);
+    }
+
+    if (regIds.length === 0) {
+      alert('No registration selected to decline.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      for (const regId of regIds) {
+        const res = await fetch('/api/payments/decline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ registrationId: regId, reason }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.error || body?.message || `Failed to decline registration ${regId}`);
+      }
+      // Success
+      setShowDeclineModal(false);
+      setPendingDeclineId(null);
+      setDeclineReason('');
+      await fetchPayments();
+      await fetchStatusCounts();
+      alert('Selected registration(s) declined and notification(s) sent.');
+    } catch (err: any) {
+      console.error('Decline failed:', err);
+      alert('Decline failed: ' + (err?.message || String(err)));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleChangeStatus = async (registrationId: number, newStatus: 'confirmed' | 'declined') => {
     const action = newStatus === 'confirmed' ? 'confirm' : 'decline';
@@ -339,114 +403,153 @@ export default function LODashboard() {
               />
             </div>
 
-            {/* Payments Grid */}
-            <div className="grid gap-4">
+            {/* Payment Cards */}
+            <div className="space-y-4">
               {filteredPayments.length > 0 ? (
-                filteredPayments.map(payment => (
+                filteredPayments.map((payment) => (
                   <div
                     key={payment.registrationId}
-                    className="bg-[#232326] rounded-xl border border-[#73e9dd]/20 hover:border-[#73e9dd]/50 transition-all hover:shadow-xl hover:shadow-[#73e9dd]/10 overflow-hidden"
+                    className="bg-[#232326] rounded-xl p-6 border border-[#73e9dd]/20 hover:border-[#73e9dd]/50 transition-all"
                   >
-                    <div className="p-6">
-                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl font-bold text-[#ffdfc0]">{payment.userName}</h3>
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadge(payment.paymentStatus)}`}>
-                              {payment.paymentStatus}
-                            </span>
-                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#73e9dd]/20 text-[#73e9dd] border border-[#73e9dd]/50 capitalize">
-                              {payment.registrationType}
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-4 text-sm text-[#ffdfc0]/60">
-                            <span className="flex items-center gap-1">
-                              <Mail size={14} /> {payment.email}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Phone size={14} /> {payment.phone}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Calendar size={14} /> {new Date(payment.createdAt).toLocaleDateString('id-ID')}
-                            </span>
-                          </div>
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-bold text-[#ffdfc0]">{payment.userName}</h3>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadge(payment.paymentStatus)}`}>
+                            {payment.paymentStatus}
+                          </span>
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#73e9dd]/20 text-[#73e9dd] border border-[#73e9dd]/50 capitalize">
+                            {payment.registrationType}
+                          </span>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <div className="text-2xl font-bold text-[#91dcac]">
-                            Rp {Number(payment.totalAmount).toLocaleString('id-ID')}
-                          </div>
-                          <div className="text-sm text-[#ffdfc0]/60">
-                            {payment.participantCount} participant{payment.participantCount > 1 ? 's' : ''}
-                          </div>
+                        <div className="flex flex-wrap gap-4 text-sm text-[#ffdfc0]/60">
+                          <span className="flex items-center gap-1">
+                            <Mail size={14} /> {payment.email}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Phone size={14} /> {payment.phone}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Calendar size={14} /> {new Date(payment.createdAt).toLocaleDateString('id-ID')}
+                          </span>
                         </div>
                       </div>
-
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {payment.payments?.[0] && (
-                          <a
-                            href={`/api/payments/proof/${payment.payments[0].id}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex-shrink-0"
-                          >
-                            <img
-                              src={`/api/payments/proof/${payment.payments[0].id}`}
-                              alt="Payment proof"
-                              className="w-24 h-24 object-cover rounded-lg border-2 border-[#73e9dd]/30 hover:border-[#73e9dd] transition-all"
-                            />
-                          </a>
-                        )}
-                        {payment.categoryCounts && Object.entries(payment.categoryCounts).length > 0 && (
-                          <div className="flex-1 bg-[#18181b] rounded-lg p-3">
-                            <div className="text-xs text-[#73e9dd] mb-2 font-semibold">Categories:</div>
-                            <div className="flex flex-wrap gap-2">
-                              {Object.entries(payment.categoryCounts).map(([cat, count]) => (
-                                <span key={cat} className="px-2 py-1 bg-[#73e9dd]/10 text-[#73e9dd] rounded text-xs">
-                                  {cat}: {String(count)}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {payment.jerseySizes && Object.entries(payment.jerseySizes).length > 0 && (
-                          <div className="flex-1 bg-[#18181b] rounded-lg p-3">
-                            <div className="text-xs text-[#73e9dd] mb-2 font-semibold">Jersey Sizes:</div>
-                            <div className="flex flex-wrap gap-2">
-                              {Object.entries(payment.jerseySizes).map(([size, count]) => (
-                                <span key={size} className="px-2 py-1 bg-[#91dcac]/10 text-[#91dcac] rounded text-xs">
-                                  {size}: {String(count)}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="text-2xl font-bold text-[#91dcac]">
+                          Rp {Number(payment.totalAmount).toLocaleString('id-ID')}
+                        </div>
+                        <div className="text-sm text-[#ffdfc0]/60">
+                          {payment.participantCount} registration{payment.participantCount > 1 ? 's' : ''}
+                        </div>
                       </div>
+                    </div>
 
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => openDetails(payment)}
-                          className="flex items-center gap-2 px-4 py-2 bg-[#73e9dd]/20 border border-[#73e9dd]/50 text-[#73e9dd] rounded-lg hover:bg-[#73e9dd]/30 transition-colors"
-                        >
-                          <FileText size={16} />
-                          View Details
-                        </button>
-                        {activeTab === 'pending' && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {/* Always show payment proof section */}
+                      {payment.payments?.[0] ? (
+                        payment.payments[0].proofOfPayment ? (
                           <>
-                            <button
-                              onClick={() => handleAccept(payment.registrationId)}
-                              className="px-4 py-2 bg-green-500/20 border border-green-500/50 text-green-300 rounded-lg hover:bg-green-500/30 transition-colors font-semibold"
-                            >
-                              Accept
-                            </button>
-                            <button
-                              onClick={() => handleDecline(payment.registrationId)}
-                              className="px-4 py-2 bg-red-500/20 border border-red-500/50 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors font-semibold"
-                            >
-                              Decline
-                            </button>
+                            {getFileType(payment.payments[0].proofOfPayment) === 'pdf' ? (
+                              <a
+                                href={getPaymentProofUrl(payment.payments[0].id)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 bg-[#73e9dd]/10 border border-[#73e9dd]/30 text-[#73e9dd] rounded-lg hover:bg-[#73e9dd]/20 transition-all text-sm"
+                              >
+                                <FileText size={16} />
+                                View Proof (PDF) - ID: {payment.payments[0].id}
+                              </a>
+                            ) : getFileType(payment.payments[0].proofOfPayment) === 'image' ? (
+                              <a
+                                href={getPaymentProofUrl(payment.payments[0].id)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex-shrink-0"
+                              >
+                                <img
+                                  src={getPaymentProofUrl(payment.payments[0].id)}
+                                  alt="Payment proof"
+                                  className="w-24 h-24 object-cover rounded-lg border-2 border-[#73e9dd]/30 hover:border-[#73e9dd] transition-all"
+                                  onError={(e) => {
+                                    console.error('Image load failed for payment ID:', payment.payments[0].id);
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              </a>
+                            ) : (
+                              <a
+                                href={getPaymentProofUrl(payment.payments[0].id)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-2 px-4 py-2 bg-[#73e9dd]/10 border border-[#73e9dd]/30 text-[#73e9dd] rounded-lg hover:bg-[#73e9dd]/20 transition-all text-sm"
+                              >
+                                <FileText size={16} />
+                                View Proof - ID: {payment.payments[0].id}
+                              </a>
+                            )}
                           </>
-                        )}
-                      </div>
+                        ) : (
+                          <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 rounded-lg text-sm">
+                            <AlertCircle size={16} />
+                            No proof uploaded (Path: {payment.payments[0].proofOfPayment || 'null'})
+                          </div>
+                        )
+                      ) : (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 rounded-lg text-sm">
+                          <AlertCircle size={16} />
+                          No payment record
+                        </div>
+                      )}
+                      {payment.categoryCounts && Object.entries(payment.categoryCounts).length > 0 && (
+                        <div className="flex-1 bg-[#18181b] rounded-lg p-3">
+                          <div className="text-xs text-[#73e9dd] mb-2 font-semibold">Categories:</div>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(payment.categoryCounts).map(([cat, count]) => (
+                              <span key={cat} className="px-2 py-1 bg-[#73e9dd]/10 text-[#73e9dd] rounded text-xs">
+                                {cat}: {String(count)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {payment.jerseySizes && Object.entries(payment.jerseySizes).length > 0 && (
+                        <div className="flex-1 bg-[#18181b] rounded-lg p-3">
+                          <div className="text-xs text-[#73e9dd] mb-2 font-semibold">Jersey Sizes:</div>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(payment.jerseySizes).map(([size, count]) => (
+                              <span key={size} className="px-2 py-1 bg-[#91dcac]/10 text-[#91dcac] rounded text-xs">
+                                {size}: {String(count)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => openDetails(payment)}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#73e9dd]/20 border border-[#73e9dd]/50 text-[#73e9dd] rounded-lg hover:bg-[#73e9dd]/30 transition-colors"
+                      >
+                        <FileText size={16} />
+                        View Details
+                      </button>
+                      {activeTab === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleAccept(payment)}
+                            className="px-4 py-2 bg-green-500/20 border border-green-500/50 text-green-300 rounded-lg hover:bg-green-500/30 transition-colors font-semibold"
+                          >
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => handleDecline(payment)}
+                            className="px-4 py-2 bg-red-500/20 border border-red-500/50 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors font-semibold"
+                          >
+                            Decline
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))
@@ -472,7 +575,26 @@ export default function LODashboard() {
                 <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#73e9dd] to-[#91dcac]">
                   Registration Details
                 </h2>
-                <p className="text-[#ffdfc0]/60 text-sm mt-1">ID: {selectedPayment.registrationId}</p>
+                <p className="text-[#ffdfc0]/60 text-sm mt-1">
+                  ID: {selectedPayment.registrationId} {selectedPayment.transactionId && `| Transaction: ${selectedPayment.transactionId}`}
+                </p>
+                <div className="text-[#ffdfc0]/60 text-sm mt-2 space-y-1">
+                  {selectedPayment.registrations && selectedPayment.registrations.length > 0 ? (
+                    selectedPayment.registrations.map((r) => (
+                      <div key={r.registrationId} className="flex items-center justify-between bg-[#1b1b1d] p-2 rounded">
+                        <div className="text-sm">
+                          <div className="font-medium">#{r.registrationId} — {r.registrationType}</div>
+                          <div className="text-xs text-[#9ca3af]">
+                            {r.groupName ? `${r.groupName} • ` : ''}{r.participantCount} participant{r.participantCount > 1 ? 's' : ''} • Rp {Number(r.totalAmount).toLocaleString('id-ID')}
+                          </div>
+                        </div>
+                        <div className="text-xs text-[#9ca3af]">{new Date(r.createdAt).toLocaleDateString('id-ID')}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div>Registrations: {selectedPayment.registrationIds?.join(', ')}</div>
+                  )}
+                </div>
               </div>
               <button
                 onClick={() => setShowDetailsModal(false)}
@@ -536,28 +658,51 @@ export default function LODashboard() {
                 </div>
               </div>
 
-              {/* ID Card/Passport Photo */}
-              {selectedPayment.user?.idCardPhoto && (
+              {/* ID Card/Passport Photo - UPDATED for PDF support */}
+                {selectedPayment.registrations && selectedPayment.registrations.length > 0 && selectedPayment.registrations.some((r:any) => (r.user?.idCardPhoto || r.idCardPhoto)) ? (
                 <div className="bg-[#18181b] rounded-xl p-6 border border-[#73e9dd]/20">
                   <h3 className="text-lg font-semibold text-[#91dcac] mb-4 flex items-center gap-2">
                     <IdCard size={20} />
-                    {selectedPayment.user.nationality === 'WNI' ? 'KTP Photo' : 'Passport Photo'}
+                    ID Card(s) for Registrations
                   </h3>
-                  <a
-                    href={selectedPayment.user.idCardPhoto}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block"
-                  >
-                    <img
-                      src={selectedPayment.user.idCardPhoto}
-                      alt="ID Card"
-                      className="w-full max-w-2xl mx-auto rounded-lg border-2 border-[#73e9dd]/30 hover:border-[#73e9dd] transition-all cursor-pointer"
-                    />
-                  </a>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {selectedPayment.registrations.map((r: any) => {
+                      const img = r.user?.idCardPhoto || r.idCardPhoto;
+                      if (!img) return null;
+                      const imgUrl = getImageUrl(img);
+                      const alt = `ID Card — Registration #${r.registrationId}`;
+                      
+                      return (
+                        <div key={r.registrationId}>
+                          <FileDisplay 
+                            src={imgUrl}
+                            originalPath={img}
+                            alt={alt}
+                            label={`ID Card - Reg #${r.registrationId}`}
+                            imageClassName="w-full rounded-lg border-2 border-[#73e9dd]/30 hover:border-[#73e9dd] transition-all cursor-pointer object-cover max-h-60"
+                          />
+                          <p className="text-xs text-[#ffdfc0]/60 text-center mt-2">Registration #{r.registrationId}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : selectedPayment.user?.idCardPhoto ? (
+                <div className="bg-[#18181b] rounded-xl p-6 border border-[#73e9dd]/20">
+                  <h3 className="text-lg font-semibold text-[#91dcac] mb-4 flex items-center gap-2">
+                    <IdCard size={20} />
+                    {selectedPayment.user.nationality === 'WNI' ? 'KTP/ID Card Photo' : 'Passport Photo'}
+                  </h3>
+                  <FileDisplay 
+                    src={getImageUrl(selectedPayment.user.idCardPhoto)}
+                    originalPath={selectedPayment.user.idCardPhoto}
+                    alt="ID Card"
+                    label={selectedPayment.user.nationality === 'WNI' ? 'ID Card Document' : 'Passport Document'}
+                    imageClassName="w-full max-w-2xl mx-auto rounded-lg border-2 border-[#73e9dd]/30 hover:border-[#73e9dd] transition-all cursor-pointer"
+                  />
                   <p className="text-xs text-[#ffdfc0]/60 text-center mt-2">Click to view full size</p>
                 </div>
-              )}
+              ) : null}
 
               {/* Registration Information */}
               <div className="bg-[#18181b] rounded-xl p-6 border border-[#73e9dd]/20">
@@ -610,38 +755,60 @@ export default function LODashboard() {
                 )}
               </div>
 
-              {/* Payment Proof */}
-              {selectedPayment.payments?.[0] && (
-                <div className="bg-[#18181b] rounded-xl p-6 border border-[#73e9dd]/20">
-                  <h3 className="text-lg font-semibold text-[#91dcac] mb-4">Payment Proof</h3>
-                  <a
-                    href={`/api/payments/proof/${selectedPayment.payments[0].id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block"
-                  >
-                    <img
-                      src={`/api/payments/proof/${selectedPayment.payments[0].id}`}
-                      alt="Payment proof"
-                      className="w-full max-w-2xl mx-auto rounded-lg border-2 border-[#73e9dd]/30 hover:border-[#73e9dd] transition-all cursor-pointer"
-                    />
-                  </a>
-                  <p className="text-xs text-[#ffdfc0]/60 text-center mt-2">Click to view full size</p>
+              {/* Payment Proof - ALWAYS SHOW THIS SECTION */}
+              <div className="bg-[#18181b] rounded-xl p-6 border border-[#73e9dd]/20">
+                <h3 className="text-lg font-semibold text-[#91dcac] mb-4">Payment Proof</h3>
+                
+                {/* DEBUG INFO */}
+                <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded text-xs text-blue-300">
+                  <p><strong>Debug Info:</strong></p>
+                  <p>Payment ID: {selectedPayment.payments?.[0]?.id || 'N/A'}</p>
+                  <p>Proof Path in DB: {selectedPayment.payments?.[0]?.proofOfPayment || 'null'}</p>
+                  <p>File Type Detected: {getFileType(selectedPayment.payments?.[0]?.proofOfPayment)}</p>
+                  <p>Proxy URL: {selectedPayment.payments?.[0] ? getPaymentProofUrl(selectedPayment.payments[0].id) : 'N/A'}</p>
                 </div>
-              )}
+                
+                {selectedPayment.payments?.[0]?.proofOfPayment ? (
+                  <>
+                    <FileDisplay 
+                      src={getPaymentProofUrl(selectedPayment.payments[0].id)}
+                      originalPath={selectedPayment.payments[0].proofOfPayment}
+                      alt="Payment proof"
+                      label="Payment Proof Document"
+                      imageClassName="w-full max-w-2xl mx-auto rounded-lg border-2 border-[#73e9dd]/30 hover:border-[#73e9dd] transition-all cursor-pointer"
+                    />
+                    <p className="text-xs text-[#ffdfc0]/60 text-center mt-2">
+                      {getFileType(selectedPayment.payments[0].proofOfPayment) === 'pdf' ? 'Click "Open PDF" to view' : 'Click to view full size'}
+                    </p>
+                  </>
+                ) : (
+                  <div className="bg-yellow-500/10 border-2 border-yellow-500/30 rounded-lg p-8 flex flex-col items-center justify-center gap-4">
+                    <AlertCircle size={64} className="text-yellow-500" />
+                    <p className="text-yellow-300 text-center font-medium">No payment proof uploaded</p>
+                    <p className="text-[#ffdfc0]/60 text-center text-sm">The user has not provided proof of payment yet</p>
+                  </div>
+                )}
+                {/* Proof Sender Name */}
+                <div className="mt-4 pt-4 border-t border-[#73e9dd]/20">
+                  <InfoItem 
+                    label="Proof Sender Name" 
+                    value={selectedPayment.payments?.[0]?.proofSenderName || "No sender name provided"} 
+                  />
+                </div>
+              </div>
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3 pt-4 border-t border-[#73e9dd]/30">
                 {selectedPayment.paymentStatus === 'pending' && (
                   <>
                     <button
-                      onClick={() => handleAccept(selectedPayment.registrationId)}
+                      onClick={() => handleAccept(selectedPayment)}
                       className="flex-1 min-w-[200px] px-6 py-3 bg-green-500/20 border border-green-500/50 text-green-300 rounded-lg hover:bg-green-500/30 transition-all font-bold"
                     >
                       ✓ Accept Payment
                     </button>
                     <button
-                      onClick={() => handleDecline(selectedPayment.registrationId)}
+                      onClick={() => handleDecline(selectedPayment)}
                       className="flex-1 min-w-[200px] px-6 py-3 bg-red-500/20 border border-red-500/50 text-red-300 rounded-lg hover:bg-red-500/30 transition-all font-bold"
                     >
                       ✗ Decline Payment
@@ -714,6 +881,119 @@ export default function LODashboard() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Helper function to determine file type from path/filename
+function getFileType(filePath: string | null | undefined): 'pdf' | 'image' | 'unknown' {
+  if (!filePath) return 'unknown';
+  
+  const lowerPath = filePath.toLowerCase();
+  
+  // Check for PDF
+  if (lowerPath.endsWith('.pdf') || lowerPath.includes('.pdf')) {
+    return 'pdf';
+  }
+  
+  // Check for common image extensions
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+  for (const ext of imageExtensions) {
+    if (lowerPath.endsWith(ext) || lowerPath.includes(ext)) {
+      return 'image';
+    }
+  }
+  
+  return 'unknown';
+}
+
+// Unified component to display either image or PDF based on file type
+function FileDisplay({ 
+  src, 
+  originalPath,
+  alt, 
+  label = "View Document",
+  imageClassName = ""
+}: { 
+  src: string | null; 
+  originalPath?: string;
+  alt: string; 
+  label?: string;
+  imageClassName?: string;
+}) {
+  if (!src) {
+    return (
+      <div className="w-full h-60 bg-[#18181b] rounded-lg border-2 border-[#73e9dd]/20 flex flex-col items-center justify-center text-[#ffdfc0]/60 gap-3">
+        <AlertCircle size={48} className="text-[#73e9dd]/50" />
+        <p className="text-center">No document available</p>
+      </div>
+    );
+  }
+
+  const fileType = getFileType(originalPath || src);
+
+  if (fileType === 'pdf') {
+    return (
+      <div className="bg-[#18181b] rounded-lg p-8 border-2 border-[#73e9dd]/30 flex flex-col items-center justify-center gap-4">
+        <FileText size={64} className="text-[#73e9dd]" />
+        <p className="text-[#ffdfc0] text-center font-medium">{label} (PDF)</p>
+        <a
+          href={src}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-2 px-6 py-3 bg-[#73e9dd]/20 border border-[#73e9dd]/50 text-[#73e9dd] rounded-lg hover:bg-[#73e9dd]/30 transition-all font-semibold"
+        >
+          <ExternalLink size={20} />
+          Open PDF
+        </a>
+      </div>
+    );
+  }
+
+  if (fileType === 'image') {
+    return (
+      <a href={src} target="_blank" rel="noreferrer" className="block">
+        <img
+          src={src}
+          alt={alt}
+          className={imageClassName}
+          onError={(e) => {
+            // Replace with a "file not found" placeholder
+            const target = e.target as HTMLImageElement;
+            console.error('Failed to load image:', src);
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              parent.innerHTML = `
+                <div class="w-full h-60 bg-[#18181b] rounded-lg border-2 border-red-500/30 flex flex-col items-center justify-center gap-3">
+                  <svg class="w-16 h-16 text-red-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                  </svg>
+                  <p class="text-red-300 text-center font-medium">Image file not found</p>
+                  <p class="text-[#ffdfc0]/60 text-center text-sm">The file may have been moved or deleted</p>
+                </div>
+              `;
+            }
+          }}
+        />
+      </a>
+    );
+  }
+
+  // Unknown file type - show generic link
+  return (
+    <div className="bg-[#18181b] rounded-lg p-8 border-2 border-[#73e9dd]/30 flex flex-col items-center justify-center gap-4">
+      <FileText size={64} className="text-[#73e9dd]/50" />
+      <p className="text-[#ffdfc0] text-center font-medium">{label}</p>
+      <a
+        href={src}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-2 px-6 py-3 bg-[#73e9dd]/20 border border-[#73e9dd]/50 text-[#73e9dd] rounded-lg hover:bg-[#73e9dd]/30 transition-all font-semibold"
+      >
+        <ExternalLink size={20} />
+        View Document
+      </a>
     </div>
   );
 }

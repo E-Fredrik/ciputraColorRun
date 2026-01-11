@@ -42,6 +42,7 @@
 .home_top_logo {
     width: 12rem;
     height: auto;
+    filter: drop-shadow(0 0 10px rgba(0,0,0,0.7));
 }
 
 .home_title {
@@ -49,46 +50,31 @@
     display: inline-block;
     font-size: 5rem;
     font-weight: bolder;
-    background: linear-gradient(
-        90deg,
-        #092f7b 0%,
-        #FFE1C4 25%,      
-        #682950 50%, 
-        #F581A4 75%, 
-        #A17C80 88%, 
-        #0a5c07 100%
-    );
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    -webkit-text-fill-color: transparent;
-    z-index: 2; /* Title appears above the backdrop */
-
-    text-shadow:
-      0 8px 28px rgba(0,0,0,0.45),
-      0 2px 6px rgba(0,0,0,0.35),
-      0 1px 0 rgba(255,255,255,0.04);
+  /* White text - clear on all backgrounds */
+  background: none !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  z-index: 2;
+  /* subtle dark shadow for contrast on light areas */
+  text-shadow: 10px 5px 20px rgba(0,0,0,0.35);
+  -webkit-text-stroke: 0;
+  filter: none;
 }
 
-/* translucent backdrop matching timer style */
-.home_title::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: calc(100% + 2.4rem);
-  height: calc(100% + 0.8rem);
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: 0.8rem;
-  z-index: 1; /* Behind text but visible */
-  pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+/* Responsive stroke for home title */
+@media (max-width: 1024px) {
+  .home_title {
+    -webkit-text-stroke: 0;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.28));
+  }
 }
 
+@media (max-width: 640px) {
+  .home_title {
+    -webkit-text-stroke: 0;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));
+  }
+}
 /* mobile tweak: reduce backdrop size and shadow */
 @media (max-width: 820px) {
   .home_title {
@@ -120,9 +106,9 @@
     margin-top: 2rem; /* reduced gap from countdown timer */
     background: linear-gradient(
       90deg,
-      #8DD6A6 0%,
-      #CBDCD1 50%,
-      #EF929B 74%
+      #6f22be 0%,
+      #8a3391 50%,
+      #a52d5d 74%
     );
     box-shadow: 0 10px 30px rgba(0,0,0,0.12);
     transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms ease;
@@ -134,8 +120,13 @@
         font-size: 1.4rem; /* smaller text */
         padding: 0.9rem 1.6rem;
         margin-top: 1.5rem; /* less gap from countdown */
-        border-radius: 999px;
+        border-radius: 9999px !important; /* full pill */
         min-height: 48px;
+        width: calc(100% - 2rem); /* small horizontal gutters on very small screens */
+        max-width: 420px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
     }
 
     .home_top_logo {
@@ -144,12 +135,12 @@
 }
 
 /* Tablet adjustments (keep the larger oval but moderate size) */
-@media (max-width: 1024px) {
+@media (max-width: 1024px) and (min-width: 641px) {
   .home_register_button {
     font-size: 1.6rem;
     padding: 1rem 2.2rem;
     min-height: 60px;
-    border-radius: 999px;
+    border-radius: 999px !important; /* Full pill shape */
     box-shadow: 0 8px 24px rgba(0,0,0,0.10);
   }
 }
@@ -159,6 +150,21 @@
     max-width: 50%;
     margin-top: 0.5rem;
     margin-bottom: 2rem;
+}
+
+/* Ensure the jumbotron description stays white on all devices/browsers */
+.home_top .home_description,
+.home_top_content .home_description {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important; /* Safari */
+  mix-blend-mode: normal !important; /* prevent background blend from changing color */
+}
+
+/* Also force links and any inline elements inside the description to stay white */
+.home_top .home_description a,
+.home_top_content .home_description * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 .sponsor-container {
@@ -380,12 +386,12 @@
 .countdown-timer-container {
   width: 100%;
   padding: 3rem 1rem;
-  background: linear-gradient(
+  /* background: linear-gradient(
     135deg,
     rgba(141, 214, 166, 0.3) 0%,
     rgba(203, 220, 209, 0.2) 50%,
     rgba(239, 146, 155, 0.3) 100%
-  );
+  ); */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -526,6 +532,34 @@
   z-index: 0; /* images below divider and content */
 }
 
+/* About right column: explicit readable gradient across devices
+   Keeps brand hues but increases opacity on smaller viewports so text
+   remains legible over busy images. Text color and subtle shadows help contrast. */
+.about-right {
+  background: linear-gradient(90deg, rgba(160,212,172,0.55) 0%, rgba(226,150,156,0.55) 100%);
+  color: rgba(255,255,255,0.98);
+}
+
+@media (max-width: 1024px) {
+  .about-right {
+    background: linear-gradient(90deg, rgba(160,212,172,0.72) 0%, rgba(226,150,156,0.72) 100%);
+  }
+  .about-right h2, .about-right p {
+    color: #1F6251 !important;
+    text-shadow: 0 8px 20px rgba(0,0,0,0.36);
+  }
+}
+
+@media (max-width: 640px) {
+  .about-right {
+    background: linear-gradient(90deg, rgba(160,212,172,0.86) 0%, rgba(226,150,156,0.86) 100%);
+  }
+  .about-right h2, .about-right p {
+    color: #1F6251 !important;
+    text-shadow: 0 10px 28px rgba(0,0,0,0.46);
+  }
+}
+
 /* Slides (images) inside the left column */
 .about-slide {
   position: absolute;
@@ -565,7 +599,8 @@
   /* place divider near the middle so it overlays the left image */
   left: 60%;
   width: 65%;
-  max-width: 900px;
+  height: auto;
+  max-width: auto;
   transform: translateX(50%);
   z-index: 5; /* > slides and < right-column content */
   pointer-events: none;
@@ -671,9 +706,12 @@
 }
 
 @keyframes spin {
-  0% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-8px) rotate(18deg); }
-  100% { transform: translateY(0) rotate(0deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* attach animations to classes */
@@ -691,6 +729,10 @@
 
 .decor-item.spin {
   animation: spin 5s cubic-bezier(.2,.8,.2,1) infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 
 /* subtle pop-in on initial load */
@@ -743,7 +785,7 @@
 .register-wrap:hover .home_register_button.register-btn,
 .register-wrap:focus-within .home_register_button.register-btn {
   transform: translateY(-6px) scale(1.03);
-  box-shadow: 0 18px 36px rgba(42, 52, 63, 0.18);
+  box-shadow: 0 18px 36px rgba(0, 52, 63, 0.18);
 }
 
 /* decorative flower assets */
@@ -879,15 +921,81 @@
   .doc-decor, .doc-thumb-overlays { display: none; }
 }
 
+@media (min-width: 700px) and (max-width: 950px) {
+  .benefits-section {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .benefits-grid {
+    grid-template-columns: repeat(2, 1fr) !important; /* two columns for mid-wide phones */
+    gap: 0.9rem !important;
+    align-items: stretch;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .benefit-card {
+    min-width: 0 !important; /* allow the card to shrink inside grid */
+    padding: 0.9rem !important;
+    min-height: 120px !important;
+    gap: 0.6rem !important;
+    display: flex !important;
+    flex-direction: row !important; /* icon left / content right for tighter layouts */
+    align-items: center !important;
+    text-align: left !important;
+    box-sizing: border-box;
+  }
+
+  .benefit-icon-wrap {
+    width: 56px !important;
+    height: 56px !important;
+    margin-right: 0.9rem !important;
+    flex: 0 0 auto !important;
+  }
+
+  .benefit-icon-wrap img,
+  .benefit-icon-wrap svg,
+  .benefit-image {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .benefit-title {
+    font-size: 1rem !important;
+    line-height: 1.1 !important;
+    margin-top: 0 !important;
+  }
+
+  .benefit-description {
+    font-size: 0.92rem !important;
+    line-height: 1.3 !important;
+    max-width: 100% !important; /* allow wrapping inside right column */
+    margin-top: 0 !important;
+    padding-right: 0.2rem !important;
+  }
+
+  /* ensure grid items don't add unexpected whitespace */
+  .benefits-grid > * { box-sizing: border-box !important; }
+
+  /* avoid outer container causing overflow */
+  .max-w-1100, .max-w-6xl, .container, .benefits-section, .benefits-grid {
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+}
+
 /* Pricing section (refined color scheme to match site palette) */
 .pricing-section {
   position: relative;
   padding-top: 2.5rem;
   padding-bottom: 2.5rem;
   color: var(--foreground);
-  --pricing-border: rgba(31,98,81,0.08);
-  --pricing-odd: rgba(31,98,81,0.02);
-  --pricing-hover: rgba(31,98,81,0.045);
+  --pricing-border: rgba(31,98,81,0.15);
+  --pricing-odd: rgba(31,98,81,0.06);
+  --pricing-hover: transparent; /* Disabled hover */
   --accent-strong: #91DCAC;
   --accent-muted: #F581A4;
   overflow-x: hidden;
@@ -931,136 +1039,104 @@
   max-width: 100%;
 }
 
-/* prevent columns from compressing too far — allow scroll instead */
+/* Pricing table: improved visibility with stronger colors */
 .pricing-table {
+  /* Stronger gradient for better visibility */
+  background: linear-gradient(90deg, rgba(213,232,215,0.85) 0%, rgba(218,164,167,0.85) 100%) !important;
   min-width: 780px;
   width: 100%;
+  border-collapse: collapse;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 14px 40px rgba(16,24,40,0.12);
+  font-size: 0.95rem;
 }
 
-/* keep header visible while user scrolls horizontally/vertically */
+/* Header with stronger visibility */
 .pricing-table thead th {
   position: sticky;
   top: 0;
-  z-index: 6;
-  /* preserve the existing header look while stuck */
-  background: linear-gradient(90deg, rgba(145,220,172,0.06), rgba(245,129,164,0.03));
-  backdrop-filter: blur(6px);
-}
-
-/* tiny polish: ensure the first column remains readable when scrolling horizontally */
-.pricing-table tbody td.col-item {
-  position: sticky;
-  left: 0;
-  z-index: 5;
-  background: rgba(255,255,255,0.95);
-  box-shadow: 2px 0 8px rgba(16,24,40,0.04);
-}
-
-/* clean table layout */
-.pricing-table {
-  width: 100%;
-  border-collapse: collapse;
-  /* translucent glass surface */
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-  backdrop-filter: blur(6px) saturate(1.02);
-  -webkit-backdrop-filter: blur(6px) saturate(1.02);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 14px 40px rgba(16,24,40,0.06);
-  font-size: 0.95rem;
-  border: 1px solid var(--pricing-border);
-  z-index: 2;
-}
-
-/* ensure claim cards sit above the overlay as well */
-.claim-card,
-.venue-card {
-  position: relative;
-  z-index: 2;
-  /* keep cards translucent (glass) so image is visible */
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  backdrop-filter: blur(8px) saturate(1.02);
-  -webkit-backdrop-filter: blur(8px) saturate(1.02);
-  border-radius: 14px;
-  padding: 1.25rem;
-  box-shadow: 0 10px 28px rgba(16,24,40,0.06);
-  border: 1px solid rgba(31,98,81,0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  color: #23312b;
-}
-
-/* header row */
-.pricing-table thead th {
-  position: relative;
-  z-index: 3;
+  z-index: 10;
   text-align: left;
   padding: 14px 18px;
-  background: linear-gradient(90deg, rgba(145,220,172,0.06), rgba(245,129,164,0.03));
-  color: var(--accent-strong);
+  /* Stronger header background */
+  background: linear-gradient(90deg, rgba(213,232,215,0.95) 0%, rgba(218,164,167,0.95) 100%);
+  color: #1a4d3a; /* Darker green for better contrast */
   font-weight: 700;
   letter-spacing: 0.2px;
-  border-bottom: 1px solid rgba(16,24,40,0.06);
+  border-bottom: 2px solid rgba(16,24,40,0.15);
   font-family: var(--font-moderniz);
 }
 
-/* body cells - stronger separators while preserving translucency */
+/* Body cells with better contrast */
 .pricing-table tbody td {
   padding: 14px 18px;
-  border-bottom: 1px solid rgba(31,98,81,0.10);
+  border-bottom: 1px solid rgba(31,98,81,0.15);
   vertical-align: middle;
-  color: #374151;
   background: transparent;
 }
 
-/* category badge on first column for visual hierarchy */
+/* Category column - stronger green */
 .pricing-table tbody td.col-item {
   position: relative;
-  padding-left: 48px;
+  padding-left: 18px;
   font-weight: 700;
-  color: #682950;
+  color: #1a4d3a !important; /* Darker green */
   font-family: var(--font-moderniz);
-}
-.pricing-table tbody td.col-item::before {
-  content: "";
-  position: absolute;
-  left: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-strong), var(--accent-muted));
-  box-shadow: 0 6px 18px rgba(145,220,172,0.12);
+  background: rgba(145,220,172,0.25) !important; /* More visible green tint */
 }
 
-/* primary price column */
+/* Main price column - stronger contrast */
 .col-main {
   width: 18%;
   font-weight: 800;
-  color: #0f5132;
+  color: #0a3d24 !important; /* Much darker green */
   font-family: var(--font-mustica);
+  background: rgba(255,255,255,0.95) !important;
 }
 
-/* tier columns */
-.col-tier { width: 16%; text-align: left; color: #42504f; }
+/* Tier columns - darker text */
+.col-tier { 
+  width: 16%; 
+  text-align: left; 
+  color: #4a1535 !important; /* Darker purple/pink */
+  font-weight: 600;
+  background: rgba(255,255,255,0.90) !important;
+}
 
-/* note column */
-.col-note { width: 22%; color: #52605f; white-space: pre-wrap; }
+/* Note column - better visibility */
+.col-note { 
+  width: 22%; 
+  color: #2d4a49 !important; /* Darker teal */
+  white-space: pre-wrap;
+  font-weight: 500;
+  background: rgba(255,255,255,0.85) !important;
+}
 
-/* alternating subtle row background for readability */
+/* Alternating rows with stronger visibility */
 .pricing-table tbody tr:nth-child(even) td {
-  background: var(--pricing-odd);
+  background: rgba(31,98,81,0.08) !important;
 }
 
-/* hover highlight */
-.pricing-table tbody tr:hover td {
-  background: var(--pricing-hover);
-  transition: background 160ms ease;
+/* REMOVE ALL HOVER EFFECTS */
+.pricing-table tbody tr:hover,
+.pricing-table tbody tr:hover td,
+.pricing-table tbody tr:active,
+.pricing-table tbody tr:active td {
+  background: none !important;
+  box-shadow: none !important;
+  cursor: default !important;
 }
 
-/* responsive: transform table into informative cards on narrow screens */
+/* Ensure category color never changes */
+.pricing-table tbody tr:hover td.col-item,
+.pricing-table tbody tr:active td.col-item,
+.pricing-table tbody td.col-item {
+  color: #1a4d3a !important;
+  background: rgba(145,220,172,0.25) !important;
+}
+
+/* Responsive: transform table into informative cards on narrow screens */
 @media (max-width: 720px) {
   .pricing-decor-large,
   .pricing-decor-small {
@@ -1089,12 +1165,13 @@
     border: none;
   }
 
-  /* keep the header readable and sticky on vertical scroll */
+  /* keep the header readable and sticky on vertical scroll - keep header tint/gradient */
   .pricing-table thead th {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: rgba(255,255,255,0.97);
+    /* keep the header gradient visible even when scrolled on small screens */
+    background: linear-gradient(90deg, rgba(213,232,215,0.98) 0%, rgba(218,164,167,0.98) 100%);
     -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
     white-space: nowrap;
@@ -1109,15 +1186,13 @@
     vertical-align: middle;
   }
 
-  /* On mobile, do NOT keep the first column sticky (so it won't follow the scroll).
-     Instead make it opaque and add a subtle shadow only when the table content is scrolled.
-     JS toggles the .scrolled class on .pricing-table-wrap when scrollLeft > 0 */
+  /* On mobile, do NOT make first column opaque white — keep it transparent so the table gradient shows through */
   .pricing-table tbody td.col-item,
   .pricing-table thead th.col-item {
     position: static !important;
     left: auto !important;
     z-index: 5;
-    background: #ffffff; /* opaque so it's readable over scroller */
+    background: transparent !important; /* allow gradient/background to show */
     box-shadow: none;
     white-space: nowrap;
     transition: box-shadow 180ms ease;
@@ -1134,11 +1209,155 @@
     display: table-row;
   }
 
+  /* Remove hover tint on rows for mobile — keep content colors consistent */
+
+
   /* safety: make sure no other rules force stacked-card UI */
   .pricing-table, .pricing-table * {
     box-sizing: border-box;
     max-width: none !important;
     overflow-wrap: normal !important;
+  }
+}
+
+/* Mobile: force desktop-like colors for pricing table and disable hover tint */
+@media (max-width: 720px) {
+  /* ensure variables are available */
+  :root {
+    --pricing-odd: rgba(31,98,81,0.02);
+  }
+
+  .pricing-section .pricing-table tbody tr,
+  .pricing-section .pricing-table tbody td {
+    background: transparent !important;
+    transition: none !important;
+  }
+
+  /* keep the alternating subtle row background (same as desktop) */
+  .pricing-section .pricing-table tbody tr:nth-child(even) td {
+    background: var(--pricing-odd) !important;
+  }
+
+  /* explicit per-column static colors to match desktop view (5K scheme) */
+  .pricing-section .pricing-table tbody td.col-item {
+    background-color: rgba(145,220,172,0.12) !important; /* pale green */
+    color: #682950 !important;
+    font-weight: 700 !important;
+  }
+
+  .pricing-section .pricing-table tbody td.col-main {
+    background-color: rgba(255,255,255,0.98) !important; /* near-white */
+    color: #0f5132 !important;
+    font-weight: 800 !important;
+  }
+
+  .pricing-section .pricing-table tbody td.col-tier {
+    background-color: rgba(255,255,255,0.98) !important; /* keep tiers light */
+    color: #602d4e !important;
+    font-weight: 600 !important;
+  }
+
+  .pricing-section .pricing-table tbody td.col-note {
+    background-color: transparent !important;
+    color: #52605f !important;
+    font-weight: 500 !important;
+  }
+
+  /* remove all hover effect on mobile rows/cells */
+  .pricing-section .pricing-table tbody tr:hover td,
+  .pricing-section .pricing-table tbody tr:active td {
+    background: transparent !important;
+    box-shadow: none !important;
+    transition: none !important;
+  }
+
+  /* ensure sticky-first-column shadow behavior doesn't change colors */
+  .pricing-table-wrap.scrolled .pricing-table tbody td.col-item,
+  .pricing-table-wrap.scrolled .pricing-table thead th.col-item {
+    box-shadow: 6px 0 18px rgba(16,24,40,0.06);
+    background: rgba(145,220,172,0.12) !important;
+  }
+}
+
+/* ===== Pricing: force desktop colors everywhere and remove hover tints ===== */
+/* Highest-specificity scoped rules to avoid affecting other tables */
+.pricing-section .pricing-table,
+.pricing-section .pricing-table tbody,
+.pricing-section .pricing-table tbody tr,
+.pricing-section .pricing-table tbody td,
+.pricing-section .pricing-table thead th {
+  transition: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Explicit static header style (desktop & mobile) */
+.pricing-section .pricing-table thead th {
+  background: linear-gradient(90deg, rgba(213,232,215,0.18) 0%, rgba(218,164,167,0.18) 100%) !important;
+  color: #28543b !important;
+}
+
+/* Enforce desktop palette: left column = pale green, main price = near-white, tiers = light */
+.pricing-section .pricing-table tbody td.col-item {
+  background-color: rgba(145,220,172,0.12) !important; /* pale green */
+  color: #682950 !important;
+  font-weight: 700 !important;
+}
+
+.pricing-section .pricing-table tbody td.col-main {
+  background-color: rgba(255,255,255,0.98) !important; /* near-white */
+  color: #0f5132 !important;
+  font-weight: 800 !important;
+}
+
+.pricing-section .pricing-table tbody td.col-tier {
+  background-color: rgba(255,255,255,0.98) !important;
+  color: #602d4e !important;
+  font-weight: 600 !important;
+}
+
+.pricing-section .pricing-table tbody td.col-note {
+  background-color: transparent !important;
+  color: #52605f !important;
+  font-weight: 500 !important;
+}
+
+/* Keep subtle zebra rows like desktop */
+.pricing-section .pricing-table tbody tr:nth-child(even) td {
+  background: var(--pricing-odd, rgba(31,98,81,0.02)) !important;
+}
+
+/* Remove any hover/active tint entirely */
+.pricing-section .pricing-table tbody tr:hover,
+.pricing-section .pricing-table tbody tr:active,
+.pricing-section .pricing-table tbody tr:hover td,
+.pricing-section .pricing-table tbody tr:active td {
+  background: none !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+
+/* Mobile: ensure same static colors when table becomes scrollable */
+@media (max-width: 720px) {
+  .pricing-section .pricing-table tbody td.col-item,
+  .pricing-section .pricing-table tbody td.col-main,
+  .pricing-section .pricing-table tbody td.col-tier,
+  .pricing-section .pricing-table tbody td.col-note,
+  .pricing-section .pricing-table thead th {
+    /* reapply to higher-specificity mobile rules */
+    background-clip: padding-box !important;
+  }
+
+  .pricing-section .pricing-table tbody tr:hover,
+  .pricing-section .pricing-table tbody tr:active {
+    background: none !important;
+  }
+
+  /* ensure sticky-first-column scrolled state keeps same pale green */
+  .pricing-table-wrap.scrolled .pricing-table tbody td.col-item,
+  .pricing-table-wrap.scrolled .pricing-table thead th.col-item {
+    background: rgba(145,220,172,0.12) !important;
+    box-shadow: 6px 0 18px rgba(16,24,40,0.06) !important;
   }
 }
 
@@ -1154,7 +1373,7 @@
 
 .benefits-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.25rem;
   align-items: stretch;
 }
@@ -1170,17 +1389,20 @@
   align-items: center;
   text-align: center;
   gap: 0.75rem;
-  min-height: 170px;
-  transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms ease, border-color 220ms ease;
-  box-shadow: 0 8px 20px rgba(16,24,40,0.04);
+  min-height: 150px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+
+  /* permanent outline / soft drop-shadow using #73E9DD */
+  box-shadow: 0 10px 30px rgba(115,233,221,0.10);
+  border-color: rgba(115,233,221,0.16);
 }
 
-/* subtle hover / focus for pointer devices */
+/* remove pop/zoom hover — keep same outline on hover/focus */
 .benefit-card:hover,
 .benefit-card:focus-within {
-  transform: translateY(-6px);
-  box-shadow: 0 18px 40px rgba(16,24,40,0.08);
-  border-color: rgba(16,24,40,0.06);
+  transform: none;
+  box-shadow: 0 10px 30px rgba(115,233,221,0.10);
+  border-color: rgba(115,233,221,0.20);
 }
 
 /* Icon wrapper */
@@ -1220,6 +1442,10 @@
   font-size: 0.95rem;
   line-height: 1.4;
   margin-top: 0.25rem;
+
+  /* Make paragraph text justified on all viewports */
+  text-align: justify !important;
+  text-justify: inter-word !important;
 }
 
 /* Responsive: stack on small screens, increase touch targets */
@@ -1254,69 +1480,290 @@
 
   .benefit-title { font-size: 1rem; }
   .benefit-description { font-size: 0.9rem; }
+
+  /* --- Ensure the last "Other Benefits" card matches the other cards on small screens --- */
+  .benefits-grid .benefit-card:last-child {
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+    padding: 0.9rem !important;
+    gap: 0.9rem !important;
+    min-height: 84px !important;
+  }
+  .benefits-grid .benefit-card:last-child .benefit-icon-wrap {
+    margin-right: 0.9rem !important;
+    margin-bottom: 0 !important;
+    width: 56px !important;
+    height: 56px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .benefits-grid .benefit-card:last-child .benefit-title,
+  .benefits-grid .benefit-card:last-child .benefit-description {
+    text-align: left !important;
+  }
 }
 
-/* ===== Pricing & Benefits visual tweaks =====
-   - Make the last benefit card ("Benefit Lainnya") span the full width of the 3-card row on larger screens
+/* ===== Pricing & Benefits visual tweaks ===== */
+/* - Make the last benefit card ("Benefit Lainnya") span the full width of the 3-card row on larger screens
    - Keep desktop layout unchanged; ensure mobile stacks normally
    - Add gradient text for HARGA TIKET and BENEFIT PENDAFTARAN headings
 */
 
 /* Gradient headings (used by .pricing-title-gradient and .benefit-section-title in src/app/page.tsx) */
+/* Unified readable gradient for all section titles
+   High-contrast dark gradient - readable on all devices */
+.unified-gradient-title,
 .pricing-title-gradient,
-.benefit-section-title {
+.benefit-section-title,
+.confirm-payment-title {
   background: linear-gradient(
     90deg,
-    #4D9D56 0%,
-    #FFE1C4 25%,
-    #682950 50%,
-    #F581A4 75%,
-    #4E765C 100%
+    #1a4d3a 0%,
+    #0d5c4a 35%,
+    #6b2d4a 65%,
+    #4a1a35 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
+  background-size: 100% 100%;
+  background-position: center;
+  /* strong shadow for visibility on any background */
+  -webkit-text-stroke: 0;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
-/* Make the fourth benefit card span full width of the three-column grid on medium+ screens */
-.benefits-grid .benefit-card:last-child {
-  grid-column: 1 / -1;
-  min-height: 220px; /* larger visual weight */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 1.5rem;
-}
-
-/* Keep proportion on medium screens */
-@media (max-width: 900px) {
-  .benefits-grid .benefit-card:last-child {
-    grid-column: 1 / -1;
-    min-height: 180px;
+@media (max-width: 1024px) {
+  .unified-gradient-title,
+  .pricing-title-gradient,
+  .benefit-section-title {
+    -webkit-text-stroke: 0;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
   }
 }
 
-/* On very small screens, keep stacked single-column layout (do not force spanning) */
+@media (max-width: 640px) {
+  .unified-gradient-title,
+  .pricing-title-gradient,
+  .benefit-section-title {
+    -webkit-text-stroke: 0;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+  }
+}
+
+/* Benefits grid: use 4 columns on wide screens (was 3 + last card spanning) */
+.benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+/* Remove forced spanning of the last card (was used to make a big bottom card)
+   — now all 4 cards sit inline in the same row on large screens */
+.benefits-grid .benefit-card:last-child {
+  grid-column: auto;
+  min-height: 84px;
+  padding: 1.25rem;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.benefits-grid .benefit-card:last-child .benefit-icon-wrap {
+  margin-bottom: 0.6rem;
+}
+
+/* Tablet: keep responsive behavior */
+@media (min-width: 931px) and (max-width: 1024px) {
+  .benefits-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  .benefits-grid .benefit-card:nth-child(4) {
+    grid-column: 2 / 3 !important;
+  }
+
+  .benefits-grid .benefit-card {
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+    padding: 1rem !important;
+    gap: 1rem !important;
+    min-height: 100px !important;
+  }
+
+  .benefits-grid .benefit-card .benefit-icon-wrap {
+    margin-right: 1rem !important;
+    margin-bottom: 0 !important;
+    width: 64px !important;
+    height: 64px !important;
+    border-radius: 12px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .benefits-grid .benefit-card .benefit-icon-wrap img,
+  .benefits-grid .benefit-card .benefit-icon-wrap svg,
+  .benefits-grid .benefit-card .benefit-image {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  .benefits-grid .benefit-card .benefit-title,
+  .benefits-grid .benefit-card .benefit-description {
+    text-align: left !important;
+  }
+
+  .benefits-grid .benefit-card .benefit-title {
+    font-size: 1.05rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .benefits-grid .benefit-card .benefit-description {
+    font-size: 0.95rem !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Keep 4th card centered */
+  .benefits-grid .benefit-card:nth-child(4) {
+    grid-column: 2 / 3 !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+  }
+
+  .benefits-grid .benefit-card:nth-child(4) .benefit-icon-wrap {
+    margin-right: 1rem !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+/* Tablet portrait and smaller landscape: single column to prevent overflow */
+@media (max-width: 930px) {
+  .benefits-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Reset 4th card to normal flow in single column */
+  .benefits-grid .benefit-card:nth-child(4) {
+    grid-column: auto !important;
+  }
+
+  .benefit-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+    padding: 1rem !important;
+    gap: 1rem !important;
+    min-height: 100px !important;
+    max-width: 100% !important;
+  }
+
+  .benefit-icon-wrap {
+    width: 64px !important;
+    height: 64px !important;
+    flex-shrink: 0 !important;
+    margin-right: 1rem !important;
+    margin-bottom: 0 !important;
+  }
+
+  .benefit-icon-wrap img,
+  .benefit-icon-wrap svg,
+  .benefit-image {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  .benefit-title {
+    font-size: 1.05rem !important;
+    line-height: 1.2 !important;
+    margin-top: 0 !important;
+    text-align: left !important;
+  }
+
+  .benefit-description {
+    font-size: 0.95rem !important;
+    line-height: 1.4 !important;
+    margin-top: 0.25rem !important;
+    text-align: left !important;
+    max-width: 100% !important;
+  }
+
+  /* Ensure 4th card follows same layout */
+  .benefits-grid .benefit-card:nth-child(4) {
+    grid-column: 1 !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+  }
+
+  .benefits-grid .benefit-card:nth-child(4) .benefit-icon-wrap {
+    margin-right: 1rem !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+/* Small screens: stack / single column behavior (unchanged) */
 @media (max-width: 520px) {
   .benefits-grid {
     grid-template-columns: 1fr;
+    gap: 0.9rem;
   }
-  .benefits-grid .benefit-card:last-child {
-    grid-column: auto;
-    min-height: 84px; /* match smaller card height */
-    padding: 0.9rem;
+
+  /* Reset 4th card to normal flow */
+  .benefits-grid .benefit-card:nth-child(4) {
+    grid-column: auto !important;
+  }
+
+  .benefit-card {
     flex-direction: row;
     align-items: center;
     text-align: left;
+    gap: 0.9rem;
+    padding: 0.9rem;
+    min-height: 84px;
   }
-}
 
-/* Minor polish: slightly larger title inside the spanning card */
-.benefits-grid .benefit-card:last-child .benefit-title {
-  font-size: 1.12rem;
-  font-weight: 900;
+  .benefit-icon-wrap { width: 56px; height: 56px; border-radius: 12px; }
+  .benefit-icon-wrap img,
+  .benefit-icon-wrap svg,
+  .benefit-image { width: 36px; height: 36px; }
+
+  .benefit-title { font-size: 1rem; }
+  .benefit-description { font-size: 0.9rem; }
+
+  .benefits-grid .benefit-card:nth-child(4) {
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+    padding: 0.9rem !important;
+    gap: 0.9rem !important;
+    min-height: 84px !important;
+  }
+  .benefits-grid .benefit-card:nth-child(4) .benefit-icon-wrap {
+    margin-right: 0.9rem !important;
+    margin-bottom: 0 !important;
+    width: 56px !important;
+    height: 56px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .benefits-grid .benefit-card:nth-child(4) .benefit-title,
+  .benefits-grid .benefit-card:nth-child(4) .benefit-description {
+    text-align: left !important;
+  }
 }
 
 /* ===== Timeline section fixes =====
@@ -1464,8 +1911,36 @@ input:focus, textarea:focus, select:focus{
   .jersey-input::placeholder { line-height: 36px; }
 }
 
+.edit-jersey-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 0.75rem;               /* horizontal padding, keeps visual rhythm */
+  border: 0;
+  border-bottom: 2px solid #e5e7eb;
+  background: transparent;
+  color: #111827;
+  text-align: center;               /* center numbers horizontally */
+  font-size: 1rem;
+  line-height: 40px;                /* vertically center the numeric value */
+  vertical-align: middle;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  appearance: none;
+  outline: none;
+}
+
+/* hide native number spinners for cleaner centered appearance */
+.edit-jersey-input::-webkit-outer-spin-button,
+.edit-jersey-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.edit-jersey-input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 .timeline-section {
-  background: linear-gradient(90deg, #a7cca9 0%, #da9c9d 100%);
+  background: linear-gradient(90deg, #e2969c 0%, #a1d4ad 100%);
   background-repeat: no-repeat;
   background-position: center;
   /* optional subtle fixed feel on large screens */
@@ -1505,7 +1980,33 @@ input:focus, textarea:focus, select:focus{
 .venue-map-wrapper {
   display: flex;
   justify-content: center;
-  align-items: center;
+}
+
+main[style*="backgroundImage"] {
+  background-attachment: fixed !important; /* lock background position */
+  background-size: cover !important;
+  background-position: center !important;
+  min-height: 100vh;
+  will-change: auto; /* prevent transform optimizations that cause zoom */
+}
+
+/* Ensure body doesn't cause layout shifts */
+body {
+  overflow-x: hidden;
+  width: 100vw; /* use viewport width to ignore scrollbar */
+  max-width: 100%;
+}
+
+/* For registration and profile pages specifically */
+body:has(main[style*="backgroundImage"]) {
+  overflow-y: auto; /* allow natural scrolling */
+  overflow-x: hidden;
+}
+
+/* Prevent any transform or scale changes on main content */
+main {
+  transform: none !important;
+  transition: none !important;
 }
 
 .venue-map-card {
@@ -1522,6 +2023,7 @@ input:focus, textarea:focus, select:focus{
 .venue-map-top {
   display: flex;
   justify-content: space-between;
+ 
   align-items: center;
   padding: 10px 14px;
   gap: 12px;
@@ -1554,6 +2056,7 @@ input:focus, textarea:focus, select:focus{
   border: 0;
   display: block;
   filter: grayscale(0.16) contrast(0.96) saturate(0.9);
+ 
   transition: filter .2s ease, transform .12s ease;
 }
 
@@ -1595,7 +2098,7 @@ label[for="idCardPhoto"]:focus-within {
     position: static !important;
     left: auto !important;
     z-index: 5;
-    background: #ffffff; /* opaque so it's readable over scroller */
+    background: transparent !important; /* allow gradient/background to show */
     box-shadow: none;
     white-space: nowrap;
     transition: box-shadow 180ms ease;
@@ -1607,3 +2110,539 @@ label[for="idCardPhoto"]:focus-within {
     box-shadow: 6px 0 18px rgba(16,24,40,0.06);
   }
 }
+
+/* ===== Improved timeline: compact two-column on desktop, clean stacked list on mobile ===== */
+.timeline-section .timeline-scroll-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  padding: 0 1rem;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+/* Base: single-column centered list for small screens (accessible, semantic) */
+.timeline-section .timeline-list.minimal {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+  position: relative;
+}
+
+/* each timeline item: stacked date above title by default (mobile-first) */
+.timeline-section .timeline-item.minimal {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.35rem 0.5rem;
+  background: transparent;
+  color: inherit;
+}
+
+/* date + title styles for readability */
+.timeline-section .timeline-date {
+  font-weight: 700;
+  color: #682950;
+  font-size: 1rem;
+  margin-bottom: 0.18rem;
+}
+
+.timeline-section .timeline-title {
+  font-weight: 800;
+  color: #1F6251;
+  font-size: 1.15rem;
+  line-height: 1.12;
+}
+
+.terms-modal .terms-content ol {
+  list-style-type: disc; /* default to disc for top-level lists */
+  list-style-position: outside;
+  margin-left: 1rem;
+  padding-left: 1.25rem;
+}
+
+/* nested inside top-level ol -> roman i, ii, iii */
+.terms-modal .terms-content ol ol {
+  list-style-type: lower-roman; /* i, ii, iii */
+  margin-left: 0.5rem;
+  padding-left: 1rem;
+}
+
+/* deeper nesting: use lower-alpha again for 3rd level if needed */
+.terms-modal .terms-content ol ol ol {
+  list-style-type: lower-alpha;
+  margin-left: 0.5rem;
+  padding-left: 1rem;
+}
+
+/* make sure list markers are visible if some global rule hides them */
+.terms-modal .terms-content ol,
+.terms-modal .terms-content ol li {
+  counter-reset: none !important;
+  list-style-position: outside !important;
+}
+
+/* Desktop: two-column timeline with subtle vertical line and markers */
+@media (min-width: 900px) {
+  /* Horizontal timeline: list becomes a centered flex row */
+  .timeline-section .timeline-list.minimal {
+    display: flex !important;
+    flex-direction: row;
+    gap: 3.5rem;
+    align-items: center;
+    justify-content: center;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    position: relative;
+    /* ensure items sit above the line */
+    z-index: 2;
+  }
+
+  /* long horizontal line running through the timeline (below markers) */
+  .timeline-section .timeline-list.minimal::before {
+    content: "";
+
+
+    position: absolute;
+    left: 5%;
+    right: 5%;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, rgba(31,98,81,0.12), rgba(222,159,169,0.06));
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* each timeline item is a stacked column: date (top) -> marker (on line) -> title (bottom) */
+  .timeline-section .timeline-item.minimal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    min-width: 150px;
+    position: relative;
+    background: transparent;
+    gap: 0.6rem;
+    z-index: 2; /* keep above the ::before line */
+  }
+
+  /* date above the line (slightly raised) */
+  .timeline-section .timeline-date {
+    order: 0;
+    margin: 0;
+    padding: 0;
+    transform: translateY(-8px);
+    font-weight: 700;
+    color: #682950;
+  }
+
+  /* title below the line (slightly lowered) */
+  .timeline-section .timeline-title {
+    order: 2;
+    margin: 0;
+    padding: 0;
+    transform: translateY(8px);
+    font-weight: 800;
+    color: #1F6251;
+  }
+
+  /* round marker: attach to the .timeline-item so it aligns exactly to the central line */
+  .timeline-section .timeline-item.minimal::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, #F581A4 0%, #FFD700 100%);
+    border: 2px solid rgba(255,255,255,0.95);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    pointer-events: none;
+  }
+  
+  /* ensure the old vertical-divider rules are overridden */
+  .timeline-section .timeline-list.minimal,
+  .timeline-section .timeline-list.minimal::before,
+  .timeline-section .timeline-item.minimal,
+  .timeline-section .timeline-date,
+  .timeline-section .timeline-title {
+    transition: none !important;
+  }
+}
+
+/* Mobile-friendly adjustments remain (stacked centered list) */
+@media (max-width: 900px) {
+  .timeline-section .timeline-list.minimal {
+    padding: 0 0.5rem;
+    max-width: 620px;
+    gap: 0.9rem;
+  }
+
+  .timeline-section .timeline-date { font-size: 0.92rem; }
+  .timeline-section .timeline-title { font-size: 1.05rem; }
+}
+
+/* very small screens */
+@media (max-width: 520px) {
+  .timeline-section .timeline-list.minimal { padding: 0 0.5rem; max-width: 420px; gap: 0.65rem; }
+  .timeline-section .timeline-title { font-size: 1rem; }
+}
+
+/* Strengthen horizontal timeline line on desktop */
+@media (min-width: 900px) {
+  .timeline-section .timeline-list.minimal::before {
+    /* thicker, higher-contrast line */
+    height: 4px !important;
+    background: #FFFFFF !important;
+
+    /* slight glow to make it readable over gradients/images */
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12) !important;
+    border-radius: 3px !important;
+    opacity: 1 !important;
+    filter: saturate(1.05) contrast(1.02) !important;
+
+    /* preserve placement */
+    left: 3% !important;
+    right: 3% !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+  }
+
+  /* slightly lift markers so they read clearly on the thicker line */
+  .timeline-section .timeline-item.minimal::after {
+    width: 18px !important;
+    height: 18px !important;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.14) !important;
+    border: 2px solid rgba(255,255,255,0.95) !important;
+  }
+}
+
+/* Mobile: vertical timeline (date left, marker on center line, title right) */
+@media (max-width: 900px) {
+  .timeline-section .timeline-list.minimal {
+    display: block !important;
+    position: relative !important;
+    padding: 1rem 0.5rem !important;
+    max-width: 100% !important;
+  }
+
+  /* vertical center line */
+  .timeline-section .timeline-list.minimal::before {
+    content: "" !important;
+    position: absolute !important;
+    left: 50% !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: 3px !important;
+    border-radius: 3px !important;
+    background: #FFFFFF !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+    transform: translateX(-50%) !important;
+    z-index: 1 !important;
+    pointer-events: none !important;
+  }
+
+  /* each item: horizontal row with date (left) | marker (center) | title (right) */
+  .timeline-section .timeline-list.minimal .timeline-item.minimal {
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr !important;
+    align-items: center !important;
+    gap: 0 !important;
+    padding: 1rem 0 !important;
+    position: relative !important;
+    z-index: 2 !important;
+    background: transparent !important;
+  }
+
+  /* date: left column, right-aligned */
+  .timeline-section .timeline-item.minimal .timeline-date {
+    grid-column: 1 !important;
+    text-align: right !important;
+    padding-right: 1rem !important;
+    margin: 0 !important;
+    transform: none !important;
+    order: 0 !important;
+    white-space: normal !important;
+    font-weight: 700 !important;
+    color: #682950 !important;
+    font-size: 0.85rem !important;
+    line-height: 1.3 !important;
+  }
+
+  /* marker: center column, positioned exactly at center line */
+  .timeline-section .timeline-item.minimal::after {
+    content: "" !important;
+    grid-column: 2 !important;
+    position: relative !important;
+    left: 0 !important;
+    top: 0 !important;
+    /* nudge the dot upward on mobile */
+    transform: translateY(-22px) !important;
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(90deg, #F581A4 0%, #FFD700 100%) !important;
+    border: 3px solid rgba(255,255,255,0.95) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    z-index: 3 !important;
+    pointer-events: none !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* title: right column, left-aligned */
+  .timeline-section .timeline-item.minimal .timeline-title {
+    grid-column: 3 !important;
+    text-align: left !important;
+    padding-left: 1rem !important;
+    margin: 0 !important;
+    transform: none !important;
+    order: 0 !important;
+    font-weight: 800 !important;
+    color: #1F6251 !important;
+    white-space: normal !important;
+    font-size: 1rem !important;
+    line-height: 1.2 !important;
+  }
+
+  /* spacing between stacked rows */
+  .timeline-section .timeline-list.minimal .timeline-item.minimal + .timeline-item.minimal {
+    margin-top: 0 !important;
+    border-top: none !important;
+  }
+}
+@media (max-width: 820px) {
+  .about-right h2,
+  .about-right p {
+    /* match desktop copy color and remove heavy text-shadow used for white-on-image */
+    color: #1F6251 !important;
+    -webkit-text-fill-color: #1F6251 !important;
+    text-shadow: none !important;
+  }
+
+  /* If the heading uses the gradient class, allow the gradient to show by removing the forced white fill */
+  .about-right .unified-gradient-title {
+    /* keep gradient if present (no forced white) */
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    -webkit-background-clip: text !important;
+  }
+}
+
+.terms-modal .terms-content .terms-ol-decimal {
+  list-style-type: decimal !important; /* 1., 2., 3. */
+  list-style-position: outside !important;
+  padding-left: 1.5rem !important;
+  margin: 0.25rem 0 0.75rem 0 !important;
+}
+
+.terms-modal .terms-content .terms-ol-decimal > li {
+  display: list-item !important;
+  margin: 0.35rem 0 !important;
+}
+
+.terms-modal .terms-content .terms-ol-decimal ol {
+  list-style-type: lower-roman !important; /* i, ii, iii */
+  padding-left: 1.25rem !important;
+}
+
+.terms-modal .terms-content .terms-ol-decimal li::marker {
+  color: #1F6251 !important;
+  font-weight: 700;
+}
+.terms-modal .terms-content .terms-ol-alpha {
+  list-style-type: lower-alpha !important; /* a, b, c */
+  list-style-position: outside !important;
+  margin: 0.25rem 0 0.75rem 0 !important;
+  padding-left: 1.25rem !important;
+}
+.terms-modal .terms-content .terms-ol-alpha > li {
+  display: list-item !important;
+  margin: 0.35rem 0 !important;
+}
+
+.terms-ol-alpha {
+  list-style-type: lower-alpha !important; /* a, b, c */
+  list-style-position: outside !important;
+  margin: 0.25rem 0 0.75rem 0 !important;
+  padding-left: 1.25rem !important;
+}
+
+.terms-ol-alpha > li,
+.terms-ol-alpha li {
+  display: list-item !important;
+  margin: 0.35rem 0 !important;
+}
+
+.terms-ol-alpha li::marker {
+  color: #1F6251 !important;
+  font-weight: 700;
+}
+
+/* Safety: prefer explicit rule for ol[type="a"] as fallback */
+ol[type="a"] {
+  list-style-type: lower-alpha !important;
+}
+
+.terms-modal .terms-content .terms-ol-numbered {
+  list-style: decimal !important;
+  list-style-position: outside !important;
+  counter-reset: section-counter !important;
+  margin: 0.5rem 0 !important;
+  padding-left: 1.75rem !important;
+}
+
+.terms-modal .terms-content .terms-ol-numbered > li {
+  display: list-item !important;
+  list-style-type: decimal !important;
+  counter-increment: section-counter !important;
+  margin: 0.5rem 0 !important;
+  padding-left: 0.25rem !important;
+}
+
+.terms-modal .terms-content .terms-ol-numbered > li::marker {
+  content: counter(section-counter) ". " !important;
+  color: #1F6251 !important;
+  font-weight: 700 !important;
+}
+
+/* Nested roman numerals (i, ii, iii) */
+.terms-modal .terms-content .terms-ol-roman {
+  list-style: lower-roman !important;
+  list-style-position: outside !important;
+  margin: 0.25rem 0 !important;
+  padding-left: 1.5rem !important;
+}
+
+.terms-modal .terms-content .terms-ol-roman > li {
+  display: list-item !important;
+  list-style-type: lower-roman !important;
+  margin: 0.25rem 0 !important;
+}
+
+.terms-modal .terms-content .terms-ol-roman > li::marker {
+  color: #1F6251 !important;
+  font-weight: 600 !important;
+}
+
+/* Alphabetic lists (a, b, c) - keep existing rules */
+.terms-modal .terms-content .terms-ol-alpha {
+  list-style: lower-alpha !important;
+  list-style-position: outside !important;
+  margin: 0.25rem 0 !important;
+  padding-left: 1.5rem !important;
+}
+
+.terms-modal .terms-content .terms-ol-alpha > li {
+  display: list-item !important;
+  list-style-type: lower-alpha !important;
+  margin: 0.25rem 0 !important;
+}
+
+.terms-modal .terms-content .terms-ol-alpha > li::marker {
+  color: #1F6251 !important;
+  font-weight: 600 !important;
+}
+
+/* Remove any conflicting global resets */
+.terms-modal .terms-content ol,
+.terms-modal .terms-content ol li {
+  counter-reset: none;
+}
+
+.terms-modal .terms-content > ol,
+.terms-modal .terms-content .terms-ol-numbered {
+  list-style-type: decimal !important;
+  list-style-position: outside !important;
+  margin: 0.5rem 0 !important;
+  padding-left: 1.75rem !important;
+}
+
+.terms-modal .terms-content > ol > li,
+.terms-modal .terms-content .terms-ol-numbered > li {
+  display: list-item !important;
+  list-style-type: decimal !important;
+  margin: 0.5rem 0 !important;
+  padding-left: 0.25rem !important;
+}
+
+/* LEVEL 2: Nested roman numerals (i, ii, iii...) */
+.terms-modal .terms-content > ol > li > ol,
+.terms-modal .terms-content .terms-ol-numbered > li > ol,
+.terms-modal .terms-content .terms-ol-roman {
+  list-style-type: lower-roman !important;
+  list-style-position: outside !important;
+  margin: 0.25rem 0 !important;
+  padding-left: 1.5rem !important;
+}
+
+.terms-modal .terms-content > ol > li > ol > li,
+.terms-modal .terms-content .terms-ol-numbered > li > ol > li,
+.terms-modal .terms-content .terms-ol-roman > li {
+  display: list-item !important;
+  list-style-type: lower-roman !important;
+  margin: 0.25rem 0 !important;
+  padding-left: 0 !important;
+}
+
+/* LEVEL 3: Nested alphabetic (a, b, c, d...) */
+.terms-modal .terms-content > ol > li > ol > li > ol,
+.terms-modal .terms-content .terms-ol-numbered > li > ol > li > ol,
+.terms-modal .terms-content .terms-ol-roman > li > ol,
+.terms-modal .terms-content .terms-ol-alpha {
+  list-style-type: lower-alpha !important;
+  list-style-position: outside !important;
+  margin: 0.25rem 0 !important;
+  padding-left: 1.5rem !important;
+}
+
+.terms-modal .terms-content > ol > li > ol > li > ol > li,
+.terms-modal .terms-content .terms-ol-numbered > li > ol > li > ol > li,
+.terms-modal .terms-content .terms-ol-roman > li > ol > li,
+.terms-modal .terms-content .terms-ol-alpha > li {
+  display: list-item !important;
+  list-style-type: lower-alpha !important;
+  margin: 0.25rem 0 !important;
+  padding-left: 0 !important;
+}
+
+/* Marker styling for all levels */
+.terms-modal .terms-content ol li::marker {
+  color: #1F6251 !important;
+  font-weight: 700 !important;
+}
+
+/* IMPORTANT: Don't use counter-reset - let browser handle native counters */
+.terms-modal .terms-content ol {
+  list-style-position: outside !important;
+}
+
+/* Ensure all list items use display: list-item */
+.terms-modal .terms-content ol li {
+  display: list-item !important;
+}
+
+/* Remove old conflicting counter rules */
+.terms-ol-numbered,
+.terms-ol-roman,
+.terms-ol-alpha {
+  counter-reset: none !important;
+}
+
