@@ -1065,7 +1065,7 @@ export default function RegistrationPage() {
                                         // setRegistrationType("community");
                                         // Redirect to contact person's WhatsApp (Abel)
                                         if (typeof window !== "undefined") {
-                                          const msg = "Halo kak, saya ingin mendaftar Ciputra Color Run sebagai komunitas. Mohon informasinya, Terima kasih";
+                                          const msg = "Halo kak, saya ingin mendaftar Ciputra Color Run sebagai komunitas. Mohon informasinya, terima kasih";
                                           const encoded = encodeURIComponent(msg);
                                           window.location.href = `https://wa.me/62895410319676?text=${encoded}`;
                                         }
