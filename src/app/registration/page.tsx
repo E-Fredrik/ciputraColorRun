@@ -2116,7 +2116,7 @@ export default function RegistrationPage() {
                                 <strong>Data Accuracy: </strong>
                                 <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
                                     <li>
-                                        Participants are required to complete the registration form with accurate personal information, including name, date of birth, email address, and phone number.
+                                        Participants are required to complete the registration form with accurate personal information, including but not limited to name, date of birth, email address, and phone number. Once the registration is submitted, the data cannot be changed under any circumstances.
                                     </li>
                                     <li>
                                         Errors in data entry that result in the cancellation of results or prizes are entirely the responsibility of the participants.
@@ -2288,11 +2288,11 @@ export default function RegistrationPage() {
                                         </li>
                                         <li>
                                             <strong>Unclaimed Items: </strong>
-                                            Jika terdapat barang yang tidak diambil hingga acara berakhir, panitia akan melakukan identifikasi pemilik melalui Nomor Bib dan menghubungi peserta melalui nomor WhatsApp yang terdaftar untuk konfirmasi.
+                                            If any items remain unclaimed after the event, the organizing committee will attempt to identify the owner through the Bib Number and contact the participant via the registered WhatsApp number for confirmation.
                                         </li>
                                         <li>
                                             <strong>Claim Limits: </strong>
-                                            Peserta yang telah dikonfirmasi sebagai pemilik barang diberikan batas waktu maksimal 7 (tujuh) hari setelah hari acara untuk mengambil barang tertinggal tersebut di lokasi yang ditentukan.
+                                            Participants who have been confirmed as the owners of the items are given a maximum period of seven (7) days after the event date to collect the lost items at the designated location.
                                         </li>
                                         <li>
                                             <strong>Unclaimed Items Condition: </strong>
@@ -2383,7 +2383,7 @@ export default function RegistrationPage() {
                                     </ol>
                                 </li>
                                 <li>
-                                    <strong>Winner Verification</strong>
+                                    <strong>Winner Verification: </strong>
                                     Potential podium winners must verify their data immediately upon finishing by showing:
                                     <ol type = "a" className = "pl-6 mt-1 space-y-1 terms-ol-alpha">
                                         <li>
