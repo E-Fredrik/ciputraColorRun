@@ -2086,20 +2086,20 @@ export default function RegistrationPage() {
                               <li>
                                 <strong>Registration Period: </strong>
                                 <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                  <li> Registration is opened from 1st December until the maximum quota has been fulfilled.</li>
+                                  Registration is opened from 1 December 2025 until the maximum quota has been fulfilled.
                                 </ol>
                               </li>
                               <li>
                                 <strong>Registration Platform: </strong>
                                 <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                  <li>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputracolorrun.com" className="text-blue-600 underline">https://ciputracolorrun.com</a>.</li>
+                                  <li>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputracolorrun.com</a>.</li>
                                   <li>Event organizers are not responsible for any consequences resulting from purchases made outside the official platform.</li>
                                 </ol>
                               </li>
                               <li>
                                 <strong>Categories & Pricing: </strong>
                                 <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>Registration fee pendaftaran dibagi berdasarkan kategori jarak tempuh sebagai berikut:
+                                    <li>The registration fee is categorized based on the distance covered, as follows:
                                         <ol type = "a" className="pl-6 mt-1 space-y-1 terms-ol-alpha">
                                             <li>3 KM: Rp 130.000,- (Early Bird) | Rp 150.000,- (Normal Price)</li>
                                             <li>5 KM: Rp 180.000,- (Early Bird) | Rp 200.000,- (Normal Price)</li>
@@ -2116,7 +2116,7 @@ export default function RegistrationPage() {
                                 <strong>Data Accuracy: </strong>
                                 <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
                                     <li>
-                                        Participants are required to fill in the registration data with accurate information (name, date of birth, email, and phone number).
+                                        Participants are required to complete the registration form with accurate personal information, including name, date of birth, email address, and phone number.
                                     </li>
                                     <li>
                                         Errors in data entry that result in the cancellation of results or prizes are entirely the responsibility of the participants.
@@ -2176,14 +2176,14 @@ export default function RegistrationPage() {
                                     </ol>
                                 </li>
                                 <li>
-                                    <strong>Late Collection (Race Day)</strong>
+                                    <strong>Late Collection (Race Day): </strong>
                                     Participants unable to collect during the main schedule are permitted to collect on the event day (April 12, 2026) at the event location, no later than 05:00 WIB.
                                 </li>
                                 <li>
                                     <strong>Collection Requirements: </strong>
                                     <ol type="a" className="pl-6 mt-1 space-y-1 terms-ol-alpha">
                                         <li>
-                                            <strong>Self Collection: </strong>Participants must present the purchase QR Code (print or digital) and a valid Identity Card (ID Card)
+                                            <strong>Self Collection: </strong>Participants must present the purchase QR Code (print or digital) and a valid Identity Card (ID Card).
                                         </li>
                                         <li>
                                             <strong>Collection via Representative: </strong>
