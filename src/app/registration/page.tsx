@@ -955,12 +955,12 @@ export default function RegistrationPage() {
 
                             <div className="rounded-lg border border-gray-200 p-5 bg-white">
                                 <div className="space-y-5">
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                        <p className="text-xs text-blue-700">
+                                    {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-3"> */}
+                                        {/* <p className="text-xs text-blue-700">
                                             💡 <strong>Tip:</strong> Add multiple categories! Total participants across all categories determine your tier pricing.
                                             Example: 20 in 3K + 20 in 5K + 20 in 10K = 60 total → Best pricing tier!
-                                        </p>
-                                    </div>
+                                        </p> */}
+                                    {/* </div> */}
 
                                     <div className="grid gap-3">
                                         <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Race Category *</label>

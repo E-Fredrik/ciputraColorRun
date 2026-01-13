@@ -118,6 +118,7 @@ export default function NavBar() {
                         />
                     </Link>
 
+                    {/* DESKTOP MENU */}
                     <div className="hidden md:flex items-center gap-12">
                         <Link
                             href="/"
@@ -130,6 +131,13 @@ export default function NavBar() {
                             className="text-white font-bold text-lg hover:text-white/80 transition-colors tracking-wide"
                         >
                             REGISTER
+                        </Link>
+                        {/* 👇 TAMBAHAN BARU: Terms & Conditions */}
+                        <Link
+                            href="/terms-and-conditions"
+                            className="text-white font-bold text-lg hover:text-white/80 transition-colors tracking-wide"
+                        >
+                            T&C
                         </Link>
 
                         {/* Icons */}
@@ -188,7 +196,7 @@ export default function NavBar() {
                         {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
                     </button>
 
-                    {/* Mobile Menu */}
+                    {/* MOBILE MENU */}
                     {isMenuOpen && (
                         <div className="absolute top-full left-0 right-0 md:hidden">
                             <div className="nav-glass backdrop-blur-lg border-b ">
@@ -207,6 +215,14 @@ export default function NavBar() {
                                             onClick={() => setIsMenuOpen(false)}
                                         >
                                             REGISTER
+                                        </Link>
+                                        {/* 👇 TAMBAHAN BARU: Terms & Conditions di Mobile */}
+                                        <Link
+                                            href="/terms-and-conditions"
+                                            className="text-white font-bold text-lg hover:text-white/80 transition-colors tracking-wide w-full text-right"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            TERMS & CONDITIONS
                                         </Link>
 
                                         {/* Bottom actions: cart + auth (right aligned) */}
