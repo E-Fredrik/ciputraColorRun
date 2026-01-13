@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { User, Menu, X, HelpCircle, MessageCircle, PenTool } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { User, Menu, X, HelpCircle, MessageCircle, PenTool, ShoppingCart } from "lucide-react";
+import { useState, useEffect, useRef, useContext } from "react";
+import { CartContext } from "@/context/CartContext";
+
 import { useRouter, usePathname } from "next/navigation";
 
 export default function NavBar() {
@@ -11,6 +13,7 @@ export default function NavBar() {
     const [isHelpOpen, setIsHelpOpen] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
+    const { cart, toggleCart } = useContext(CartContext);
 
     // hide on scroll down, show on scroll up
     const [isNavHidden, setIsNavHidden] = useState(false);
@@ -311,15 +314,33 @@ export default function NavBar() {
                                 </div>
                             </div>
                         )}
+                        <button onClick={toggleCart} className="relative text-white p-2">
+                            <ShoppingCart size={22} />
+                            {cart.length > 0 && (
+                                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                                    {cart.length}
+                                </span>
+                            )}
+                        </button>
                     </div>
 
-                    <button
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className="md:hidden text-white p-2"
-                        aria-label="Toggle menu"
-                    >
-                        {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
-                    </button>
+                    <div className="flex items-center md:hidden">
+                        <button onClick={toggleCart} className="relative text-white p-2">
+                            <ShoppingCart size={22} />
+                            {cart.length > 0 && (
+                                <span className="absolute top-1 right-1 text-xs bg-red-500 text-white rounded-full h-4 w-4 flex items-center justify-center">
+                                    {cart.length}
+                                </span>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className="text-white p-2"
+                            aria-label="Toggle menu"
+                        >
+                            {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
+                        </button>
+                    </div>
 
                     {/* MOBILE MENU */}
                     {isMenuOpen && (

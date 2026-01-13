@@ -29,15 +29,26 @@ export async function GET() {
 
     console.log('[API] Found categories:', categories.length);
 
-    // compute remaining early-bird per category using EarlyBirdClaim count
-    const categoriesWithRemaining = await Promise.all(
-      categories.map(async (c: any) => {
-        const claims = await prisma.earlyBirdClaim.count({ where: { categoryId: c.id } });
-        const remaining = Math.max(0, (c.earlyBirdCapacity ?? 0) - claims);
-        console.log(`[API] Category ${c.name}: ${claims} claims, ${remaining} remaining`);
-        return { ...c, earlyBirdRemaining: remaining };
-      })
-    );
+    // Optimized early bird count
+    const earlyBirdCounts = await prisma.earlyBirdClaim.groupBy({
+      by: ['categoryId'],
+      _count: {
+        categoryId: true,
+      },
+    });
+
+    // Create a map for quick lookups
+    const claimsMap = new Map<number, number>();
+    for (const group of earlyBirdCounts) {
+      claimsMap.set(group.categoryId, group._count.categoryId);
+    }
+
+    const categoriesWithRemaining = categories.map((c: any) => {
+      const claims = claimsMap.get(c.id) || 0;
+      const remaining = Math.max(0, (c.earlyBirdCapacity ?? 0) - claims);
+      console.log(`[API] Category ${c.name}: ${claims} claims, ${remaining} remaining`);
+      return { ...c, earlyBirdRemaining: remaining };
+    });
 
     return NextResponse.json(categoriesWithRemaining, {
       headers: {
@@ -46,6 +57,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error('[API] Error fetching categories:', error);
-    return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ error: 'Failed to fetch categories', details: errorMessage }, { status: 500 });
   }
 }

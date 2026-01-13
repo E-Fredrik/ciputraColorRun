@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useContext } from "react";
 import { showToast } from "../../lib/toast";
 import TutorialModal from "../components/TutorialModal";
+import { CartContext } from "@/context/CartContext";
+import { useSessionState } from "@/hooks/useSessionState";
 
 interface Category {
     id: number;
@@ -37,6 +39,7 @@ interface JerseyOption {
 export default function RegistrationPage() {
     const router = useRouter();
     const [currentUser, setCurrentUser] = useState<any | null>(null);
+    const { cart, setCart } = useContext(CartContext);
     
     const [type, setType] = useState<"individual" | "community" | "family">("individual");
     // NEW: keep a separate registrationType state (used across the file)
@@ -74,10 +77,6 @@ export default function RegistrationPage() {
             // ignore parse errors
         }
     }
-
-    
-
-    // --- Replace selected personal states with session-backed states ---
     const [fullName, setFullName] = useSessionState<string>("reg_fullName", "");
     const [email, setEmail] = useSessionState<string>("reg_email", "");
     const [phone, setPhone] = useSessionState<string>("reg_phone", "");
@@ -90,10 +89,9 @@ export default function RegistrationPage() {
     const [medicationAllergy, setMedicationAllergy] = useSessionState<string>("reg_medicationAllergy", "");
     const [groupName, setGroupName] = useSessionState<string>("reg_groupName", "");
     const [idCardPhotoName, setIdCardPhotoName] = useSessionState<string | null>("reg_idCardPhotoName", null);
-
-    // Keep idCard photo File in memory only (cannot store File in sessionStorage)
     const [idCardPhoto, setIdCardPhoto] = useState<File | null>(null);
     const [existingIdCardPhotoUrl, setExistingIdCardPhotoUrl] = useSessionState<string | null>("reg_existingIdCardPhotoUrl", null);
+
 
     // Upload file in chunks to /api/payments/upload-chunk and return assembled file URL
     async function uploadFileInChunksLocal(file: File, subDir: string = "id-cards"): Promise<string> {
@@ -273,7 +271,11 @@ export default function RegistrationPage() {
                     cache: 'no-store',
                     headers: { 'Cache-Control': 'no-cache' }
                 });
-                if (!res.ok) throw new Error("Failed to load categories");
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({}));
+                    console.error('Error response from /api/categories:', errorData);
+                    throw new Error(`Failed to load categories. Status: ${res.status}. Details: ${errorData.details || 'No details'}`);
+                }
                 const data = await res.json();
                 setCategories(data);
                 if (data.length > 0) setCategoryId(data[0].id);
@@ -705,7 +707,33 @@ export default function RegistrationPage() {
         }
     }
 
+    
+    function handleAddToCart() {
+        if (!validatePersonalDetails()) return;
+
+        const category = categories.find((c) => c.id === categoryId);
+        if (!category) {
+            showToast("Please select a category", "error");
+            return;
+        }
+
+        const newItem = {
+            id: new Date().getTime(),
+            type,
+            categoryName: category.name,
+            participants: type === "community" ? participants : 1,
+            price: currentPrice,
+            jerseyCharges: calculateJerseyCharges(jerseys),
+            jerseys: type === "community" ? jerseys : { [selectedJerseySize]: 1 },
+            groupName: groupName,
+        };
+
+        setCart((prevCart: any) => [...prevCart, newItem]);
+        showToast("Added to cart!", "success");
+    }
+
     // No add-to-cart functionality - proceed directly to checkout
+
 
     // Direct checkout - no cart, go straight to confirmation
     async function handleCheckout() {
@@ -1060,16 +1088,7 @@ export default function RegistrationPage() {
                                     value="community"
                                     checked={type === "community"}
                                     // onChange={() => { setType("community"); setRegistrationType("community"); }}
-                                    onChange={() => {
-                                        // setType("community");
-                                        // setRegistrationType("community");
-                                        // Redirect to contact person's WhatsApp (Abel)
-                                        if (typeof window !== "undefined") {
-                                          const msg = "Halo kak, saya ingin mendaftar Ciputra Color Run sebagai komunitas. Mohon informasinya, terima kasih";
-                                          const encoded = encodeURIComponent(msg);
-                                          window.location.href = `https://wa.me/62895410319676?text=${encoded}`;
-                                        }
-                                    }}
+                                    onChange={() => { setType("community"); setRegistrationType("community"); }}
                                     className="sr-only"
                                 />
                                 <div className="flex flex-col items-center gap-2">
@@ -1856,7 +1875,7 @@ export default function RegistrationPage() {
 
                             <div className="flex justify-center mt-4">
                                 <button
-                                    onClick={handleCheckout}
+                                    onClick={handleAddToCart}
                                     disabled={isSubmitting || communityCount < 10}
                                     className={`w-1/2 md:w-1/3 px-6 py-3 rounded-full font-semibold shadow-xl transition-all transform ${
                                         communityCount >= 10 && !isSubmitting
@@ -1873,7 +1892,7 @@ export default function RegistrationPage() {
                                             Processing...
                                         </span>
                                     ) : (
-                                        "Proceed to Checkout"
+                                        "Add to Cart"
                                     )}
                                 </button>
                             </div>
@@ -2718,59 +2737,4 @@ export default function RegistrationPage() {
             )}
         </main>
     );
-}
-
-// --- tiny hook: state synced to sessionStorage immediately ---
-function useSessionState<T>(key: string, initialValue: T) {
-    const [state, setState] = useState<T>(() => {
-        if (typeof window === "undefined") return initialValue;
-        try {
-            const v = sessionStorage.getItem(key);
-            if (v === null) return initialValue;
-
-            // Try parsing JSON first (handles values written via JSON.stringify)
-            try {
-                return JSON.parse(v) as T;
-            } catch (parseErr) {
-                // If parsing fails, fall back to the raw string for string-like keys
-                // This makes the hook tolerant of legacy / plain-string writes.
-                // For non-string initial types, attempt basic conversions for common primitives.
-                const trimmed = v.trim();
-                // null/undefined markers
-                if (trimmed === "null") return (null as unknown) as T;
-                if (trimmed === "undefined") return (undefined as unknown) as T;
-
-                // boolean
-                if (trimmed === "true") return (true as unknown) as T;
-                if (trimmed === "false") return (false as unknown) as T;
-
-                // number
-                const num = Number(trimmed);
-                if (!Number.isNaN(num) && typeof initialValue === "number") return (num as unknown) as T;
-
-                // otherwise return raw string cast to T (common case)
-                return (v as unknown) as T;
-            }
-        } catch (e) {
-            // on any error, return initial value
-            return initialValue;
-        }
-    });
-
-    useEffect(() => {
-        try {
-            // Always write a JSON-serialized value so future reads are consistent.
-            sessionStorage.setItem(key, JSON.stringify(state));
-        } catch (e) { /* ignore quota/errors */ }
-    }, [key, state]);
-
-    const setAndSave = (value: React.SetStateAction<T>) => {
-        setState(prev => {
-            const next = typeof value === "function" ? (value as (p: T) => T)(prev) : value;
-            try { sessionStorage.setItem(key, JSON.stringify(next)); } catch (e) { /* ignore */ }
-            return next;
-        });
-    };
-
-    return [state, setAndSave] as const;
 }
