@@ -86,15 +86,22 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           const category = categories.find((c) => c.name === item.categoryName);
           if (category) {
             let newPrice = Number(category.basePrice);
-            
+            console.log(`[DEBUG] Initial price for ${item.categoryName}: ${newPrice}`);
+            console.log(`[DEBUG] Total community participants: ${totalCommunityParticipants}`);
+            console.log(`[DEBUG] Category tiers: Tier1(${category.tier1Min}-${category.tier1Max}) Price: ${category.tier1Price}, Tier2(${category.tier2Min}-${category.tier2Max}) Price: ${category.tier2Price}, Tier3(${category.tier3Min}) Price: ${category.tier3Price}`);
+
             if (category.tier3Price && category.tier3Min && totalCommunityParticipants >= category.tier3Min) {
               newPrice = Number(category.tier3Price);
-            } else if (category.tier2Price && category.tier2Min && category.tier2Max && totalCommunityParticipants >= category.tier2Min && totalCommunityParticipants <= category.tier2Max) {
+              console.log(`[DEBUG] Applied Tier 3 price: ${newPrice}`);
+            } else if (category.tier2Price && category.tier2Min && totalCommunityParticipants >= category.tier2Min && (category.tier2Max === null || totalCommunityParticipants <= category.tier2Max)) {
               newPrice = Number(category.tier2Price);
-            } else if (category.tier1Price && category.tier1Min && category.tier1Max && totalCommunityParticipants >= category.tier1Min && totalCommunityParticipants <= category.tier1Max) {
+              console.log(`[DEBUG] Applied Tier 2 price: ${newPrice}`);
+            } else if (category.tier1Price && category.tier1Min && totalCommunityParticipants >= category.tier1Min && (category.tier1Max === null || totalCommunityParticipants <= category.tier1Max)) {
               newPrice = Number(category.tier1Price);
+              console.log(`[DEBUG] Applied Tier 1 price: ${newPrice}`);
             }
             updatedCart[index] = { ...item, price: newPrice };
+            console.log(`[DEBUG] Item ${item.categoryName} updated price in cart: ${updatedCart[index].price}`);
 
             if (!tierApplied) {
               if (category.tier1Min && totalCommunityParticipants < category.tier1Min) {
