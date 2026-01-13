@@ -827,12 +827,6 @@ export default function RegistrationPage() {
                 setIsModalOpen(true);
                 return;
             } else {
-                const currentParticipants = Number(participants || 0);
-                if (currentParticipants < 10) {
-                    showToast(`Community registration requires minimum 10 participants. Currently have ${currentParticipants}`, "error");
-                    return;
-                }
-
                 const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
                 if (totalJerseys !== currentParticipants) {
                     showToast(`Jersey count must match participant count`, "error");
