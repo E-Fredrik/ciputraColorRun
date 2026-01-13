@@ -35,6 +35,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [discountMessages, setDiscountMessages] = useState<string[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -67,58 +68,61 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error("Failed to save cart to sessionStorage", error);
     }
-  }, [cart]);
+
+    const communityItems = cart.filter((item) => item.type === "community");
+    const messages: string[] = [];
+    
+    if (communityItems.length > 0 && categories.length > 0) {
+      const totalCommunityParticipants = communityItems.reduce(
+        (total, item) => total + (item.participants as number),
+        0
+      );
+
+      const updatedCart = [...cart];
+      let tierApplied = false;
+
+      updatedCart.forEach((item, index) => {
+        if (item.type === "community") {
+          const category = categories.find((c) => c.name === item.categoryName);
+          if (category) {
+            let newPrice = Number(category.basePrice);
+            
+            if (category.tier3Price && category.tier3Min && totalCommunityParticipants >= category.tier3Min) {
+              newPrice = Number(category.tier3Price);
+            } else if (category.tier2Price && category.tier2Min && category.tier2Max && totalCommunityParticipants >= category.tier2Min && totalCommunityParticipants <= category.tier2Max) {
+              newPrice = Number(category.tier2Price);
+            } else if (category.tier1Price && category.tier1Min && category.tier1Max && totalCommunityParticipants >= category.tier1Min && totalCommunityParticipants <= category.tier1Max) {
+              newPrice = Number(category.tier1Price);
+            }
+            updatedCart[index] = { ...item, price: newPrice };
+
+            if (!tierApplied) {
+              if (category.tier1Min && totalCommunityParticipants < category.tier1Min) {
+                messages.push(`Add ${category.tier1Min - totalCommunityParticipants} more people to get Tier 1 pricing!`);
+              } else if (category.tier2Min && totalCommunityParticipants < category.tier2Min) {
+                messages.push(`Add ${category.tier2Min - totalCommunityParticipants} more people to get Tier 2 pricing!`);
+              } else if (category.tier3Min && totalCommunityParticipants < category.tier3Min) {
+                messages.push(`Add ${category.tier3Min - totalCommunityParticipants} more people to get Tier 3 pricing!`);
+              }
+              tierApplied = true;
+            }
+          }
+        }
+      });
+      
+      setDiscountMessages(messages);
+    } else {
+      setDiscountMessages([]);
+    }
+  }, [cart, categories]);
 
   const toggleCart = () => {
     setIsCartOpen(!isCartOpen);
   };
 
-  const updateCart = (newCart: any[]) => {
-    const communityItems = newCart.filter((item) => item.type === "community");
-    const totalCommunityParticipants = communityItems.reduce(
-      (total, item) => total + (item.participants as number),
-      0
-    );
-
-    const updatedCart = newCart.map((item) => {
-      if (item.type === "community") {
-        const category = categories.find((c) => c.name === item.categoryName);
-        if (category) {
-          let newPrice = Number(category.basePrice);
-          if (
-            category.tier3Price &&
-            category.tier3Min &&
-            totalCommunityParticipants >= category.tier3Min
-          ) {
-            newPrice = Number(category.tier3Price);
-          } else if (
-            category.tier2Price &&
-            category.tier2Min &&
-            category.tier2Max &&
-            totalCommunityParticipants >= category.tier2Min &&
-            totalCommunityParticipants <= category.tier2Max
-          ) {
-            newPrice = Number(category.tier2Price);
-          } else if (
-            category.tier1Price &&
-            category.tier1Min &&
-            category.tier1Max &&
-            totalCommunityParticipants >= category.tier1Min &&
-            totalCommunityParticipants <= category.tier1Max
-          ) {
-            newPrice = Number(category.tier1Price);
-          }
-          return { ...item, price: newPrice };
-        }
-      }
-      return item;
-    });
-    setCart(updatedCart);
-  };
-
   return (
     <CartContext.Provider
-      value={{ cart, setCart: updateCart, isCartOpen, toggleCart }}
+      value={{ cart, setCart, isCartOpen, toggleCart, discountMessages }}
     >
       {children}
     </CartContext.Provider>
