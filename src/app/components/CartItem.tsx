@@ -18,6 +18,20 @@ const CartItem = ({ item }: { item: any }) => {
         <p className="text-sm text-gray-500">
           Price: Rp {item.price.toLocaleString("id-ID")}
         </p>
+        {item.jerseys && Object.keys(item.jerseys).length > 0 && (
+          <div className="mt-2">
+            <p className="text-sm font-semibold text-gray-600">Jerseys:</p>
+            <ul className="list-disc list-inside text-sm text-gray-500">
+              {Object.entries(item.jerseys).map(([size, quantity]) =>
+                quantity ? (
+                  <li key={size}>
+                    {size}: {quantity}
+                  </li>
+                ) : null
+              )}
+            </ul>
+          </div>
+        )}
       </div>
       <button
         onClick={() => handleRemoveFromCart(item.id)}
