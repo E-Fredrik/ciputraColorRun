@@ -771,7 +771,6 @@ export default function RegistrationPage() {
 
         setCart([...cart, newItem]);
         showToast("Added to cart!", "success");
-        clearForm();
     }
 
     // No add-to-cart functionality - proceed directly to checkout
