@@ -777,6 +777,19 @@ export default function RegistrationPage() {
             return;
         }
 
+        if (type === "community") {
+            const currentParticipants = Number(participants || 0);
+            if (currentParticipants <= 0) {
+                showToast("Please enter the number of participants", "error");
+                return;
+            }
+            const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
+            if (totalJerseys !== currentParticipants) {
+                showToast(`Jersey count must match participant count`, "error");
+                return;
+            }
+        }
+
         const newItem = {
             id: new Date().getTime(),
             type,
