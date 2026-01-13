@@ -726,45 +726,13 @@ export default function RegistrationPage() {
     }
 
     function clearForm() {
-        setFullName("");
-        setEmail("");
-        setPhone("");
-        setEmergencyPhone("");
-        setBirthDate("");
-        setGender("male");
-        setCurrentAddress("");
-        setNationality("WNI");
-        setMedicalHistory("");
-        setMedicationAllergy("");
-        setGroupName("");
-        setIdCardPhotoName(null);
-        setIdCardPhoto(null);
-        setExistingIdCardPhotoUrl(null);
         setParticipants("");
-        setSelectedJerseySize("M");
-        setJerseys({});
-    
-        // also clear session storage
-        sessionStorage.removeItem("reg_fullName");
-        sessionStorage.removeItem("reg_email");
-        sessionStorage.removeItem("reg_phone");
-        sessionStorage.removeItem("reg_emergencyPhone");
-        sessionStorage.removeItem("reg_birthDate");
-        sessionStorage.removeItem("reg_gender");
-        sessionStorage.removeItem("reg_currentAddress");
-        sessionStorage.removeItem("reg_nationality");
-        sessionStorage.removeItem("reg_medicalHistory");
-        sessionStorage.removeItem("reg_medicationAllergy");
-        sessionStorage.removeItem("reg_groupName");
-        sessionStorage.removeItem("reg_idCardPhotoName");
-        sessionStorage.removeItem("reg_existingIdCardPhotoUrl");
-        sessionStorage.removeItem("reg_type");
-        sessionStorage.removeItem("reg_registrationType");
-        sessionStorage.removeItem("reg_categoryId");
-        sessionStorage.removeItem("reg_participants");
-        sessionStorage.removeItem("reg_selectedJerseySize");
-        sessionStorage.removeItem("reg_jerseys");
-        sessionStorage.removeItem("reg_formData");
+        
+        const initialJerseys: Record<string, number | ""> = {};
+        jerseyOptions.forEach((jersey) => {
+            initialJerseys[jersey.size] = "";
+        });
+        setJerseys(initialJerseys);
     }
 
     
