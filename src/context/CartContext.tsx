@@ -111,6 +111,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       });
       
       setDiscountMessages(messages);
+      
+      // Only update cart if prices have actually changed to prevent infinite loops
+      if (JSON.stringify(updatedCart) !== JSON.stringify(cart)) {
+        setCart(updatedCart);
+      }
     } else {
       setDiscountMessages([]);
     }
