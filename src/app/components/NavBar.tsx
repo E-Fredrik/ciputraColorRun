@@ -15,6 +15,12 @@ export default function NavBar() {
     const pathname = usePathname();
     const { cart, toggleCart } = useContext(CartContext);
 
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     // hide on scroll down, show on scroll up
     const [isNavHidden, setIsNavHidden] = useState(false);
 
@@ -316,7 +322,7 @@ export default function NavBar() {
                         )}
                         <button onClick={toggleCart} className="relative text-white p-2">
                             <ShoppingCart size={22} />
-                            {cart.length > 0 && (
+                            {isClient && cart.length > 0 && (
                                 <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
                                     {cart.length}
                                 </span>
@@ -327,7 +333,7 @@ export default function NavBar() {
                     <div className="flex items-center md:hidden">
                         <button onClick={toggleCart} className="relative text-white p-2">
                             <ShoppingCart size={22} />
-                            {cart.length > 0 && (
+                            {isClient && cart.length > 0 && (
                                 <span className="absolute top-1 right-1 text-xs bg-red-500 text-white rounded-full h-4 w-4 flex items-center justify-center">
                                     {cart.length}
                                 </span>

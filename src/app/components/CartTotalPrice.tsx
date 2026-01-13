@@ -15,7 +15,7 @@ const CartTotalPrice = () => {
   };
 
   return (
-    <div className="flex justify-between font-bold">
+    <div className="flex justify-between font-bold text-black">
       <span>Total:</span>
       <span>Rp {getTotalPrice().toLocaleString("id-ID")}</span>
     </div>

@@ -614,11 +614,29 @@ export default function RegistrationPage() {
     }
 
     function validatePersonalDetails(): boolean {
-        // Accept either a newly uploaded idCardPhoto file OR an existing stored ID photo for logged-in users
-        // ALSO accept a previously-uploaded filename from session (idCardPhotoName)
+        if (!fullName) {
+            showToast("Please fill in your Full Name", "error");
+            return false;
+        }
+        if (!email) {
+            showToast("Please fill in your Email", "error");
+            return false;
+        }
+        if (!phone) {
+            showToast("Please fill in your WhatsApp Number", "error");
+            return false;
+        }
+        if (!birthDate) {
+            showToast("Please fill in your Birth Date", "error");
+            return false;
+        }
+        if (!currentAddress) {
+            showToast("Please fill in your Current Address", "error");
+            return false;
+        }
         const hasIdProof = Boolean(idCardPhoto) || Boolean(existingIdCardPhotoUrl) || Boolean(idCardPhotoName);
-        if (!fullName || !email || !phone || !birthDate || !currentAddress || !hasIdProof) {
-            showToast("Please fill all required fields (Name, Email, Phone, Birth Date, Address, and ID Card/Passport Photo)", "error");
+        if (!hasIdProof) {
+            showToast("Please upload an ID Card/Passport Photo", "error");
             return false;
         }
 
@@ -707,6 +725,48 @@ export default function RegistrationPage() {
         }
     }
 
+    function clearForm() {
+        setFullName("");
+        setEmail("");
+        setPhone("");
+        setEmergencyPhone("");
+        setBirthDate("");
+        setGender("male");
+        setCurrentAddress("");
+        setNationality("WNI");
+        setMedicalHistory("");
+        setMedicationAllergy("");
+        setGroupName("");
+        setIdCardPhotoName(null);
+        setIdCardPhoto(null);
+        setExistingIdCardPhotoUrl(null);
+        setParticipants("");
+        setSelectedJerseySize("M");
+        setJerseys({});
+    
+        // also clear session storage
+        sessionStorage.removeItem("reg_fullName");
+        sessionStorage.removeItem("reg_email");
+        sessionStorage.removeItem("reg_phone");
+        sessionStorage.removeItem("reg_emergencyPhone");
+        sessionStorage.removeItem("reg_birthDate");
+        sessionStorage.removeItem("reg_gender");
+        sessionStorage.removeItem("reg_currentAddress");
+        sessionStorage.removeItem("reg_nationality");
+        sessionStorage.removeItem("reg_medicalHistory");
+        sessionStorage.removeItem("reg_medicationAllergy");
+        sessionStorage.removeItem("reg_groupName");
+        sessionStorage.removeItem("reg_idCardPhotoName");
+        sessionStorage.removeItem("reg_existingIdCardPhotoUrl");
+        sessionStorage.removeItem("reg_type");
+        sessionStorage.removeItem("reg_registrationType");
+        sessionStorage.removeItem("reg_categoryId");
+        sessionStorage.removeItem("reg_participants");
+        sessionStorage.removeItem("reg_selectedJerseySize");
+        sessionStorage.removeItem("reg_jerseys");
+        sessionStorage.removeItem("reg_formData");
+    }
+
     
     function handleAddToCart() {
         if (!validatePersonalDetails()) return;
@@ -728,8 +788,9 @@ export default function RegistrationPage() {
             groupName: groupName,
         };
 
-        setCart((prevCart: any) => [...prevCart, newItem]);
+        setCart([...cart, newItem]);
         showToast("Added to cart!", "success");
+        clearForm();
     }
 
     // No add-to-cart functionality - proceed directly to checkout
@@ -1634,11 +1695,10 @@ export default function RegistrationPage() {
                                         <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Number of Participants (for this category) <strong className="text-red-500">*</strong></label>
                                         <input
                                             type="number"
-                                            min={1}
                                             value={participants}
                                             onChange={(e) => setParticipants(e.target.value === "" ? "" : Number(e.target.value))}
                                             className="w-full px-4 py-3 border-b-2 border-gray-200 bg-transparent text-gray-800 placeholder-gray-400 focus:border-emerald-500 focus:outline-none transition-colors text-base"
-                                            placeholder="Enter participant amount (minimum 10)"
+                                            placeholder="Enter participant amount"
                                         />
                                         {/* <p className="text-xs text-gray-500 mt-1">
                                             This will be added to your community total ({getTotalCommunityParticipants()} currently in cart)
@@ -1870,12 +1930,8 @@ export default function RegistrationPage() {
                             <div className="flex justify-center mt-4">
                                 <button
                                     onClick={handleAddToCart}
-                                    disabled={isSubmitting || communityCount < 10}
-                                    className={`w-1/2 md:w-1/3 px-6 py-3 rounded-full font-semibold shadow-xl transition-all transform ${
-                                        communityCount >= 10 && !isSubmitting
-                                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95'
-                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    }`}
+                                    disabled={isSubmitting}
+                                    className={`w-1/2 md:w-1/3 px-6 py-3 rounded-full font-semibold shadow-xl transition-all transform bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95`}
                                 >
                                     {isSubmitting ? (
                                         <span className="flex items-center justify-center gap-2">
@@ -1890,11 +1946,6 @@ export default function RegistrationPage() {
                                     )}
                                 </button>
                             </div>
-                            {communityCount < 10 && (
-                                <p className="text-center text-xs text-gray-500">
-                                    Need at least 10 participants for community registration
-                                </p>
-                            )}
                         </div>
                     )}
 
