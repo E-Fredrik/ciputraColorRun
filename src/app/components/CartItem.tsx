@@ -11,7 +11,7 @@ const CartItem = ({ item }: { item: any }) => {
   };
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex justify-between items-center p-4 border border-gray-200 rounded-lg shadow-sm bg-gray-50">
       <div>
         <p className="font-semibold text-black">{item.categoryName}</p>
         <p className="text-sm text-gray-500">Participants: {item.participants}</p>

@@ -29,7 +29,7 @@ const ShoppingCart = () => {
             </button>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-8">
             {isClient && cart.length === 0 ? (
               <p className="text-gray-500 text-center py-10">Your cart is empty.</p>
             ) : (
