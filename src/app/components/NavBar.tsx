@@ -242,14 +242,23 @@ export default function NavBar() {
                                             Help
                                         </span>
                                     </button>
+
+                                    {/* DESKTOP / RESPONSIVE HELP PANEL */}
                                     {isHelpOpen && (
-                                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-2xl p-6 z-50 border border-gray-200">
+                                        <div
+                                            className={
+                                                // mobile-first: full width and scrollable; on md+ use compact card anchored to right
+                                                "absolute left-0 right-0 mt-2 md:right-0 md:left-auto w-full md:w-80 max-w-full md:max-w-none bg-white rounded-t-2xl md:rounded-2xl shadow-2xl p-4 md:p-6 z-50 border border-gray-200 max-h-[70vh] overflow-y-auto"
+                                            }
+                                        >
                                             <button
                                                 onClick={() => setIsHelpOpen(false)}
                                                 className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                                                aria-label="Close help"
                                             >
                                                 <X size={20} />
                                             </button>
+
                                             <div className="space-y-4 pt-2">
                                                 <div>
                                                     <button
@@ -263,7 +272,7 @@ export default function NavBar() {
                                                         >
                                                         <PenTool size={20} className="text-purple-600" />
                                                         <span className="register-loading">
-                                                            How to Register
+                                                            <h4 className = "text-black">How to Register</h4>
                                                         </span>
                                                     </button>
                                                 </div>
@@ -317,6 +326,19 @@ export default function NavBar() {
                         <div className="absolute top-full left-0 right-0 md:hidden">
                             <div className="nav-glass backdrop-blur-lg border-b ">
                                 <div className="flex flex-col items-end px-6 py-6 gap-6">
+
+                                    {/* Mobile: visible Help button */}
+                                    <div className="w-full flex justify-end">
+                                        <button
+                                            onClick={() => setIsHelpOpen(!isHelpOpen)}
+                                            className="relative p-2 rounded-full hover:bg-white/10 transition-colors text-white z-50 pointer-events-auto"
+                                            aria-label="Help"
+                                            tabIndex={0}
+                                        >
+                                            <HelpCircle size={24} strokeWidth={2} className="text-white" />
+                                        </button>
+                                    </div>
+
                                     <nav className="flex flex-col items-end gap-4 w-full">
                                         <Link
                                             href="/"
@@ -382,6 +404,72 @@ export default function NavBar() {
                                             )}
                                         </div>
                                     </nav>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MOBILE HELP PANEL - Fixed positioning to viewport */}
+                    {isMenuOpen && isHelpOpen && (
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4 md:hidden pt-32">
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[70vh] overflow-y-auto">
+                                <div className="sticky top-0 bg-white p-4 border-b border-gray-200 flex items-center justify-between rounded-t-2xl z-10">
+                                    <h3 className="text-lg font-semibold text-gray-800">Help & Support</h3>
+                                    <button
+                                        onClick={() => setIsHelpOpen(false)}
+                                        className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 flex-shrink-0"
+                                        aria-label="Close help"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="p-4 space-y-4">
+                                    <div>
+                                        <button
+                                            onClick={() => {
+                                                window.open(
+                                                    "https://www.instagram.com/reel/DTKAD_mEiGz/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==",
+                                                    "_blank"
+                                                );
+                                            }}
+                                            className="text-lg font-semibold flex items-center gap-2 text-blue-600 hover:text-blue-700 w-full"
+                                        >
+                                            <PenTool size={20} />
+                                            How to Register
+                                        </button>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                            <MessageCircle size={18} />
+                                            Contact Person
+                                        </h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                                                <p className="font-semibold text-gray-800 mb-1">Abel</p>
+                                                <a
+                                                    href="https://wa.me/6289541031967"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-green-600 hover:text-green-700 text-sm font-medium"
+                                                >
+                                                    WhatsApp
+                                                </a>
+                                            </div>
+                                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                                                <p className="font-semibold text-gray-800 mb-1">Elysian</p>
+                                                <a
+                                                    href="https://wa.me/6281283494950"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-green-600 hover:text-green-700 text-sm font-medium"
+                                                >
+                                                    WhatsApp
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
