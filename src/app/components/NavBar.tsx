@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { User, Menu, X } from "lucide-react";
+import { User, Menu, X, HelpCircle, MessageCircle, PenTool } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 export default function NavBar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isHelpOpen, setIsHelpOpen] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
 
@@ -223,12 +224,83 @@ export default function NavBar() {
                                 </button>
                             </div>
                         ) : (
-                            <button
-                                onClick={() => router.push("/auth/login")}
-                                className="text-white font-bold"
-                            >
-                                LOGIN
-                            </button>
+                            <div className="flex items-center gap-6">
+                                <button
+                                    onClick={() => router.push("/auth/login")}
+                                    className="text-white font-bold"
+                                >
+                                    LOGIN
+                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setIsHelpOpen(!isHelpOpen)}
+                                        className="relative p-2 rounded-full hover:bg-white/10 transition-colors group"
+                                        aria-label="Help"
+                                    >
+                                        <HelpCircle size={24} strokeWidth={2} className="text-white" />
+                                        <span className="invisible group-hover:visible absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-2 py-1 bg-black/80 text-white text-xs rounded whitespace-nowrap">
+                                            Help
+                                        </span>
+                                    </button>
+                                    {isHelpOpen && (
+                                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-2xl p-6 z-50 border border-gray-200">
+                                            <button
+                                                onClick={() => setIsHelpOpen(false)}
+                                                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                                            >
+                                                <X size={20} />
+                                            </button>
+                                            <div className="space-y-4 pt-2">
+                                                <div>
+                                                    <button
+                                                        onClick={() =>
+                                                            window.open(
+                                                            "https://www.instagram.com/reel/DTKAD_mEiGz/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==",
+                                                            "_blank"
+                                                            )
+                                                        }
+                                                        className="text-lg font-semibold flex items-center gap-2"
+                                                        >
+                                                        <PenTool size={20} className="text-purple-600" />
+                                                        <span className="register-loading">
+                                                            How to Register
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-black mb-4 flex items-center gap-2">
+                                                        <MessageCircle size={20} className="text-green-600" />
+                                                        <span style={{ marginLeft: "10px" }}>Contact Person</span>
+                                                    </h3>
+                                                    <div className="flex pl-10 gap-10">
+                                                        <a
+                                                            href="https://wa.me/895410319676"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-black"
+                                                        >
+                                                            <span className="contact-loading font-medium">
+                                                            Abel
+                                                            </span>
+                                                        </a>
+
+                                                        <a
+                                                            href="https://wa.me/811306658"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-black"
+                                                        >
+                                                            <span className="contact-loading font-medium">
+                                                            Elysian
+                                                            </span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         )}
                     </div>
 
