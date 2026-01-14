@@ -62,67 +62,85 @@ export default function TermsAndConditionsPage() {
                         </ul>
 
                         <h2 className="mt-4 font-bold">SECTION 2: REGISTRATION & PARTICIPANT CATEGORIES</h2>
-                        {/* CRITICAL: Add inline style to force list-style-type on top-level ol */}
+                        {/* Top-level: decimal (1, 2, 3...) */}
                         <ol 
                             className="pl-6 text-sm space-y-2 terms-ol-numbered"
-                            style={{ listStyleType: 'decimal', listStylePosition: 'outside' }}
+                            style={{ listStyleType: 'decimal', listStylePosition: 'outside', paddingLeft: '1.5rem' }}
                         >
-                            <li>
+                            <li style={{ display: 'list-item' }}>
                                 <strong>Identification Card Definition:</strong>
-                                {/* CRITICAL: Add inline style for roman numerals */}
+                                {/* Second level: roman (i, ii, iii...) */}
                                 <ol 
                                     className="pl-6 mt-1 space-y-1 terms-ol-roman"
-                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside' }}
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
                                 >
-                                    <li>
+                                    <li style={{ display: 'list-item' }}>
                                         Identification Card as referred to in these terms and conditions is an official personal identification document issued by an authorized agency and is still valid.
                                     </li>
-                                    <li>
+                                    <li style={{ display: 'list-item' }}>
                                         Documents that can be used for registration, data verification, and race pack collection include:
-                                        {/* CRITICAL: Add inline style for alphabetic */}
+                                        {/* Third level: alphabetic (a, b, c...) */}
                                         <ol 
                                             className="pl-6 mt-1 space-y-1 terms-ol-alpha"
-                                            style={{ listStyleType: 'lower-alpha', listStylePosition: 'outside' }}
+                                            style={{ listStyleType: 'lower-alpha', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
                                         >
-                                            <li><strong>Adult Indonesian Citizen: </strong> Resident Identity Card (KTP), Driver's License (SIM), Digital Population Identity (IKD), or other official identification cards issued by the Government of the Republic of Indonesia.</li>
-                                            <li><strong>Child Participants (under 17 years old):</strong> Child Identity Card (KIA), Birth Certificate, Student Card, or other official documents.</li>
-                                            <li><strong>Foreign Citizens (WNA):</strong> Passport, Limited Stay Permit Card (KITAS), Permanent Stay Permit Card (KITAP), or other internationally recognized official identification documents.</li>
+                                            <li style={{ display: 'list-item' }}><strong>Adult Indonesian Citizen: </strong> Resident Identity Card (KTP), Driver's License (SIM), Digital Population Identity (IKD), or other official identification cards issued by the Government of the Republic of Indonesia.</li>
+                                            <li style={{ display: 'list-item' }}><strong>Child Participants (under 17 years old):</strong> Child Identity Card (KIA), Birth Certificate, Student Card, or other official documents.</li>
+                                            <li style={{ display: 'list-item' }}><strong>Foreign Citizens (WNA):</strong> Passport, Limited Stay Permit Card (KITAS), Permanent Stay Permit Card (KITAP), or other internationally recognized official identification documents.</li>
                                         </ol>
                                     </li>
                                 </ol>
                             </li>
 
-                            <li>
+                            <li style={{ display: 'list-item' }}>
                                 <strong>Participants:</strong>
-                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>This event is open to the General Public, Indonesian Citizens (WNI), and Foreign Citizens (WNA).</li>
-                                    <li>Incorrect data entry that results in discrepancies during verification may lead to registration cancellation.</li>
-                                    <li>Participants under the age of 13 must be accompanied by a guardian who is at least 17 years old throughout the entire event, including during race pack collection and while on the event premises. The guardian is fully responsible for the safety, security, and actions of the participant during the event.</li>
+                                <ol 
+                                    className="pl-6 mt-1 space-y-1 terms-ol-roman"
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
+                                >
+                                    <li style={{ display: 'list-item' }}>This event is open to the General Public, Indonesian Citizens (WNI), and Foreign Citizens (WNA).</li>
+                                    <li style={{ display: 'list-item' }}>Incorrect data entry that results in discrepancies during verification may lead to registration cancellation.</li>
+                                    <li style={{ display: 'list-item' }}>Participants under the age of 13 must be accompanied by a guardian who is at least 17 years old throughout the entire event, including during race pack collection and while on the event premises. The guardian is fully responsible for the safety, security, and actions of the participant during the event.</li>
                                 </ol>
                             </li>
-                            <li>
+
+                            <li style={{ display: 'list-item' }}>
                                 <strong>Registration Period: </strong>
-                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>
+                                <ol 
+                                    className="pl-6 mt-1 space-y-1 terms-ol-roman"
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
+                                >
+                                    <li style={{ display: 'list-item' }}>
                                         Registration is opened from 1 December 2025 until the maximum quota has been fulfilled.
                                     </li>
                                 </ol>
                             </li>
-                            <li>
+
+                            <li style={{ display: 'list-item' }}>
                                 <strong>Registration Platform: </strong>
-                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputrarun.com</a>.</li>
-                                    <li>Event organizers are not responsible for any consequences resulting from purchases made outside the official platform.</li>
+                                <ol 
+                                    className="pl-6 mt-1 space-y-1 terms-ol-roman"
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
+                                >
+                                    <li style={{ display: 'list-item' }}>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputrarun.com</a>.</li>
+                                    <li style={{ display: 'list-item' }}>Event organizers are not responsible for any consequences resulting from purchases made outside the official platform.</li>
                                 </ol>
                             </li>
-                            <li>
+
+                            <li style={{ display: 'list-item' }}>
                                 <strong>Categories & Pricing: </strong>
-                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>The registration fee is categorized based on the distance covered, as follows:
-                                        <ol className="pl-6 mt-1 space-y-1 terms-ol-alpha">
-                                            <li>3 KM: Rp 130.000,- (Early Bird) | Rp 150.000,- (Normal Price)</li>
-                                            <li>5 KM: Rp 180.000,- (Early Bird) | Rp 200.000,- (Normal Price)</li>
-                                            <li>10 KM: Rp 220.000,- (Early Bird) | Rp 250.000,- (Normal Price)</li>
+                                <ol 
+                                    className="pl-6 mt-1 space-y-1 terms-ol-roman"
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
+                                >
+                                    <li style={{ display: 'list-item' }}>The registration fee is categorized based on the distance covered, as follows:
+                                        <ol 
+                                            className="pl-6 mt-1 space-y-1 terms-ol-alpha"
+                                            style={{ listStyleType: 'lower-alpha', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
+                                        >
+                                            <li style={{ display: 'list-item' }}>3 KM: Rp 130.000,- (Early Bird) | Rp 150.000,- (Normal Price)</li>
+                                            <li style={{ display: 'list-item' }}>5 KM: Rp 180.000,- (Early Bird) | Rp 200.000,- (Normal Price)</li>
+                                            <li style={{ display: 'list-item' }}>10 KM: Rp 220.000,- (Early Bird) | Rp 250.000,- (Normal Price)</li>
                                         </ol>
                                     </li>
                                 </ol>
