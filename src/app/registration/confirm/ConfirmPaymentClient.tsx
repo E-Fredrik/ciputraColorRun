@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useContext } from "react";
 import TutorialModal from "../../components/TutorialModal";
 import { showToast } from "../../../lib/toast";
-import { uploadFileInChunks } from "@/lib/fileUpload";
+// import { uploadFileInChunks } from "@/lib/fileUpload";
 import { CartContext } from "@/context/CartContext"; // Add this import
 
 export default function ConfirmPaymentClient() {
