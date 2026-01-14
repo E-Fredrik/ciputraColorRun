@@ -17,17 +17,40 @@ export default function ConfirmPaymentClient() {
     // Load registration data from session storage
     const [registrationData, setRegistrationData] = useState<any>(null);
 
+    useEffect(() => {
+        const storedData = sessionStorage.getItem("currentRegistration");
+        if (storedData) {
+            try {
+                const parsed = JSON.parse(storedData);
+                setRegistrationData(parsed);
+            } catch (e) {
+                console.error("Failed to parse registration data:", e);
+            }
+        }
+    }, []);
+
     // Calculate total price from registration data
     const totalPrice = registrationData
-        ? (registrationData.type === "individual"
-            ? registrationData.price + (registrationData.jerseyCharges || 0)
-            : registrationData.type === "family"
-            ? (registrationData.price * registrationData.participants) + (registrationData.jerseyCharges || 0)
-            : (registrationData.price * registrationData.participants) + (registrationData.jerseyCharges || 0))
+        ? registrationData.type === "cart"
+            ? registrationData.items.reduce((total: number, item: any) => {
+                const itemPrice = (item.type === "community" || item.type === "family")
+                    ? Number(item.price) * Number(item.participants || 0)
+                    : Number(item.price);
+                return total + itemPrice + (Number(item.jerseyCharges) || 0);
+              }, 0)
+            : (registrationData.type === "individual"
+                ? registrationData.price + (registrationData.jerseyCharges || 0)
+                : registrationData.type === "family"
+                ? (registrationData.price * registrationData.participants) + (registrationData.jerseyCharges || 0)
+                : (registrationData.price * registrationData.participants) + (registrationData.jerseyCharges || 0))
         : 0;
 
     // Convert registration data to items array for compatibility with API
-    const items = registrationData ? [registrationData] : [];
+    const items = registrationData
+        ? registrationData.type === "cart"
+            ? registrationData.items
+            : [registrationData]
+        : [];
 
     const [fullName, setFullName] = useState<string>("");
     const [email, setEmail] = useState<string>("");
@@ -444,6 +467,12 @@ export default function ConfirmPaymentClient() {
                     {pairs.map(([size, cnt], i) => (
                         <span key={size}>
                             {`${size}(${cnt})`}
+                            {(size === "XXL" || size === "3L" || size === "4L" || size === "5L") && (
+                                <span className="text-orange-500 text-[10px]">+10k</span>
+                            )}
+                            {size === "6L" && (
+                                <span className="text-red-500 text-[10px]">+20k</span>
+                            )}
                             {i < pairs.length - 1 ? ", " : ""}
                         </span>
                     ))}
@@ -453,28 +482,53 @@ export default function ConfirmPaymentClient() {
             secondaryLabel = `${item.participants || 0} participants`;
         }
     } else {
-        secondaryLabel = `Size ${item.jerseySize || "—"}`;
+        const size = item.jerseySize || "—";
+        secondaryLabel = (
+            <>
+                Size {size}
+                {(size === "XXL" || size === "3L" || size === "4L" || size === "5L") && (
+                    <span className="text-orange-500 text-xs ml-1">(+10k)</span>
+                )}
+                {size === "6L" && (
+                    <span className="text-red-500 text-xs ml-1">(+20k)</span>
+                )}
+            </>
+        );
     }
 
+    const basePrice = (item.type === "community" || item.type === "family")
+        ? Number(item.price) * Number(item.participants || 0)
+        : Number(item.price);
+    
+    const jerseyCharges = Number(item.jerseyCharges || 0);
+    const itemTotal = basePrice + jerseyCharges;
+
     return (
-        <div key={itemKey} className="flex justify-between text-sm border-b pb-2">
-            <div>
-                <p className="font-semibold text-gray-900">{item.categoryName}</p>
-                <p className="text-gray-600 text-xs">{secondaryLabel}</p>
+        <div key={itemKey} className="border-b border-gray-300 pb-2">
+            <div className="flex justify-between">
+                <div>
+                    <p className="font-semibold text-gray-900">{item.categoryName}</p>
+                    <p className="text-gray-600 text-xs">{secondaryLabel}</p>
+                </div>
+                <div className="text-right">
+                    <p className="font-semibold text-gray-900">
+                        Rp {basePrice.toLocaleString("id-ID")}
+                    </p>
+                    {jerseyCharges > 0 && (
+                        <p className="text-orange-600 text-xs">
+                            +Rp {jerseyCharges.toLocaleString("id-ID")}
+                        </p>
+                    )}
+                </div>
             </div>
-            <p className="font-semibold text-gray-900">
-                Rp {((item.type === "community" || item.type === "family")
-                    ? Number(item.price) * Number(item.participants || 0)
-                    : Number(item.price)
-                ).toLocaleString("id-ID")}
-            </p>
         </div>
     );
 })}
-                            <div className="flex justify-between font-bold text-lg pt-2">
-                                <span>Total:</span>
-                                <span>Rp {totalPrice.toLocaleString("id-ID")}</span>
-                            </div>
+                        </div>
+
+                        <div className="flex justify-between font-bold text-lg pt-2">
+                            <span>Total:</span>
+                            <span>Rp {totalPrice.toLocaleString("id-ID")}</span>
                         </div>
                     </div>
 
@@ -641,6 +695,12 @@ export default function ConfirmPaymentClient() {
                     {pairs.map(([size, cnt], i) => (
                         <span key={size}>
                             {`${size}(${cnt})`}
+                            {(size === "XXL" || size === "3L" || size === "4L" || size === "5L") && (
+                                <span className="text-orange-500 text-[10px]">+10k</span>
+                            )}
+                            {size === "6L" && (
+                                <span className="text-red-500 text-[10px]">+20k</span>
+                            )}
                             {i < pairs.length - 1 ? ", " : ""}
                         </span>
                     ))}
@@ -650,8 +710,26 @@ export default function ConfirmPaymentClient() {
             secondaryLabel = `${item.participants || 0} participants`;
         }
     } else {
-        secondaryLabel = `Size ${item.jerseySize || "—"}`;
+        const size = item.jerseySize || "—";
+        secondaryLabel = (
+            <>
+                Size {size}
+                {(size === "XXL" || size === "3L" || size === "4L" || size === "5L") && (
+                    <span className="text-orange-500 text-xs ml-1">(+10k)</span>
+                )}
+                {size === "6L" && (
+                    <span className="text-red-500 text-xs ml-1">(+20k)</span>
+                )}
+            </>
+        );
     }
+
+    const basePrice = (item.type === "community" || item.type === "family")
+        ? Number(item.price) * Number(item.participants || 0)
+        : Number(item.price);
+    
+    const jerseyCharges = Number(item.jerseyCharges || 0);
+    const itemTotal = basePrice + jerseyCharges;
 
     return (
         <div key={itemKey} className="flex justify-between border-b border-gray-300 pb-2">

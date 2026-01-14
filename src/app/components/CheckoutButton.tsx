@@ -1,13 +1,20 @@
 "use client";
 
 import { useContext } from "react";
+import { useRouter } from "next/navigation";
 import { CartContext } from "@/context/CartContext";
 import { showToast } from "@/lib/toast";
 
 const CheckoutButton = () => {
   const { cart } = useContext(CartContext);
+  const router = useRouter();
 
   const handleCheckout = () => {
+    if (cart.length === 0) {
+      showToast("Your cart is empty", "error");
+      return;
+    }
+
     const communityItems = cart.filter((item) => item.type === "community");
     if (communityItems.length > 0) {
       const totalCommunityParticipants = communityItems.reduce(
@@ -23,8 +30,18 @@ const CheckoutButton = () => {
       }
     }
 
-    // Implement checkout logic here
-    alert("Redirecting to checkout...");
+    // Save cart items to session storage for the confirm payment page
+    const cartData = {
+      type: "cart",
+      items: cart.map((item) => ({
+        ...item,
+        categoryId: item.categoryId, // Ensure categoryId is included
+      })),
+    };
+    sessionStorage.setItem("currentRegistration", JSON.stringify(cartData));
+
+    // Redirect to confirmation page
+    router.push("/registration/confirm");
   };
 
   return (

@@ -449,7 +449,11 @@ export default function RegistrationPage() {
 
     // COMMUNITY: Track participants added in current session
     function getTotalCommunityParticipants(): number {
-        return Number(participants || 0);
+        // Sum all community participants already in the cart
+        const cartCommunityTotal = cart
+            .filter((item) => item.type === "community")
+            .reduce((sum, item) => sum + Number(item.participants || 0), 0);
+        return cartCommunityTotal;
     }
 
     // Current community participant count (cart removed => rely on participants input)
@@ -523,7 +527,7 @@ export default function RegistrationPage() {
         return Number(category.basePrice);
     }
 
-    // Get current price for display
+    // Get current price for display - now accounts for cart participants
     const currentPrice = useMemo(() => {
         if (!categoryId) return 0;
         const category = categories.find(c => c.id === categoryId);
@@ -534,11 +538,14 @@ export default function RegistrationPage() {
         }
 
         const currentParticipants = Number(participants || 0);
-        // const totalWithCurrent = getTotalCommunityParticipants() + currentParticipants;
-        const totalWithCurrent = currentParticipants;
+        // Include participants already in the cart for community pricing
+        const cartParticipants = getTotalCommunityParticipants();
+        const totalWithCurrent = type === "community" 
+            ? cartParticipants + currentParticipants 
+            : currentParticipants;
         
         return calculatePrice(category, type === "community" ? totalWithCurrent : 1);
-    }, [categoryId, categories, participants, type]);
+    }, [categoryId, categories, participants, type, cart]);
 
     // NEW: Calculate subtotal including jersey charges
     const currentSubtotal = useMemo(() => {
@@ -761,6 +768,7 @@ export default function RegistrationPage() {
         const newItem = {
             id: new Date().getTime(),
             type,
+            categoryId: category.id,
             categoryName: category.name,
             participants: type === "community" ? participants : 1,
             price: currentPrice,
@@ -771,6 +779,12 @@ export default function RegistrationPage() {
 
         setCart([...cart, newItem]);
         showToast("Added to cart!", "success");
+
+        // Clear participant count and jersey inputs for community type
+        if (type === "community") {
+            setParticipants("");
+            setJerseys({});
+        }
     }
 
     // No add-to-cart functionality - proceed directly to checkout
@@ -987,7 +1001,7 @@ export default function RegistrationPage() {
         router.push("/registration/confirm");
     }
 
-    // ADD THIS: Live tier info display for community
+    // ADD THIS: Live tier info display for community - now accounts for cart
     const tierInfo = useMemo(() => {
         if (type !== "community" || !categoryId) return null;
         const category = categories.find(c => c.id === categoryId);
@@ -995,8 +1009,7 @@ export default function RegistrationPage() {
 
         const currentParticipants = Number(participants || 0);
         const totalInCart = getTotalCommunityParticipants();
-        // const totalWithCurrent = totalInCart + currentParticipants;
-        const totalWithCurrent = currentParticipants;
+        const totalWithCurrent = totalInCart + currentParticipants;
 
         let tier = "Base Price";
         let nextTier = null;
@@ -1042,10 +1055,10 @@ export default function RegistrationPage() {
             tier,
             nextTier,
             participantsToNext,
-            // totalInCart,
-            totalWithCurrent,
+            totalInCart,
+            totalWithCurrent
         };
-    }, [type, categoryId, categories, participants]);
+    }, [type, categoryId, categories, participants, cart]);
 
     function openSizeChart() {
         setShowSizeChart(true);
@@ -1601,10 +1614,10 @@ export default function RegistrationPage() {
                                             <div className="space-y-2 mb-3">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <span className="text-sm font-semibold text-gray-700">
-                                                        Subtotal ({selectedCategory?.bundleSize || 4} people):
+                                                        Base subtotal ({participants} people{getTotalCommunityParticipants() > 0 ? ` + ${getTotalCommunityParticipants()} in cart` : ""}):
                                                     </span>
-                                                    <span className="text-base font-bold text-purple-700">
-                                                        Rp {(currentPrice * (selectedCategory?.bundleSize || 4)).toLocaleString("id-ID")}
+                                                    <span className="text-base font-bold text-emerald-700">
+                                                        Rp {(currentPrice * Number(participants || 0)).toLocaleString("id-ID")}
                                                     </span>
                                                 </div>
                                                 {calculateJerseyCharges(jerseys) > 0 && (
@@ -1695,9 +1708,11 @@ export default function RegistrationPage() {
                                                         {tierInfo.tier}
                                                     </span>
                                                 </div>
-                                                {/* <div className="text-xs text-gray-600">
-                                                    Total: {tierInfo.totalWithCurrent} participants ({tierInfo.totalInCart} in cart + {Number(participants || 0)} current)
-                                                </div> */}
+                                                {tierInfo.totalInCart > 0 && (
+                                                    <div className="text-xs text-gray-600">
+                                                        Total: {tierInfo.totalWithCurrent} participants ({tierInfo.totalInCart} in cart + {Number(participants || 0)} current)
+                                                    </div>
+                                                )}
                                                 {tierInfo.nextTier && tierInfo.participantsToNext > 0 && (
                                                     <div className="pt-2 border-t border-purple-200">
                                                         <p className="text-xs text-purple-700">
@@ -1747,7 +1762,7 @@ export default function RegistrationPage() {
                                         </div>
 
                                         {/* Extra sizes: +Rp 10.000 each */}
-                                        <div className="mb-4">
+                                       <div className="mb-4">
                                           <div className="flex items-center justify-between mb-2">
                                             <p className="text-xs font-semibold text-orange-700">Adult Sizes (Extra - +Rp 10.000 each):</p>
                                             <button
@@ -1818,11 +1833,11 @@ export default function RegistrationPage() {
 
                                         <div className="mb-4">
                                           <div className="flex items-center justify-between mb-2">
-                                            <p className="text-xs font-semibold text-emerald-700">Kids Sizes:</p>
+                                            <p className="text-xs font-semibold text-purple-700">Kids Sizes:</p>
                                             <button
                                               type="button"
                                               onClick={() => openSizeChart()}
-                                              className="text-xs text-emerald-600 hover:text-emerald-700 underline"
+                                              className="text-xs text-purple-600 hover:text-purple-700 underline"
                                             >
                                               Size Guide
                                             </button>
@@ -1832,14 +1847,14 @@ export default function RegistrationPage() {
                                             {["XS - KIDS", "S - KIDS", "M - KIDS", "L - KIDS", "XL - KIDS"].map((size) => (
                                               <div key={size} className="flex flex-col items-center">
                                                 <div className="flex items-center gap-1 mb-2">
-                                                  <span className="text-xs font-medium text-emerald-700">{size}</span>
+                                                  <span className="text-xs font-medium text-purple-700">{size}</span>
                                                 </div>
                                                 <input
                                                   type="number"
                                                   min={0}
                                                   value={jerseys[size] ?? ""}
                                                   onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                                  className="jersey-input shift-right accent-emerald-500 border-emerald-300 focus:border-emerald-500"
+                                                  className="jersey-input shift-right accent-purple-500 border-purple-300 focus:border-purple-500"
                                                   placeholder="0"
                                                   inputMode="numeric"
                                                   aria-label={`Count for size ${size}`}
@@ -1879,7 +1894,7 @@ export default function RegistrationPage() {
                                             <div className="pt-3 border-t border-emerald-200">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <span className="text-sm font-semibold text-gray-700">
-                                                        Base subtotal ({participants} people):
+                                                        Base subtotal ({participants} people{getTotalCommunityParticipants() > 0 ? ` + ${getTotalCommunityParticipants()} in cart` : ""}):
                                                     </span>
                                                     <span className="text-base font-bold text-emerald-700">
                                                         Rp {(currentPrice * Number(participants || 0)).toLocaleString("id-ID")}
