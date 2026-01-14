@@ -17,14 +17,18 @@ const ShoppingCart = () => {
     setIsClient(true);
   }, []);
 
+  const handleCloseCart = () => {
+    toggleCart(); // Close the cart modal
+  };
+
   return (
     <>
-      {isCartOpen && <div onClick={toggleCart} className="fixed inset-0 bg-black opacity-50 z-40"></div>}
+      {isCartOpen && <div onClick={handleCloseCart} className="fixed inset-0 bg-black opacity-50 z-40"></div>}
       <div className={`fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex flex-col h-full">
           <div className="flex justify-between items-center p-4 border-b">
             <h3 className="text-lg font-bold text-black">Shopping Cart</h3>
-            <button onClick={toggleCart} className="text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100">
+            <button onClick={handleCloseCart} className="text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100">
               <X size={24} />
             </button>
           </div>
@@ -40,7 +44,7 @@ const ShoppingCart = () => {
           {isClient && cart.length > 0 && (
             <div className="p-4 border-t space-y-3">
               <CartTotalPrice />
-              <CheckoutButton />
+              <CheckoutButton onCheckout={handleCloseCart} />
               <ClearCartButton />
             </div>
           )}

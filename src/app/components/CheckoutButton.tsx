@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { CartContext } from "@/context/CartContext";
 import { showToast } from "@/lib/toast";
 
-const CheckoutButton = () => {
+interface CheckoutButtonProps {
+  onCheckout?: () => void; // callback to close cart modal
+}
+
+const CheckoutButton = ({ onCheckout }: CheckoutButtonProps) => {
   const { cart } = useContext(CartContext);
   const router = useRouter();
 
@@ -18,7 +22,7 @@ const CheckoutButton = () => {
     const communityItems = cart.filter((item) => item.type === "community");
     if (communityItems.length > 0) {
       const totalCommunityParticipants = communityItems.reduce(
-        (total, item) => total + (item.participants as number),
+        (total, item) => total + Number(item.participants || 0),
         0
       );
       if (totalCommunityParticipants < 10) {
@@ -30,18 +34,53 @@ const CheckoutButton = () => {
       }
     }
 
-    // Save cart items to session storage for the confirm payment page
-    const cartData = {
+    // Load user details from session storage
+    const userDetails = {
+      fullName: sessionStorage.getItem("reg_fullName") || "",
+      email: sessionStorage.getItem("reg_email") || "",
+      phone: sessionStorage.getItem("reg_phone") || "",
+      emergencyPhone: sessionStorage.getItem("reg_emergencyPhone") || "",
+      birthDate: sessionStorage.getItem("reg_birthDate") || "",
+      gender: sessionStorage.getItem("reg_gender") || "male",
+      currentAddress: sessionStorage.getItem("reg_currentAddress") || "",
+      nationality: sessionStorage.getItem("reg_nationality") || "WNI",
+      medicalHistory: sessionStorage.getItem("reg_medicalHistory") || "",
+      medicationAllergy: sessionStorage.getItem("reg_medicationAllergy") || "",
+      existingIdCardPhotoUrl: sessionStorage.getItem("reg_existingIdCardPhotoUrl") || "",
+      registrationType: "cart",
+      groupName: sessionStorage.getItem("reg_groupName") || "",
+    };
+
+    // Build cart registration data with proper structure
+    const cartRegistrationData = {
       type: "cart",
       items: cart.map((item) => ({
-        ...item,
-        categoryId: item.categoryId, // Ensure categoryId is included
+        id: item.id,
+        type: item.type,
+        categoryId: item.categoryId,
+        categoryName: item.categoryName,
+        participants: Number(item.participants || 1),
+        price: Number(item.price || 0),
+        jerseyCharges: Number(item.jerseyCharges || 0),
+        jerseys: item.jerseys || {},
+        jerseySize: item.jerseySize || null,
+        groupName: item.groupName || userDetails.groupName || "",
       })),
+      userDetails,
     };
-    sessionStorage.setItem("currentRegistration", JSON.stringify(cartData));
 
-    // Redirect to confirmation page
-    router.push("/registration/confirm");
+    // Save to session storage
+    sessionStorage.setItem("currentRegistration", JSON.stringify(cartRegistrationData));
+
+    // Close the cart modal BEFORE redirecting
+    if (onCheckout) {
+      onCheckout();
+    }
+
+    // Small delay to allow modal close animation to complete
+    setTimeout(() => {
+      router.push("/registration/confirm");
+    }, 100);
   };
 
   return (
