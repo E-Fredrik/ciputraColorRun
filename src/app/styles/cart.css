@@ -11,16 +11,24 @@
   }
 }
 
+/* Jersey input - underline style only (no box) */
 .jersey-input {
   width: 60px;
   text-align: center;
-  border-radius: 8px;
-  border: 1px solid;
-  padding: 8px;
-  transition: all 0.2s;
+  border: none;
+  border-radius: 0;
+  border-bottom: 2px solid #e5e7eb;
+  padding: 8px 0; /* Remove horizontal padding for better centering */
+  background: transparent;
+  transition: border-color 0.2s;
+}
+
+.jersey-input:focus {
+  outline: none;
+  border-bottom-color: #e687a4;
 }
 
 .shift-right {
-  margin-left: auto;
-  margin-right: auto;
+  margin-left: 0; /* Remove auto margins */
+  margin-right: 0;
 }
