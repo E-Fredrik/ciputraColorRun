@@ -798,7 +798,7 @@ export default function LODashboard() {
                       return (
                         <div key={r.registrationId}>
                           <FileDisplay 
-                            src={imgUrl}
+                            src={imgUrl || ''} // coerce nullable -> string
                             originalPath={img}
                             alt={alt}
                             label={`ID Card - Reg #${r.registrationId}`}
@@ -817,7 +817,7 @@ export default function LODashboard() {
                     {selectedPayment.user.nationality === 'WNI' ? 'KTP/ID Card' : 'Passport'}
                   </h3>
                   <FileDisplay 
-                    src={getImageUrl(selectedPayment.user.idCardPhoto)}
+                    src={String(getImageUrl(selectedPayment.user.idCardPhoto))}
                     originalPath={selectedPayment.user.idCardPhoto}
                     alt="ID Card"
                     label={selectedPayment.user.nationality === 'WNI' ? 'ID Card Document' : 'Passport Document'}
