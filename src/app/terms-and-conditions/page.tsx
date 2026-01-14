@@ -25,7 +25,7 @@ export default function TermsAndConditionsPage() {
             }}
         >
             <div className="mx-auto w-full max-w-4xl px-4">
-                {/* IMPORTANT: Add terms-modal class here to trigger CSS styling */}
+                {/* IMPORTANT: Ensure both terms-modal AND terms-content classes are present */}
                 <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] terms-modal">
                     <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4">
                         <h1 className="text-2xl md:text-3xl font-bold text-white text-center">
@@ -36,9 +36,13 @@ export default function TermsAndConditionsPage() {
                         </p>
                     </div>
 
-                    {/* IMPORTANT: Add terms-content class here */}
+                    {/* CRITICAL: Add both terms-content class AND style attribute to force list rendering */}
                     <div 
                         className="flex-1 overflow-y-auto px-6 py-6 space-y-4 text-gray-700 terms-content"
+                        style={{
+                            counterReset: 'section-counter',
+                            listStylePosition: 'outside'
+                        }}
                         onScroll={handleScroll}
                     >
                         <h1 className="text-lg md:text-xl font-extrabold text-gray-900">
@@ -58,8 +62,11 @@ export default function TermsAndConditionsPage() {
                         </ul>
 
                         <h2 className="mt-4 font-bold">SECTION 2: REGISTRATION & PARTICIPANT CATEGORIES</h2>
-                        {/* IMPORTANT: Use terms-ol-numbered class for top level */}
-                        <ol className="pl-6 text-sm space-y-2 terms-ol-numbered">
+                        {/* CRITICAL: Add inline style to force list-style-type on top-level ol */}
+                        <ol 
+                            className="pl-6 text-sm space-y-2 terms-ol-numbered"
+                            style={{ listStyleType: 'decimal', listStylePosition: 'outside' }}
+                        >
                             <li>
                                 <strong>Identification Card Definition:</strong>
                                 {/* IMPORTANT: Use terms-ol-roman class for second level */}
