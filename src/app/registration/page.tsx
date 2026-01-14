@@ -452,8 +452,8 @@ export default function RegistrationPage() {
     function getTotalCommunityParticipants(): number {
         // Sum all community participants already in the cart
         const cartCommunityTotal = cart
-            .filter((item) => item.type === "community")
-            .reduce((sum, item) => sum + Number(item.participants || 0), 0);
+            .filter((item: any) => item.type === "community")
+            .reduce((sum: number, item: any) => sum + Number(item.participants || 0), 0);
         return cartCommunityTotal;
     }
 
