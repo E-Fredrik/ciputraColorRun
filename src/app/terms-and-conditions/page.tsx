@@ -98,7 +98,7 @@ export default function TermsAndConditionsPage() {
                             <li>
                                 <strong>Registration Platform: </strong>
                                 <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputracolorrun.com</a>.</li>
+                                    <li>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputrarun.com</a>.</li>
                                     <li>Event organizers are not responsible for any consequences resulting from purchases made outside the official platform.</li>
                                 </ol>
                             </li>

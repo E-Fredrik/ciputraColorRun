@@ -27,7 +27,7 @@ const ShoppingCart = () => {
       <div className={`fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex flex-col h-full">
           <div className="flex justify-between items-center p-4 border-b">
-            <h3 className="text-lg font-bold text-black">Shopping Cart</h3>
+            <h3 className="text-lg font-bold text-black">Community Shopping Cart</h3>
             <button onClick={handleCloseCart} className="text-gray-500 hover:text-gray-800 p-1 rounded-full hover:bg-gray-100">
               <X size={24} />
             </button>
