@@ -19,10 +19,10 @@ const CheckoutButton = ({ onCheckout }: CheckoutButtonProps) => {
       return;
     }
 
-    const communityItems = cart.filter((item) => item.type === "community");
+    const communityItems = cart.filter((item: any) => item.type === "community");
     if (communityItems.length > 0) {
       const totalCommunityParticipants = communityItems.reduce(
-        (total, item) => total + Number(item.participants || 0),
+        (total: number, item: any) => total + Number(item.participants || 0),
         0
       );
       if (totalCommunityParticipants < 10) {
