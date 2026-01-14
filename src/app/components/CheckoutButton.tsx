@@ -69,7 +69,7 @@ const CheckoutButton = ({ onCheckout }: CheckoutButtonProps) => {
     // Build cart registration data with proper structure
     const cartRegistrationData = {
       type: "cart",
-      items: cart.map((item) => ({
+      items: cart.map((item: any) => ({
         id: item.id,
         type: item.type,
         categoryId: item.categoryId,
@@ -79,10 +79,8 @@ const CheckoutButton = ({ onCheckout }: CheckoutButtonProps) => {
         jerseyCharges: Number(item.jerseyCharges || 0),
         jerseys: item.jerseys || {},
         jerseySize: item.jerseySize || null,
-        groupName: item.groupName || userDetails.groupName || "",
       })),
       userDetails,
-      // Also include at top level for easier access
       existingIdCardPhotoUrl: existingIdCardPhotoUrl,
       idCardUrl: existingIdCardPhotoUrl,
     };
