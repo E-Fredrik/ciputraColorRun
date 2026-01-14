@@ -62,14 +62,12 @@ export default function TermsAndConditionsPage() {
                         </ul>
 
                         <h2 className="mt-4 font-bold">SECTION 2: REGISTRATION & PARTICIPANT CATEGORIES</h2>
-                        {/* Top-level: decimal (1, 2, 3...) */}
                         <ol 
                             className="pl-6 text-sm space-y-2 terms-ol-numbered"
                             style={{ listStyleType: 'decimal', listStylePosition: 'outside', paddingLeft: '1.5rem' }}
                         >
                             <li style={{ display: 'list-item' }}>
                                 <strong>Identification Card Definition:</strong>
-                                {/* Second level: roman (i, ii, iii...) */}
                                 <ol 
                                     className="pl-6 mt-1 space-y-1 terms-ol-roman"
                                     style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
@@ -79,7 +77,6 @@ export default function TermsAndConditionsPage() {
                                     </li>
                                     <li style={{ display: 'list-item' }}>
                                         Documents that can be used for registration, data verification, and race pack collection include:
-                                        {/* Third level: alphabetic (a, b, c...) */}
                                         <ol 
                                             className="pl-6 mt-1 space-y-1 terms-ol-alpha"
                                             style={{ listStyleType: 'lower-alpha', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
