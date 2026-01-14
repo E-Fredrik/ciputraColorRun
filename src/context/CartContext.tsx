@@ -93,12 +93,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             if (category.tier3Price && category.tier3Min && totalCommunityParticipants >= category.tier3Min) {
               newPrice = Number(category.tier3Price);
               console.log(`[DEBUG] Applied Tier 3 price: ${newPrice}`);
-            } else if (category.tier2Price && category.tier2Min && totalCommunityParticipants >= category.tier2Min && (category.tier2Max === null || totalCommunityParticipants <= category.tier2Max)) {
-              newPrice = Number(category.tier2Price);
-              console.log(`[DEBUG] Applied Tier 2 price: ${newPrice}`);
-            } else if (category.tier1Price && category.tier1Min && totalCommunityParticipants >= category.tier1Min && (category.tier1Max === null || totalCommunityParticipants <= category.tier1Max)) {
-              newPrice = Number(category.tier1Price);
-              console.log(`[DEBUG] Applied Tier 1 price: ${newPrice}`);
+            } else {
+              // normalize optional max values to number | null to avoid TS error
+              const t2Max = typeof category.tier2Max === "number" ? category.tier2Max : null;
+              const t1Max = typeof category.tier1Max === "number" ? category.tier1Max : null;
+
+              if (category.tier2Price && category.tier2Min && totalCommunityParticipants >= category.tier2Min && (t2Max === null || totalCommunityParticipants <= t2Max)) {
+                newPrice = Number(category.tier2Price);
+                console.log(`[DEBUG] Applied Tier 2 price: ${newPrice}`);
+              } else if (category.tier1Price && category.tier1Min && totalCommunityParticipants >= category.tier1Min && (t1Max === null || totalCommunityParticipants <= t1Max)) {
+                newPrice = Number(category.tier1Price);
+                console.log(`[DEBUG] Applied Tier 1 price: ${newPrice}`);
+              }
             }
             updatedCart[index] = { ...item, price: newPrice };
             console.log(`[DEBUG] Item ${item.categoryName} updated price in cart: ${updatedCart[index].price}`);
