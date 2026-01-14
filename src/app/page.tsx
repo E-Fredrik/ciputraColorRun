@@ -8,10 +8,37 @@ import LogoLoop from "./components/LogoLoop";
 import CountdownTimer from "./components/CountdownTimer";
 import AboutCarousel from "./components/AboutCarousel";
 import DocDecor from "./components/DocDecor";
+import RouteImageModal from "./components/RouteImageModal";
+
+interface Category {
+    id: number;
+    name: string;
+    basePrice: string;
+    earlyBirdPrice?: string;
+    tier1Price?: string;
+    tier1Min?: number;
+    tier1Max?: number;
+    tier2Price?: string;
+    tier2Min?: number;
+    tier2Max?: number | null;
+    tier3Price?: string;
+    tier3Min?: number;
+    bundlePrice?: string;
+    bundleSize?: number;
+    earlyBirdCapacity?: number;
+    earlyBirdRemaining?: number | null;
+}
 
 export default function Home() {
 	const homeTopRef = useRef<HTMLDivElement | null>(null); // now attached to outer .home_top
 	const aboutRef = useRef<HTMLElement | null>(null);
+	
+	// State for route image modal
+	const [routeModalOpen, setRouteModalOpen] = useState(false);
+	const [selectedRoute, setSelectedRoute] = useState({ src: "", title: "" });
+
+	// State for categories
+	const [categories, setCategories] = useState<Category[]>([]);
 
 	useEffect(() => {
 		if (typeof window === "undefined") return;
@@ -53,6 +80,22 @@ export default function Home() {
 		if (typeof window !== "undefined" && (window as any).AOS) {
 			(window as any).AOS.refresh();
 		}
+
+		// Fetch categories
+		(async () => {
+			try {
+				const res = await fetch(`/api/categories`, {
+					cache: 'no-store',
+					headers: { 'Cache-Control': 'no-cache' }
+				});
+				if (!res.ok) throw new Error("Failed to load categories");
+				const data = await res.json();
+				setCategories(data);
+			} catch (err) {
+				console.error("Failed to load categories:", err);
+			}
+		})();
+
 		// Simulate initial content load
 		const timer = setTimeout(() => setLoading(false), 800);
 		return () => clearTimeout(timer);
@@ -98,6 +141,30 @@ export default function Home() {
 		"/homepage/documentation/doc6.jpg",
 		"/homepage/documentation/doc7.jpg",
 	];
+
+	// Route maps data
+	const routeMaps = [
+		{
+			distance: "3K",
+			title: "3K Route Map",
+			image: "/images/routes/3k.png", 
+		},
+		{
+			distance: "5K",
+			title: "5K Route Map",
+			image: "/images/routes/5k.png", 
+		},
+		{
+			distance: "10K",
+			title: "10K Route Map",
+			image: "/images/routes/10k.png",
+		},
+	];
+
+	const openRouteModal = (imageSrc: string, title: string) => {
+		setSelectedRoute({ src: imageSrc, title });
+		setRouteModalOpen(true);
+	};
 
 	return (
 		<main className="bg-white overflow-hidden">
@@ -249,6 +316,81 @@ export default function Home() {
 				</div>
 			</section>
 
+			{/* Route Maps Section */}
+			<section className="route-maps-section py-16 bg-gradient-to-br from-emerald-50 to-teal-50">
+				<div className="max-w-6xl mx-auto px-4 sm:px-6">
+					<h2
+						className="text-3xl md:text-4xl font-moderniz font-extrabold text-center mb-4 benefit-section-title"
+						data-aos="fade-up"
+					>
+						RACE ROUTES
+					</h2>
+					<p
+						className="text-center text-gray-600 mb-10 max-w-2xl mx-auto"
+						data-aos="fade-up"
+						data-aos-delay="100"
+					>
+						Explore the routes for each distance category. Click on any map to view it in full size.
+					</p>
+
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+						{routeMaps.map((route, index) => (
+							<div
+								key={route.distance}
+								className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
+								data-aos="zoom-in"
+								data-aos-delay={index * 100}
+							>
+								{/* Route Badge */}
+								<div className="bg-gradient-to-r from-[#91DCAC] to-[#4EF9CD] px-4 py-3 text-center">
+									<h3 className="text-2xl font-bold text-white">
+										{route.distance}
+									</h3>
+								</div>
+
+								{/* Image Container - Clickable */}
+								<div
+									className="relative aspect-[4/3] bg-gray-100 cursor-pointer group overflow-hidden"
+									onClick={() => openRouteModal(route.image, route.title)}
+								>
+									<Image
+										src={route.image}
+										alt={route.title}
+										fill
+										className="object-cover transition-transform duration-300 group-hover:scale-110"
+									/>
+									{/* Overlay on hover */}
+									<div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+										<div className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center">
+											<svg
+												className="w-12 h-12 mb-2"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+												/>
+											</svg>
+											<span className="font-semibold text-lg">Click to Expand</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						))}
+					</div>
+
+					<div className="text-center mt-8">
+						<p className="text-sm text-gray-500">
+							Maps are for reference only. Actual routes may vary slightly on race day.
+						</p>
+					</div>
+				</div>
+			</section>
+
 			{/* Pricing Section: semantic table with minimal styling + small decor assets */}
 			<section className="pricing-section max-w-6xl mx-auto px-4 sm:px-6 py-10 relative overflow-y-hidden">
 				{/* decorative assets near the table (non-interactive) */}
@@ -287,13 +429,13 @@ export default function Home() {
 									Normal Price
 								</th>
 								<th scope="col" className="col-tier">
-									Community 10-29
+									Community 10-29 Person
 								</th>
 								<th scope="col" className="col-tier">
-									Community 30-59
+									Community 30-59 Person
 								</th>
 								<th scope="col" className="col-tier">
-									Community ≥60
+									Community ≥60 Person
 								</th>
 								<th scope="col" className="col-note">
 									Early bird / Bundle
@@ -306,19 +448,25 @@ export default function Home() {
 									10K
 								</td>
 								<td className="col-main font-mustica" data-label="Harga Dasar">
-									Rp 250.000
+									Rp 250.000 / Pax
 								</td>
 								<td className="col-tier" data-label="Komunitas 10-29">
-									Rp 235.000
+									Rp 235.000 / Pax
 								</td>
 								<td className="col-tier" data-label="Komunitas 30-59">
-									Rp 225.000
+									Rp 225.000 / Pax
 								</td>
 								<td className="col-tier" data-label="Komunitas ≥60">
-									Rp 215.000
+									Rp 215.000 / Pax
 								</td>
 								<td className="col-note" data-label="Promo">
-									Early bird: Rp 220.000
+									{categories.find(c => c.name.toLowerCase().includes('10'))?.earlyBirdRemaining && categories.find(c => c.name.toLowerCase().includes('10'))?.earlyBirdRemaining! > 0 ? (
+										<>
+											Early bird: Rp {Number(categories.find(c => c.name.toLowerCase().includes('10'))?.earlyBirdPrice).toLocaleString("id-ID")} / Pax
+										</>
+									) : (
+										<span className="text-red-500 font-semibold">SOLD OUT</span>
+									)}
 								</td>
 							</tr>
 							<tr className="text-center justify-center items-center">
@@ -326,43 +474,66 @@ export default function Home() {
 									5K
 								</td>
 								<td className="col-main font-mustica" data-label="Harga Dasar">
-									Rp 200.000
+									Rp 200.000 / Pax
 								</td>
 								<td className="col-tier" data-label="Komunitas 10-29">
-									Rp 190.000
+									Rp 190.000 / Pax
 								</td>
 								<td className="col-tier" data-label="Komunitas 30-59">
-									Rp 180.000
+									Rp 180.000 / Pax
 								</td>
 								<td className="col-tier" data-label="Komunitas ≥60">
-									Rp 170.000
+									Rp 170.000 / Pax
 								</td>
 								<td className="col-note" data-label="Promo">
-									Early bird: Rp 180.000
+									{categories.find(c => c.name.toLowerCase().includes('5'))?.earlyBirdRemaining && categories.find(c => c.name.toLowerCase().includes('5'))?.earlyBirdRemaining! > 0 ? (
+										<>
+											Early bird: Rp {Number(categories.find(c => c.name.toLowerCase().includes('5'))?.earlyBirdPrice).toLocaleString("id-ID")}
+										</>
+									) : (
+										<span className="text-red-500 font-semibold">SOLD OUT</span>
+									)}
 								</td>
 							</tr>
 							<tr className="text-center justify-center items-center">
-								<td className="col-item" data-label="Kategori">
-									3K
-								</td>
-								<td className="col-main font-mustica" data-label="Harga Dasar">
-									Rp 150.000
-								</td>
-								<td className="col-tier" data-label="Komunitas 10-29">
-									Rp 140.000
-								</td>
-								<td className="col-tier" data-label="Komunitas 30-59">
-									Rp 135.000
-								</td>
-								<td className="col-tier" data-label="Komunitas ≥60">
-									Rp 135.000
-								</td>
-								<td className="col-note" data-label="Promo">
-									Early bird: Rp 130.000
-									<br />
-									Bundling family (4 people): Rp 145.000 / person
-								</td>
-							</tr>
+                                <td className="col-item" data-label="Kategori">
+                                    3K
+                                </td>
+                                <td className="col-main font-mustica" data-label="Harga Dasar">
+                                    Rp 150.000 / Pax
+                                </td>
+                                <td className="col-tier" data-label="Komunitas 10-29">
+                                    Rp 140.000 / Pax
+                                </td>
+                                <td className="col-tier" data-label="Komunitas 30-59">
+                                    Rp 135.000 / Pax
+                                </td>
+                                <td className="col-tier" data-label="Komunitas ≥60">
+                                    Rp 135.000 / Pax
+                                </td>
+                                <td className="col-note" data-label="Promo">
+                                    {(() => {
+                                        const three = categories.find(c => c.name.toLowerCase().includes('3'));
+                                        const earlyAvailable = Boolean(three?.earlyBirdRemaining && three!.earlyBirdRemaining! > 0);
+                                        const bundlePrice = Number(three?.bundlePrice ?? three?.basePrice ?? 0);
+                                        return (
+                                            <>
+                                                {earlyAvailable ? (
+                                                    <>
+                                                        Early bird: Rp {Number(three?.earlyBirdPrice ?? 0).toLocaleString("id-ID")}
+                                                        <br />
+                                                    </>
+                                                ) : (
+                                                    <span className="text-red-500 font-semibold">Early bird: SOLD OUT</span>
+                                                )}
+                                                <div>
+                                                    Bundling family (4 people): Rp 145.000 / Pax
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </td>
+                            </tr>
 						</tbody>
 					</table>
 				</div>
@@ -632,6 +803,14 @@ export default function Home() {
 					</div>
 				</div>
 			</section>
+
+			{/* Route Image Modal */}
+			<RouteImageModal
+				isOpen={routeModalOpen}
+				onClose={() => setRouteModalOpen(false)}
+				imageSrc={selectedRoute.src}
+				title={selectedRoute.title}
+			/>
 		</main>
 	);
 }

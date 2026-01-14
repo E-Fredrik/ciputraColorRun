@@ -12,31 +12,31 @@ async function main() {
     const categories = [
       {
         name: "3km",
-        basePrice: new Prisma.Decimal("150000"),
-        earlyBirdPrice: new Prisma.Decimal("130000"),
-        tier1Price: new Prisma.Decimal("140000"), // 10-29 people
+        basePrice: "150000",
+        earlyBirdPrice: "130000",
+        tier1Price: "140000", // 10-29 people
         tier1Min: 10,
         tier1Max: 29,
-        tier2Price: new Prisma.Decimal("135000"), // >30 people
+        tier2Price: "135000", // >30 people
         tier2Min: 30,
         tier2Max: null, // unlimited
         tier3Price: null, // 3K doesn't have tier 3
         tier3Min: null,
-        bundlePrice: new Prisma.Decimal("145000"), // Family bundle
+        bundlePrice: "145000", // Family bundle
         bundleSize: 4,
         earlyBirdCapacity: 20, // NEW
       },
       {
         name: "5km",
-        basePrice: new Prisma.Decimal("200000"),
-        earlyBirdPrice: new Prisma.Decimal("180000"),
-        tier1Price: new Prisma.Decimal("190000"), // 10-29 people
+        basePrice: "200000",
+        earlyBirdPrice: "180000",
+        tier1Price: "190000", // 10-29 people
         tier1Min: 10,
         tier1Max: 29,
-        tier2Price: new Prisma.Decimal("180000"), // 30-59 people
+        tier2Price: "180000", // 30-59 people
         tier2Min: 30,
         tier2Max: 59,
-        tier3Price: new Prisma.Decimal("170000"), // >60 people
+        tier3Price: "170000", // >60 people
         tier3Min: 60,
         bundlePrice: null,
         bundleSize: null,
@@ -44,15 +44,15 @@ async function main() {
       },
       {
         name: "10km",
-        basePrice: new Prisma.Decimal("250000"),
-        earlyBirdPrice: new Prisma.Decimal("220000"),
-        tier1Price: new Prisma.Decimal("235000"), // 10-29 people
+        basePrice: "250000",
+        earlyBirdPrice: "220000",
+        tier1Price: "235000", // 10-29 people
         tier1Min: 10,
         tier1Max: 29,
-        tier2Price: new Prisma.Decimal("225000"), // 30-59 people
+        tier2Price: "225000", // 30-59 people
         tier2Min: 30,
         tier2Max: 59,
-        tier3Price: new Prisma.Decimal("215000"), // >60 people
+        tier3Price: "215000", // >60 people
         tier3Min: 60,
         bundlePrice: null,
         bundleSize: null,
@@ -74,24 +74,24 @@ async function main() {
     console.log("👕 Seeding Jersey Options...");
     const jerseys = [
       // Adult sizes (standard - no extra charge)
-      { size: "S", type: "adult", price: new Prisma.Decimal("0"), quantity: 10000, isExtraSize: false, description: null },
-      { size: "M", type: "adult", price: new Prisma.Decimal("0"), quantity: 10000, isExtraSize: false, description: null },
-      { size: "L", type: "adult", price: new Prisma.Decimal("0"), quantity: 10000, isExtraSize: false, description: null },
-      { size: "XL", type: "adult", price: new Prisma.Decimal("0"), quantity: 10000, isExtraSize: false, description: null },
-      { size: "XXL", type: "adult", price: new Prisma.Decimal("10000"), quantity: 10000, isExtraSize: true, description: null },
-      { size: "3L", type: "adult", price: new Prisma.Decimal("10000"), quantity: 10000, isExtraSize: true, description: null },
-      { size: "4L", type: "adult", price: new Prisma.Decimal("10000"), quantity: 10000, isExtraSize: true, description: null },
-      { size: "5L", type: "adult", price: new Prisma.Decimal("10000"), quantity: 10000, isExtraSize: true, description: null },
+      { size: "S", type: "adult", price: "0", quantity: 10000, isExtraSize: false, description: null },
+      { size: "M", type: "adult", price: "0", quantity: 10000, isExtraSize: false, description: null },
+      { size: "L", type: "adult", price: "0", quantity: 10000, isExtraSize: false, description: null },
+      { size: "XL", type: "adult", price: "0", quantity: 10000, isExtraSize: false, description: null },
+      { size: "XXL", type: "adult", price: "10000", quantity: 10000, isExtraSize: true, description: null },
+      { size: "3L", type: "adult", price: "10000", quantity: 10000, isExtraSize: true, description: null },
+      { size: "4L", type: "adult", price: "10000", quantity: 10000, isExtraSize: true, description: null },
+      { size: "5L", type: "adult", price: "10000", quantity: 10000, isExtraSize: true, description: null },
       
       // Adult sizes (extra - with 20k charge)
-      { size: "6L", type: "adult", price: new Prisma.Decimal("20000"), quantity: 10000, isExtraSize: true, description: "Extra size +Rp 20.000" },
+      { size: "6L", type: "adult", price: "20000", quantity: 10000, isExtraSize: true, description: "Extra size +Rp 20.000" },
       
       // Kids sizes (no extra charge)
-      { size: "XS - KIDS", type: "kids", price: new Prisma.Decimal("0"), quantity: 10000, isExtraSize: false, description: null },
-      { size: "S - KIDS", type: "kids", price: new Prisma.Decimal("0"), quantity: 10000, isExtraSize: false, description: null },
-      { size: "M - KIDS", type: "kids", price: new Prisma.Decimal("0"), quantity: 10000, isExtraSize: false, description: null },
-      { size: "L - KIDS", type: "kids", price: new Prisma.Decimal("0"), quantity: 10000, isExtraSize: false, description: null },
-      { size: "XL - KIDS", type: "kids", price: new Prisma.Decimal("0"), quantity: 10000, isExtraSize: false, description: null },
+      { size: "XS - KIDS", type: "kids", price: "0", quantity: 10000, isExtraSize: false, description: null },
+      { size: "S - KIDS", type: "kids", price: "0", quantity: 10000, isExtraSize: false, description: null },
+      { size: "M - KIDS", type: "kids", price: "0", quantity: 10000, isExtraSize: false, description: null },
+      { size: "L - KIDS", type: "kids", price: "0", quantity: 10000, isExtraSize: false, description: null },
+      { size: "XL - KIDS", type: "kids", price: "0", quantity: 10000, isExtraSize: false, description: null },
     ];
 
     for (const j of jerseys) {

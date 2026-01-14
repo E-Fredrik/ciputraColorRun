@@ -144,7 +144,7 @@ export async function POST(req: Request) {
     const amount = Number(formData.get("amount") || 0);
     const proofSenderName = String(formData.get("proofSenderName") || "").trim();
     const groupName = String(formData.get("groupName") || "").trim();
-    const cartItemsJson = String(formData.get("items") || "");
+    const itemsJson = String(formData.get("items") || "");
     const forceCreate = String(formData.get("forceCreate") || "") === "true";
 
     // Helper: normalize a name for robust comparison
@@ -204,46 +204,58 @@ export async function POST(req: Request) {
     const proofFile = formData.get("proof") as File | null;
     const idCardPhotoFile = formData.get("idCardPhoto") as File | null;
 
+    // Support existing uploaded ID URL sent from the client (no File)
+    const existingIdCardUrl = String(formData.get("existingIdCardUrl") || "").trim();
+
     if (!proofFile) {
       return NextResponse.json({ error: "Payment proof is required" }, { status: 400 });
     }
-
+ 
     // Save proof image locally
     console.log("[payments] Step 2: Saving proof image locally...");
     const proofExt = proofFile.name.split(".").pop()?.toLowerCase() || "jpg";
     const proofFileName = `${txId}_proof.${proofExt}`;
     proofPath = await saveFileLocally(proofFile, "proofs", proofFileName);
-
+ 
     // Save ID card if provided
-    if (idCardPhotoFile) {
+    // Only treat idCardPhotoFile as a real file if it has a name/size (not an empty FormData value)
+    if (idCardPhotoFile && idCardPhotoFile.size > 0 && idCardPhotoFile.name) {
       console.log("[payments] Step 3: Saving ID card locally...");
       const idExt = idCardPhotoFile.name.split(".").pop()?.toLowerCase() || "jpg";
       const idFileName = `${txId}_id.${idExt}`;
       idCardPhotoPath = await saveFileLocally(idCardPhotoFile, "id-cards", idFileName);
+    } 
+    
+    // If no valid file was uploaded, use the existing URL from session/client
+    if (!idCardPhotoPath && existingIdCardUrl) {
+      // If client passed an existing URL, reuse it (backend will store this path)
+      idCardPhotoPath = existingIdCardUrl;
+      console.log("[payments] Reusing existing ID card URL from client:", idCardPhotoPath);
     }
 
-    // Parse cart items
-    console.log("[payments] Step 4: Parsing cart items...");
-    let cartItems: any[] = [];
-    if (cartItemsJson) {
+    // Parse registration items
+    console.log("[payments] Step 4: Parsing registration items...");
+    let items: any[] = [];
+    if (itemsJson) {
       try {
-        cartItems = JSON.parse(cartItemsJson);
+        items = JSON.parse(itemsJson);
       } catch (e) {
-        console.warn("[payments] Failed to parse cartItems:", e);
+        console.warn("[payments] Failed to parse items:", e);
       }
     }
 
     // Pre-fetch jersey options
     console.log("[payments] Step 5: Pre-fetching jersey options...");
     const jerseyOptions = await prisma.jerseyOption.findMany();
-    const jerseyMap = new Map(jerseyOptions.map(j => [j.size, j.id]));
+    // avoid implicit `any` by typing the map callback parameter
+    const jerseyMap = new Map(jerseyOptions.map((j: any) => [j.size, j.id]));
     const defaultJerseyId = jerseyOptions[0]?.id ?? 1;
 
     // Database transaction
     console.log("[payments] Step 7: Starting database transaction...");
     
-    const result = await prisma.$transaction(async (tx) => {
-      let user;
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+       let user;
       
       if (existingUser) {
         // REUSE existing user and update their information
@@ -286,13 +298,13 @@ export async function POST(req: Request) {
       }
       console.log("[payments] User ID:", user.id);
 
-      // Create separate registration + participants + payment for each cart item
+      // Create separate registration + participants + payment for each item
       const createdRegistrations: Array<{ id: number; totalAmount: string }> = [];
       const allParticipantRows: Array<{ registrationId: number; categoryId: number; jerseyId: number }> = [];
       const earlyBirdClaims: Array<{ categoryId: number }> = [];
       const createdPayments: Array<any> = [];
 
-      for (const item of cartItems) {
+      for (const item of items) {
         const categoryId = Number(item.categoryId);
         if (Number.isNaN(categoryId)) {
           console.warn("[payments] Invalid categoryId, skipping item:", item);
@@ -318,7 +330,8 @@ export async function POST(req: Request) {
             groupName: (item as any)?.groupName
               ? String((item as any).groupName).trim() || undefined
               : (groupName ? String(groupName).trim() || undefined : undefined),
-            totalAmount: new Prisma.Decimal(String(itemTotal)),
+            // store Decimal-compatible value as string to avoid using Prisma.Decimal constructor
+            totalAmount: String(itemTotal),
             paymentStatus: "pending",
           },
         });
@@ -387,14 +400,15 @@ export async function POST(req: Request) {
         console.log("[payments] Created early bird claims:", earlyBirdClaims.length);
       }
 
-      // Create one transaction-level payment that covers all registrations in this cart
+      // Create one transaction-level payment that covers all registrations in this submission
       const totalTxAmount = createdRegistrations.reduce((s, r) => s + Number(r.totalAmount || 0), 0);
       const payment = await tx.payment.create({
         data: {
           transactionId: txId,
           proofOfPayment: proofPath!,
           status: "pending",
-          amount: new Prisma.Decimal(String(totalTxAmount)),
+          // use string for Decimal column
+          amount: String(totalTxAmount),
           proofSenderName: proofSenderName,
         },
       });

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCart } from "../context/CartContext";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { showToast } from "../../lib/toast";
 import TutorialModal from "../components/TutorialModal";
@@ -37,7 +36,6 @@ interface JerseyOption {
 
 export default function RegistrationPage() {
     const router = useRouter();
-    const { addItem, items, setUserDetails } = useCart();
     const [currentUser, setCurrentUser] = useState<any | null>(null);
     
     const [type, setType] = useState<"individual" | "community" | "family">("individual");
@@ -97,6 +95,58 @@ export default function RegistrationPage() {
     const [idCardPhoto, setIdCardPhoto] = useState<File | null>(null);
     const [existingIdCardPhotoUrl, setExistingIdCardPhotoUrl] = useSessionState<string | null>("reg_existingIdCardPhotoUrl", null);
 
+    // Upload file in chunks to /api/payments/upload-chunk and return assembled file URL
+    async function uploadFileInChunksLocal(file: File, subDir: string = "id-cards"): Promise<string> {
+        const CHUNK_SIZE = 200 * 1024; // 200KB
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+        const uploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const prefix = subDir === "id-cards" ? "id" : "file";
+        const newFileName = `${uploadId}_${prefix}.${fileExt}`;
+
+        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+            const start = chunkIndex * CHUNK_SIZE;
+            const end = Math.min(start + CHUNK_SIZE, file.size);
+            const chunk = file.slice(start, end);
+
+            const chunkBase64 = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = reader.result as string;
+                    const base64 = result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(chunk);
+            });
+
+            const res = await fetch('/api/payments/upload-chunk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chunk: chunkBase64,
+                    fileName: newFileName,
+                    chunkIndex,
+                    totalChunks,
+                    uploadId,
+                    subDir,
+                }),
+            });
+
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body?.error || `Chunk ${chunkIndex + 1} upload failed`);
+            }
+
+            const body = await res.json().catch(() => ({}));
+            if (chunkIndex === totalChunks - 1 && body.fileUrl) {
+                return body.fileUrl;
+            }
+        }
+
+        throw new Error('Upload failed - no file URL returned');
+    }
+ 
     // --- NEW: immediate-save effect for personal fields (real-time save) ---
     useEffect(() => {
         try {
@@ -128,6 +178,8 @@ export default function RegistrationPage() {
     // modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [agreedToTerms, setAgreedToTerms] = useState(false);
+    // NEW: submission/loading state for checkout actions
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Tutorial modal state
     const [showTutorial, setShowTutorial] = useState(true); // show immediately
@@ -144,16 +196,16 @@ export default function RegistrationPage() {
         tip: "Prepare ID Card"
       },
       {
-        title: "Choose Race Distance, and Jersey Sizes",
-        description: 'Choose the race distance, jersey sizes and click "Add Category To Cart" button to save the order and to add more orders',
+        title: "Choose Race Distance and Jersey Sizes",
+        description: 'Choose the race distance and jersey sizes, then click "Checkout" to proceed to payment',
         image: "/images/tutorial/tut2.png",
         tip: "Make sure that the jersey quantity is the same as the participant"
       },
       {
-        title: "Check Cart",
-        description: "Check the cart, make sure it is the same with the order placed",
-        image: "/images/tutorial/tut3.png",
-        tip: "Make sure that the total price is correct and prepare the proof of payment"
+        title: "Complete Payment",
+        description: "Review your registration details and complete the payment process",
+        image: "/images/tutorial/tutor3.png",
+        tip: "Make sure all details are correct before submitting payment"
       },
       // Upload step moved to confirmation page
     ];
@@ -390,44 +442,16 @@ export default function RegistrationPage() {
         selectedJerseySize, jerseys
     ]);
 
-    // --- Move all hook-based computations here so they always run in the same order ---
-    // Check if user has family bundle in cart
-    const hasFamilyBundle = useMemo(() => {
-        return items.some(item => item.type === "family");
-    }, [items]);
-
-    // Check if user has community registration in cart
-    const hasCommunityRegistration = useMemo(() => {
-        return items.some(item => item.type === "community");
-    }, [items]);
-
-    // TOTALS: keep community and family totals separate
-    function getTotalCommunityParticipants(): number {
-        return items
-            .filter(item => item.type === "community")
-            .reduce((sum, item) => sum + (Number(item.participants || 0)), 0);
-    }
-
-    function getTotalFamilyParticipants(): number {
-        return items
-            .filter(item => item.type === "family")
-            .reduce((sum, item) => {
-                // family items use participants (bundle size). default to 4 if missing.
-                const count = Number(item.participants ?? 4) || 4;
-                return sum + count;
-            }, 0);
-    }
-
-    // Derived totals for rendering (avoid recomputing multiple times in JSX)
-    const communityCount = getTotalCommunityParticipants();
-    const familyCount = getTotalFamilyParticipants();
-
-    // Disable family/community actions when the cart already contains any individual order
-    const hasIndividualInCart = useMemo(() => {
-        return items.some(it => it.type === "individual");
-    }, [items]);
-
+    // --- No cart functionality - direct registration flow ---
     const isGroupType = type === "community" || type === "family";
+
+    // COMMUNITY: Track participants added in current session
+    function getTotalCommunityParticipants(): number {
+        return Number(participants || 0);
+    }
+
+    // Current community participant count (cart removed => rely on participants input)
+    const communityCount = Number(participants || 0);
 
     // NEW: Calculate extra jersey charges
     function calculateJerseyCharges(jerseySelection: Record<string, number | "">): number {
@@ -508,10 +532,11 @@ export default function RegistrationPage() {
         }
 
         const currentParticipants = Number(participants || 0);
-        const totalWithCurrent = getTotalCommunityParticipants() + currentParticipants;
+        // const totalWithCurrent = getTotalCommunityParticipants() + currentParticipants;
+        const totalWithCurrent = currentParticipants;
         
         return calculatePrice(category, type === "community" ? totalWithCurrent : 1);
-    }, [categoryId, categories, participants, items, type]);
+    }, [categoryId, categories, participants, type]);
 
     // NEW: Calculate subtotal including jersey charges
     const currentSubtotal = useMemo(() => {
@@ -680,283 +705,142 @@ export default function RegistrationPage() {
         }
     }
 
-    function handleAddToCart() {
-        if (!validatePersonalDetails()) return;
-        if (!categoryId) return;
+    // No add-to-cart functionality - proceed directly to checkout
 
-        // Resolve category object. For FAMILY, always force/select the 3KM category.
-        let category = categories.find((c) => c.id === categoryId);
-        if (!category) return;
-
-        if (type === "family") {
-            // Prefer explicit "3km" match, fallback to any name containing "3k"
-            const threeKm = categories.find(c => String(c.name).toLowerCase().trim() === "3km")
-                || categories.find(c => String(c.name).toLowerCase().includes("3k"));
-            if (!threeKm) {
-                showToast("Family bundle is not available because 3km category is missing", "error");
-                return;
-            }
-            // If UI currently points to a different category, update it so user sees correct selection
-            if (category.id !== threeKm.id) {
-                setCategoryId(threeKm.id);
-                category = threeKm;
-            }
-        }
-
-        if (type === "family") {
-             // Family bundle validation
-             if (category.name !== "3km") {
-                 showToast("Family bundle is only available for 3km category", "error");
-                 return;
-             }
- 
-             const bundleSize = category.bundleSize || 4;
-             const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
-             if (totalJerseys !== bundleSize) {
-                 showToast(`Jersey count (${totalJerseys}) must match family bundle size (${bundleSize})`, "error");
-                 return;
-             }
- 
-             const jerseyCharge = calculateJerseyCharges(jerseys);
- 
-             // Add family bundle to cart
-             addItem({
-                 type: "family",
-                 categoryId: category.id,
-                 categoryName: category.name,
-                 price: currentPrice,
-                 participants: bundleSize,
-                 jerseys: Object.fromEntries(
-                     Object.entries(jerseys).map(([k, v]) => [k, Number(v) || 0])
-                 ),
-                 jerseyCharges: jerseyCharge, // NEW
-                 groupName: (groupName || "").trim() || undefined,
-             });
-
-             const totalWithCharges = (currentPrice * bundleSize) + jerseyCharge;
-             showToast(`Family bundle added! Total: Rp ${totalWithCharges.toLocaleString("id-ID")}${jerseyCharge > 0 ? ` (includes Rp ${jerseyCharge.toLocaleString("id-ID")} extra size charges)` : ''}`, "success");
-             
-             // Reset jerseys
-            const resetJerseys: Record<string, number | ""> = {};
-            jerseyOptions.forEach(j => { resetJerseys[j.size] = ""; });
-            setJerseys(resetJerseys);
-
-            // Keep the UI on Family after adding the bundle (do not switch back to Individual)
-             return;
-        }
-
-        // Community validation - UPDATED: Allow adding 1+ participants, no minimum
-        const currentParticipants = Number(participants || 0);
+    // Direct checkout - no cart, go straight to confirmation
+    async function handleCheckout() {
+        if (isSubmitting) return; // prevent double clicks
         
-        if (currentParticipants < 1) {
-            showToast("Please enter at least 1 participant to add to cart", "error");
-            return;
-        }
-
-        // NEW: Check total participants including cart
-        const totalInCart = getTotalCommunityParticipants();
-        const totalWithCurrent = totalInCart + currentParticipants;
-
-        // FIXED: Validate jersey distribution matches participant count - MUST MATCH EXACTLY
-        const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
-        if (totalJerseys !== currentParticipants) {
-            showToast(`Jersey count (${totalJerseys}) must exactly match participant count (${currentParticipants}). Please adjust jersey sizes before adding to cart.`, "error");
-            return; // PREVENT adding to cart
-        }
-
-        const pricePerPerson = calculatePrice(category, totalWithCurrent);
-        const jerseyCharge = calculateJerseyCharges(jerseys);
-
-        savePersonalDetailsToSession();
-
-        // Add to cart
-        addItem({
-            type: "community",
-            categoryId: category.id,
-            categoryName: category.name,
-            price: pricePerPerson,
-            participants: currentParticipants,
-            jerseys: Object.fromEntries(
-                Object.entries(jerseys).map(([k, v]) => [k, Number(v) || 0])
-            ),
-            jerseyCharges: jerseyCharge, // NEW
-            groupName: (groupName || "").trim() || undefined, // ensure group name is carried with the item
-        });
-
-        const totalPrice = (pricePerPerson * currentParticipants) + jerseyCharge;
-        showToast(`Category added! Total: Rp ${totalPrice.toLocaleString("id-ID")}${jerseyCharge > 0 ? ` (includes Rp ${jerseyCharge.toLocaleString("id-ID")} extra size charges)` : ''}`, "success");
-
-        // Reset community fields to allow adding another category
-        setParticipants("");
-        const resetJerseys: Record<string, number | ""> = {};
-        jerseyOptions.forEach(j => { resetJerseys[j.size] = ""; });
-        setJerseys(resetJerseys);
-    }
-
-    // Checkout with modal (for both individual and community)
-    function handleCheckout() {
         if (!validatePersonalDetails()) return;
+        
+        setIsSubmitting(true);
+        
+        try {
+            if (type === "individual") {
+                savePersonalDetailsToSession();
 
-        if (type === "individual") {
-            // Immediate Buy Now: save details, add single individual item to cart and go straight to confirm page
-            savePersonalDetailsToSession();
+                const jerseyCharge = calculateIndividualJerseyCharge(selectedJerseySize);
+                
+                const category = categories.find((c) => c.id === categoryId);
+                if (!category) {
+                    showToast("Please select a category before proceeding", "error");
+                    return;
+                }
 
-            const jerseyCharge = calculateIndividualJerseyCharge(selectedJerseySize);
-            
-            // ensure category is present
-            const category = categories.find((c) => c.id === categoryId);
-            if (!category) {
-                showToast("Please select a category before proceeding", "error");
+                // If user selected an ID file in the registration form, upload it now and store the returned URL
+                let resolvedExistingIdUrl = existingIdCardPhotoUrl;
+                if (idCardPhoto instanceof File) {
+                    try {
+                        resolvedExistingIdUrl = await uploadFileInChunksLocal(idCardPhoto, "id-cards");
+                        setExistingIdCardPhotoUrl(resolvedExistingIdUrl);
+                        setIdCardPhotoName(idCardPhoto.name);
+                    } catch (e) {
+                        console.error("[handleCheckout] ID upload failed:", e);
+                        showToast("Failed to upload ID card. Please try again.", "error");
+                        return;
+                    }
+                }
+
+                const registrationData = {
+                    type: "individual",
+                    categoryId: category.id,
+                    categoryName: category.name,
+                    price: currentPrice,
+                    jerseySize: selectedJerseySize,
+                    jerseyCharges: jerseyCharge,
+                    userDetails: {
+                        fullName,
+                        email,
+                        phone,
+                        emergencyPhone,
+                        birthDate,
+                        gender,
+                        currentAddress,
+                        nationality,
+                        medicalHistory,
+                        medicationAllergy,
+                        idCardPhoto: undefined,
+                        existingIdCardPhotoUrl: resolvedExistingIdUrl || undefined,
+                        registrationType,
+                    }
+                };
+                
+                sessionStorage.setItem("currentRegistration", JSON.stringify(registrationData));
+
+                setAgreedToTerms(false);
+                setIsModalOpen(true);
                 return;
-            }
+            } else if (type === "family") {
+                let resolvedExistingIdUrl = existingIdCardPhotoUrl;
+                if (idCardPhoto instanceof File) {
+                    try {
+                        resolvedExistingIdUrl = await uploadFileInChunksLocal(idCardPhoto, "id-cards");
+                        setExistingIdCardPhotoUrl(resolvedExistingIdUrl);
+                        setIdCardPhotoName(idCardPhoto.name);
+                    } catch (e) {
+                        console.error("[handleCheckout] ID upload failed:", e);
+                        showToast("Failed to upload ID card. Please try again.", "error");
+                        return;
+                    }
+                }
+                const category = categories.find((c) => c.id === categoryId);
+                if (!category || !category.bundleSize) {
+                    showToast("Invalid family bundle selection", "error");
+                    return;
+                }
 
-            // set user details in cart/context so Confirm page can read them
-            setUserDetails({
-                fullName,
-                email,
-                phone,
-                emergencyPhone,
-                birthDate,
-                gender,
-                currentAddress,
-                nationality,
-                medicalHistory,
-                medicationAllergy,
-                idCardPhoto: idCardPhoto || undefined,
-                registrationType,
-                // Save groupName for both community and family so server receives same DB field
-                groupName: isGroupType ? (groupName || "").trim() || undefined : undefined,
-         });
+                const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
+                if (totalJerseys !== category.bundleSize && totalJerseys > 0) {
+                    showToast(`Please complete jersey selection`, "error");
+                    return;
+                }
 
-            // Add one individual item to cart (Buy Now)
-            addItem({
-                type: "individual",
-                categoryId: category.id,
-                categoryName: category.name,
-                price: currentPrice,
-                jerseySize: selectedJerseySize,
-                jerseyCharges: jerseyCharge,
-            });
-
-            // Redirect straight to confirmation (ConfirmPaymentClient will read cart/session)
-            router.push("/registration/confirm?fromCart=true");
-            return;
-         } else if (type === "family") {
-             const category = categories.find((c) => c.id === categoryId);
-             if (!category || !category.bundleSize) {
-                 showToast("Invalid family bundle selection", "error");
-                 return;
-             }
-
-             const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
-             if (totalJerseys !== category.bundleSize && totalJerseys > 0) {
-                 showToast(`Please complete jersey selection`, "error");
-                 return;
-             }
-
-             setAgreedToTerms(false);
-             setIsModalOpen(true);
-         } else {
-            // For community, check if total meets minimum - UPDATED: Check cart total, not current input
-            const totalInCart = getTotalCommunityParticipants();
-
-            if (totalInCart < 10) {
-                showToast(`Community registration requires minimum 10 participants. Currently have ${totalInCart}`, "error");
+                setAgreedToTerms(false);
+                setIsModalOpen(true);
                 return;
-            }
+            } else {
+                const currentParticipants = Number(participants || 0);
+                if (currentParticipants < 10) {
+                    showToast(`Community registration requires minimum 10 participants. Currently have ${currentParticipants}`, "error");
+                    return;
+                }
 
-            // If there's a current category being filled, validate it before checkout
-            const currentParticipants = Number(participants || 0);
-            if (currentParticipants > 0) {
                 const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
                 if (totalJerseys !== currentParticipants) {
                     showToast(`Jersey count must match participant count`, "error");
                     return;
                 }
-            }
 
-            // Open modal for terms agreement
-            setAgreedToTerms(false);
-            setIsModalOpen(true);
-         }
+                setAgreedToTerms(false);
+                setIsModalOpen(true);
+                return;
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
-    // NEW: Add individual to cart function
-    function handleAddIndividualToCart() {
-        if (!validatePersonalDetails()) return;
-        if (!categoryId) return;
+    // No add-to-cart - direct checkout only
 
-        const category = categories.find((c) => c.id === categoryId);
-        if (!category) return;
+    // Direct checkout after terms accepted - save to session and redirect
+    function executeCheckout() {
+        // Ensure personal details persisted
+        savePersonalDetailsToSession();
 
-        if (!selectedJerseySize) {
-            showToast("Please select a jersey size", "error");
+        // If individual, session already contains currentRegistration -> proceed directly
+        if (type === "individual") {
+            setIsModalOpen(false);
+            router.push("/registration/confirm");
             return;
         }
 
-        savePersonalDetailsToSession();
-
-        const jerseyCharge = calculateIndividualJerseyCharge(selectedJerseySize);
-        
-        // Add individual item to cart
-        addItem({
-            type: "individual",
-            categoryId: category.id,
-            categoryName: category.name,
-            price: currentPrice,
-            jerseySize: selectedJerseySize,
-            jerseyCharges: jerseyCharge, // NEW
-        });
-
-        const totalPrice = currentPrice + jerseyCharge;
-        showToast(`Added to cart! Total: Rp ${totalPrice.toLocaleString("id-ID")}${jerseyCharge > 0 ? ` (includes Rp ${jerseyCharge.toLocaleString("id-ID")} extra size charge)` : ''}`, "success");
-
-        // Reset jersey size selection
-        setSelectedJerseySize("M");
-    }
-
-    // Checkout execution (after terms accepted)
-    function executeCheckout() {
         if (!categoryId) return;
  
         const category = categories.find((c) => c.id === categoryId);
         if (!category) return;
  
-        savePersonalDetailsToSession();
- 
-        // set user details in cart/context; if there is no newly uploaded File for idCardPhoto,
-        // leave it undefined so server-side stored ID photo for logged-in user will be used.
-        setUserDetails({
-            fullName,
-            email,
-            phone,
-            emergencyPhone,
-            birthDate,
-            gender,
-            currentAddress,
-            nationality,
-            medicalHistory,
-            medicationAllergy,
-            idCardPhoto: idCardPhoto || undefined,
-            registrationType,
-            // Save groupName for both community and family so server receives same DB field
-            groupName: isGroupType ? (groupName || "").trim() || undefined : undefined,
-        });
-
-        if (type === "individual") {
-            const jerseyCharge = calculateIndividualJerseyCharge(selectedJerseySize);
-            
-            // Add individual item to cart
-            addItem({
-                type: "individual",
-                categoryId: category.id,
-                categoryName: category.name,
-                price: currentPrice,
-                jerseySize: selectedJerseySize,
-                jerseyCharges: jerseyCharge,
-            });
-        } else if (type === "family") {
-            // Force/select 3km category for family at checkout too
+        if (type === "family") {
+            // Force 3km category for family
             const threeKm = categories.find(c => String(c.name).toLowerCase().trim() === "3km")
                 || categories.find(c => String(c.name).toLowerCase().includes("3k"));
             if (!threeKm) {
@@ -966,7 +850,7 @@ export default function RegistrationPage() {
             const bundleSize = threeKm.bundleSize || 4;
             const jerseyCharge = calculateJerseyCharges(jerseys);
             
-            addItem({
+            const registrationData = {
                 type: "family",
                 categoryId: threeKm.id,
                 categoryName: threeKm.name,
@@ -976,40 +860,68 @@ export default function RegistrationPage() {
                     Object.entries(jerseys).map(([k, v]) => [k, Number(v) || 0])
                 ),
                 jerseyCharges: jerseyCharge,
-                // Persist family name into the same DB/Cart field used by community (groupName)
                 groupName: (groupName || "").trim() || undefined,
-            });
-
-            // Keep the UI on Family after checkout add (do not switch back to Individual)
- 
-            // reset local fields
-            const resetJerseys: Record<string, number | ""> = {};
-            jerseyOptions.forEach(j => { resetJerseys[j.size] = ""; });
-            setJerseys(resetJerseys);
-        } else {
-            // For community, add current category if filled
-            const currentParticipants = Number(participants || 0);
-            if (currentParticipants > 0) {
-                const jerseyCharge = calculateJerseyCharges(jerseys);
-                
-                addItem({
-                    type: "community",
-                    categoryId: category.id,
-                    categoryName: category.name,
-                    price: currentPrice,
-                    participants: currentParticipants,
-                    jerseys: Object.fromEntries(
-                        Object.entries(jerseys).map(([k, v]) => [k, Number(v) || 0])
-                    ),
-                    jerseyCharges: jerseyCharge,
+                userDetails: {
+                    fullName,
+                    email,
+                    phone,
+                    emergencyPhone,
+                    birthDate,
+                    gender,
+                    currentAddress,
+                    nationality,
+                    medicalHistory,
+                    medicationAllergy,
+                    // Do NOT store File objects in sessionStorage
+                    idCardPhoto: undefined,
+                    existingIdCardPhotoUrl: existingIdCardPhotoUrl || undefined,
+                    registrationType,
                     groupName: (groupName || "").trim() || undefined,
-                });
-            }
+                }
+            };
+            
+            sessionStorage.setItem("currentRegistration", JSON.stringify(registrationData));
+        } else {
+            // Community
+            const currentParticipants = Number(participants || 0);
+            const jerseyCharge = calculateJerseyCharges(jerseys);
+            
+            const registrationData = {
+                type: "community",
+                categoryId: category.id,
+                categoryName: category.name,
+                price: currentPrice,
+                participants: currentParticipants,
+                jerseys: Object.fromEntries(
+                    Object.entries(jerseys).map(([k, v]) => [k, Number(v) || 0])
+                ),
+                jerseyCharges: jerseyCharge,
+                groupName: (groupName || "").trim() || undefined,
+                userDetails: {
+                    fullName,
+                    email,
+                    phone,
+                    emergencyPhone,
+                    birthDate,
+                    gender,
+                    currentAddress,
+                    nationality,
+                    medicalHistory,
+                    medicationAllergy,
+                    // Don't store File objects in session (not serializable).
+                    // Persist existing uploaded URL instead so confirm page/server can reuse it.
+                    idCardPhoto: undefined,
+                    existingIdCardPhotoUrl: existingIdCardPhotoUrl || undefined,
+                    registrationType,
+                    groupName: (groupName || "").trim() || undefined,
+                }
+            };
+            
+            sessionStorage.setItem("currentRegistration", JSON.stringify(registrationData));
         }
 
         setIsModalOpen(false);
-        // Redirect to cart
-        router.push("/cart");
+        router.push("/registration/confirm");
     }
 
     // ADD THIS: Live tier info display for community
@@ -1020,7 +932,8 @@ export default function RegistrationPage() {
 
         const currentParticipants = Number(participants || 0);
         const totalInCart = getTotalCommunityParticipants();
-        const totalWithCurrent = totalInCart + currentParticipants;
+        // const totalWithCurrent = totalInCart + currentParticipants;
+        const totalWithCurrent = currentParticipants;
 
         let tier = "Base Price";
         let nextTier = null;
@@ -1066,10 +979,10 @@ export default function RegistrationPage() {
             tier,
             nextTier,
             participantsToNext,
-            totalInCart,
+            // totalInCart,
             totalWithCurrent,
         };
-    }, [type, categoryId, categories, participants, items]);
+    }, [type, categoryId, categories, participants]);
 
     function openSizeChart() {
         setShowSizeChart(true);
@@ -1117,18 +1030,16 @@ export default function RegistrationPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {/* Individual */}
                             <label
-                              title={(hasIndividualInCart || hasFamilyBundle) ? "Remove existing conflicting items in cart to switch types" : "Individual"}
-                              aria-disabled={hasIndividualInCart || hasFamilyBundle}
-                              className={`relative flex items-center justify-center p-4 rounded-xl border-2 transition-all ${(hasIndividualInCart || hasFamilyBundle) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'} ${type === "individual" ? 'border-blue-500 bg-blue-50 shadow-lg scale-105' : 'border-gray-300 bg-white hover:border-blue-300 hover:bg-blue-50/50'}`}
+                              title="Individual"
+                              className={`relative flex items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${type === "individual" ? 'border-blue-500 bg-blue-50 shadow-lg scale-105' : 'border-gray-300 bg-white hover:border-blue-300 hover:bg-blue-50/50'}`}
                             >
                                 <input
                                     type="radio"
                                     name="regType"
                                     value="individual"
                                     checked={type === "individual"}
-                                    onChange={() => { if (!hasIndividualInCart && !hasFamilyBundle) { setType("individual"); setRegistrationType("individual"); } }}
+                                    onChange={() => { setType("individual"); setRegistrationType("individual"); }}
                                     className="sr-only"
-                                    disabled={hasIndividualInCart || hasFamilyBundle}
                                 />
                                 <div className="flex flex-col items-center gap-2">
                                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${type === "individual" ? 'border-blue-500 bg-blue-500' : 'border-gray-400 bg-white'}`}>
@@ -1140,18 +1051,16 @@ export default function RegistrationPage() {
  
                             {/* Community */}
                             <label
-                              title={(hasIndividualInCart || hasFamilyBundle) ? "Remove existing conflicting items in cart to switch types" : "Community"}
-                              aria-disabled={hasIndividualInCart || hasFamilyBundle}
-                              className={`relative flex items-center justify-center p-4 rounded-xl border-2 transition-all ${(hasIndividualInCart || hasFamilyBundle) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'} ${type === "community" ? 'border-emerald-500 bg-emerald-50 shadow-lg scale-105' : 'border-gray-300 bg-white hover:border-emerald-300 hover:bg-emerald-50/50'}`}
+                              title="Community"
+                              className={`relative flex items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${type === "community" ? 'border-emerald-500 bg-emerald-50 shadow-lg scale-105' : 'border-gray-300 bg-white hover:border-emerald-300 hover:bg-emerald-50/50'}`}
                             >
                                 <input
                                     type="radio"
                                     name="regType"
                                     value="community"
                                     checked={type === "community"}
-                                    onChange={() => { if (!hasIndividualInCart && !hasFamilyBundle) { setType("community"); setRegistrationType("community"); } }}
+                                    onChange={() => { setType("community"); setRegistrationType("community"); }}
                                     className="sr-only"
-                                    disabled={hasIndividualInCart || hasFamilyBundle}
                                 />
                                 <div className="flex flex-col items-center gap-2">
                                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${type === "community" ? 'border-emerald-500 bg-emerald-500' : 'border-gray-400 bg-white'}`}>
@@ -1166,18 +1075,24 @@ export default function RegistrationPage() {
  
                             {/* Family */}
                             <label
-                              title={hasIndividualInCart ? "Remove existing Individual items in cart to switch types" : "Family Bundle"}
-                              aria-disabled={hasIndividualInCart}
-                              className={`relative flex items-center justify-center p-4 rounded-xl border-2 transition-all ${hasIndividualInCart ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'} ${type === "family" ? 'border-purple-500 bg-purple-50 shadow-lg scale-105' : 'border-gray-300 bg-white hover:border-purple-300 hover:bg-purple-50/50'}`}
+                              title="Family Bundle"
+                              className={`relative flex items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${type === "family" ? 'border-purple-500 bg-purple-50 shadow-lg scale-105' : 'border-gray-300 bg-white hover:border-purple-300 hover:bg-purple-50/50'}`}
                             >
                                 <input
                                     type="radio"
                                     name="regType"
                                     value="family"
                                     checked={type === "family"}
-                                    onChange={() => { if (!hasIndividualInCart) { setType("family"); setRegistrationType("family"); } }}
+                                    // onChange={() => { setType("family"); setRegistrationType("family"); }}
+                                    onChange={() => {
+                                        setType("family");
+                                        setRegistrationType("family");
+                                        // Ensure family bundle uses the 3km category so bundlePrice is applied
+                                        const threeKm = categories.find(c => String(c.name).toLowerCase().trim() === "3km")
+                                            || categories.find(c => String(c.name).toLowerCase().includes("3k"));
+                                        if (threeKm) setCategoryId(threeKm.id);
+                                    }}
                                     className="sr-only"
-                                    disabled={hasIndividualInCart}
                                 />
                                 <div className="flex flex-col items-center gap-2">
                                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${type === "family" ? 'border-purple-500 bg-purple-500' : 'border-gray-400 bg-white'}`}>
@@ -1327,14 +1242,14 @@ export default function RegistrationPage() {
 
                             <div className="grid gap-3">
                                 <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                                    {nationality === "WNI" ? "ID Card Photo" : "Passport Photo"} <strong className = "text-red-600">*</strong>
+                                    {nationality === "WNI" ? "ID Card Photo (KTP, SIM, Birth Certificate, and other official ID)" : "Passport Photo"} <strong className = "text-red-600">*</strong>
                                 </label>
                                 <label 
                                     htmlFor="idCardPhoto"
                                     className="w-full px-4 py-3 border-b-2 border-gray-200 bg-transparent cursor-pointer hover:border-blue-300 transition-colors flex items-center justify-between group"
                                 >
                                     <span className={`text-base ${idCardPhotoName ? "text-gray-800" : "text-gray-400"}`}>
-                                        {idCardPhotoName || `Upload ${nationality === "WNI" ? "ID Card" : "Passport"}`}
+                                        {idCardPhotoName || `Upload ${nationality === "WNI" ? "ID Card (KTP, SIM, Birth Certificate, and other official ID)" : "Passport"}`}
                                     </span>
                                     <svg className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -1343,18 +1258,23 @@ export default function RegistrationPage() {
                                 <input
                                     id="idCardPhoto"
                                     type="file"
-                                    accept="image/png,image/jpeg,image/jpg"
+                                    accept="image/png,image/jpeg,image/jpg,application/pdf"
                                     className="hidden"
                                     onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (file) {
+                                            // Validate file size (Max 10MB)
+                                            if (file.size > 10 * 1024 * 1024) {
+                                                showToast("File too large. Maximum size is 10MB.", "error");
+                                                return;
+                                            }
                                             setIdCardPhoto(file);
                                             setIdCardPhotoName(file.name);
                                         }
                                     }}
                                     required
                                 />
-                                <p className="text-xs text-gray-500 mt-1">PNG, JPG, JPEG (Max 10MB)</p>
+                                <p className="text-xs text-gray-500 mt-1">PNG, JPG, JPEG, PDF (Max 10MB)</p>
                             </div>
                         </div>
 
@@ -1491,7 +1411,7 @@ export default function RegistrationPage() {
                                             <button
                                               type="button"
                                               onClick={() => openSizeChart()}
-                                              className="text-xs text-orange-600 hover:text-orange-700 underline"
+                                                                                           className="text-xs text-orange-600 hover:text-orange-700 underline"
                                             >
                                               Size Guide
                                             </button>
@@ -1554,6 +1474,39 @@ export default function RegistrationPage() {
                                           </div>
                                         </div>
 
+                                        <div className="mb-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <p className="text-xs font-semibold text-purple-700">Kids Sizes:</p>
+                                    <button
+                                      type="button"
+                                      onClick={() => openSizeChart()}
+                                      className="text-xs text-purple-600 hover:text-purple-700 underline"
+                                    >
+                                      Size Guide
+                                    </button>
+                                  </div>
+
+                                  <div className="grid grid-cols-3 gap-3">
+                                    {["XS - KIDS", "S - KIDS", "M - KIDS", "L - KIDS", "XL - KIDS"].map((size) => (
+                                      <div key={size} className="flex flex-col items-center">
+                                        <div className="flex items-center gap-1 mb-2">
+                                          <span className="text-xs font-medium text-purple-700">{size}</span>
+                                        </div>
+                                        <input
+                                          type="number"
+                                          min={0}
+                                          value={jerseys[size] ?? ""}
+                                          onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
+                                          className="jersey-input shift-right accent-purple-500 border-purple-300 focus:border-purple-500"
+                                          placeholder="0"
+                                          inputMode="numeric"
+                                          aria-label={`Count for size ${size}`}
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+
                                         <p className="text-xs text-gray-500 mt-3 text-center">
                                             Total: {Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0)} / 4
                                         </p>
@@ -1609,13 +1562,12 @@ export default function RegistrationPage() {
                                             </div>
                                         </div>
                                     </div>
-
-                                    <div className="pt-4">
+                                    <div className="flex flex-col sm:flex-row gap-3 mt-4">
                                         <button
-                                            onClick={handleAddToCart}
-                                            className="w-full px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 active:scale-95"
+                                            onClick={handleCheckout}
+                                            className="flex-1 px-6 py-3 rounded-full font-bold shadow-xl transition-all transform bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white hover:shadow-2xl"
                                         >
-                                            ADD FAMILY BUNDLE TO CART
+                                            Proceed to Checkout
                                         </button>
                                     </div>
                                 </div>
@@ -1623,27 +1575,13 @@ export default function RegistrationPage() {
                         </div>
                     )}
 
+
+                    
+
+
                     {/* Community layout with improved pricing */}
                     {type === "community" && (
                         <div className="space-y-6 mt-6">
-                            {/* Current Progress */}
-                            {communityCount > 0 && (
-                               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <p className="text-sm font-medium text-emerald-800">
-                                          Community Participants: {communityCount}
-                                      </p>
-                                      <p className="text-xs text-emerald-600">
-                                        {communityCount >= 10 ? <span className="font-semibold text-green-600">✓ Minimum met</span> : <span>Add {10 - communityCount} more</span>}
-                                      </p>
-                                    </div>
-                                    {familyCount > 0 && (
-                                      <div className="mt-2 pt-2 border-t border-emerald-100 text-sm text-emerald-700">
-                                        <strong>Family Bundle participants (separate):</strong> {familyCount} (do not count toward community minimum)
-                                      </div>
-                                    )}
-                                </div>
-                            )}
 
                             <div className="rounded-lg border border-gray-200 p-5 bg-white">
                                 <div className="space-y-5">
@@ -1670,18 +1608,18 @@ export default function RegistrationPage() {
                                     </div>
 
                                     <div className="grid gap-3">
-                                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Number of Participants (for this category) *</label>
+                                        <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Number of Participants (for this category) <strong className="text-red-500">*</strong></label>
                                         <input
                                             type="number"
                                             min={1}
                                             value={participants}
                                             onChange={(e) => setParticipants(e.target.value === "" ? "" : Number(e.target.value))}
                                             className="w-full px-4 py-3 border-b-2 border-gray-200 bg-transparent text-gray-800 placeholder-gray-400 focus:border-emerald-500 focus:outline-none transition-colors text-base"
-                                            placeholder="Enter participant amount (minimum 1)"
+                                            placeholder="Enter participant amount (minimum 10)"
                                         />
-                                        <p className="text-xs text-gray-500 mt-1">
+                                        {/* <p className="text-xs text-gray-500 mt-1">
                                             This will be added to your community total ({getTotalCommunityParticipants()} currently in cart)
-                                        </p>
+                                        </p> */}
                                     </div>
 
                                     {/* LIVE TIER INFO */}
@@ -1694,9 +1632,9 @@ export default function RegistrationPage() {
                                                         {tierInfo.tier}
                                                     </span>
                                                 </div>
-                                                <div className="text-xs text-gray-600">
+                                                {/* <div className="text-xs text-gray-600">
                                                     Total: {tierInfo.totalWithCurrent} participants ({tierInfo.totalInCart} in cart + {Number(participants || 0)} current)
-                                                </div>
+                                                </div> */}
                                                 {tierInfo.nextTier && tierInfo.participantsToNext > 0 && (
                                                     <div className="pt-2 border-t border-purple-200">
                                                         <p className="text-xs text-purple-700">
@@ -1815,6 +1753,39 @@ export default function RegistrationPage() {
                                           </div>
                                         </div>
 
+                                        <div className="mb-4">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <p className="text-xs font-semibold text-emerald-700">Kids Sizes:</p>
+                                            <button
+                                              type="button"
+                                              onClick={() => openSizeChart()}
+                                              className="text-xs text-emerald-600 hover:text-emerald-700 underline"
+                                            >
+                                              Size Guide
+                                            </button>
+                                          </div>
+
+                                          <div className="grid grid-cols-3 gap-3">
+                                            {["XS - KIDS", "S - KIDS", "M - KIDS", "L - KIDS", "XL - KIDS"].map((size) => (
+                                              <div key={size} className="flex flex-col items-center">
+                                                <div className="flex items-center gap-1 mb-2">
+                                                  <span className="text-xs font-medium text-emerald-700">{size}</span>
+                                                </div>
+                                                <input
+                                                  type="number"
+                                                  min={0}
+                                                  value={jerseys[size] ?? ""}
+                                                  onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
+                                                  className="jersey-input shift-right accent-emerald-500 border-emerald-300 focus:border-emerald-500"
+                                                  placeholder="0"
+                                                  inputMode="numeric"
+                                                  aria-label={`Count for size ${size}`}
+                                                />
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+
                                         <p className="text-xs text-gray-500 mt-3 text-center">
                                             Total: {Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0)} / {participants || 0}
                                         </p>
@@ -1870,54 +1841,35 @@ export default function RegistrationPage() {
                                             </div>
                                         </div>
                                     )}
-
-                                    <div className="pt-4">
-                                        <button
-                                            onClick={handleAddToCart}
-                                            disabled={
-                                                hasIndividualInCart || hasFamilyBundle ||
-                                                !participants || 
-                                                Number(participants || 0) < 1 ||
-                                                Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0) !== Number(participants || 0)
-                                            }
-                                            className={`w-full px-6 py-3 rounded-full font-bold shadow-xl transition-all transform ${
-                                                (hasIndividualInCart || hasFamilyBundle)
-                                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed opacity-60"
-                                                    : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white hover:shadow-2xl"
-                                            }`}
-                                        >
-                                            ADD CATEGORY TO CART
-                                        </button>
-                                        {Number(participants || 0) > 0 && Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0) !== Number(participants || 0) && (
-                                            <p className="text-center text-xs text-red-600 mt-2">
-                                                ⚠️ Jersey count must match participant count to add to cart
-                                            </p>
-                                        )}
-                                        {getTotalCommunityParticipants() < 10 && (
-                                            <p className="text-center text-xs text-gray-500 mt-2">
-                                                Note: Total {getTotalCommunityParticipants()} in cart. Need {10 - getTotalCommunityParticipants()} more for checkout (you can still add categories)
-                                            </p>
-                                        )}
-                                    </div>
                                 </div>
                             </div>
 
                             <div className="flex justify-center mt-4">
                                 <button
                                     onClick={handleCheckout}
+                                    disabled={isSubmitting || communityCount < 10}
                                     className={`w-1/2 md:w-1/3 px-6 py-3 rounded-full font-semibold shadow-xl transition-all transform ${
-                                        (!hasFamilyBundle && getTotalCommunityParticipants() >= 10)
+                                        communityCount >= 10 && !isSubmitting
                                             ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95'
                                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     }`}
-                                    disabled={hasFamilyBundle || getTotalCommunityParticipants() < 10}
                                 >
-                                    Proceed to Checkout
+                                    {isSubmitting ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Processing...
+                                        </span>
+                                    ) : (
+                                        "Proceed to Checkout"
+                                    )}
                                 </button>
                             </div>
-                            {getTotalCommunityParticipants() < 10 && (
+                            {communityCount < 10 && (
                                 <p className="text-center text-xs text-gray-500">
-                                    Need {10 - getTotalCommunityParticipants()} more participants in cart to checkout
+                                    Need at least 10 participants for community registration
                                 </p>
                             )}
                         </div>
@@ -2052,30 +2004,30 @@ export default function RegistrationPage() {
                                      </div>
                                  </div>
                              </div>
-                            {/* Add to Cart and Buy Now Buttons */}
+                            {/* Buy Now Button */}
                             <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                                {/* <button
-                                    onClick={handleAddIndividualToCart}
-                                    className="flex-1 px-6 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold shadow-xl hover:shadow-2xl transition-all transform hover:scale-105 active:scale-95"
-                                >
-                                    Add to Cart
-                                </button> */}
+
                                 <button
                                     onClick={handleCheckout}
-                                    disabled={items.length > 0}
+                                    disabled={isSubmitting}
                                     className={`flex-1 px-6 py-3 rounded-full font-bold shadow-xl transition-all transform ${
-                                        items.length > 0
-                                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                        isSubmitting
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                             : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white hover:shadow-2xl'
                                     }`}
                                 >
-                                    Buy Now
+                                    {isSubmitting ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Processing...
+                                        </span>
+                                    ) : (
+                                        "Buy Now"
+                                    )}
                                 </button>
-                                {items.length > 0 && (
-                                    <p className="text-xs text-red-600 mt-2 text-center">
-                                        Buy Now is disabled while your cart contains other items. Please visit the <a href="/cart" className="underline">Cart</a> or remove existing items first.
-                                    </p>
-                                )}
                             </div>
                         </div>
                     )}
@@ -2616,7 +2568,7 @@ export default function RegistrationPage() {
                                     disabled={!agreedToTerms}
                                     className={`flex-1 px-6 py-3 rounded-full font-semibold transition-all transform ${
                                         agreedToTerms
-                                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95'
+                                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl'
                                             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                     }`}
                                 >

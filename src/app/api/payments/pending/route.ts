@@ -26,11 +26,11 @@ export async function GET(request: Request) {
     });
 
     // Build per-registration response (backward compatible)
-    const registrationsResp = registrations.map(reg => {
+    const registrationsResp = registrations.map((reg: any) => {
       const categoryCounts: Record<string, number> = {};
       const jerseySizes: Record<string, number> = {};
 
-      reg.participants.forEach(p => {
+      reg.participants.forEach((p: any) => {
         const catName = p.category?.name || 'Unknown';
         categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
 
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
         id: p.id,
         amount: Number(p.amount || 0),
         proofOfPayment: p.proofOfPayment,
-        proofSenderName: (p as any).proofSenderName,
+        proofSenderName: p.proofSenderName,
         status: p.status,
         transactionId: p.transactionId,
         registrationId: reg.id,
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
 
     // Aggregate transactions by payment.transactionId
     const txMap = new Map<string, any>();
-    registrations.forEach(reg => {
+    registrations.forEach((reg: any) => {
       const p = reg.payment;
       if (p) {
         const txId = p.transactionId || String(p.id);
@@ -117,6 +117,7 @@ export async function GET(request: Request) {
           transactionId: p.transactionId,
           amount: Number(p.amount || 0),
           status: p.status,
+          proofSenderName: p.proofSenderName,
         });
         if (reg.registrationType) entry.registrationTypes.add(reg.registrationType);
         txMap.set(txId, entry);

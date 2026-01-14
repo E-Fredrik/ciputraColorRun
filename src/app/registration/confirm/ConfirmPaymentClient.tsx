@@ -1,7 +1,6 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useCart } from "../../context/CartContext";
 import { useState, useEffect } from "react";
 import TutorialModal from "../../components/TutorialModal";
 import { showToast } from "../../../lib/toast";
@@ -14,9 +13,21 @@ export default function ConfirmPaymentClient() {
 
     const search = useSearchParams();
     const router = useRouter();
-    const { items, clearCart, totalPrice, userDetails } = useCart();
 
-    const fromCart = search.get("fromCart") === "true";
+    // Load registration data from session storage
+    const [registrationData, setRegistrationData] = useState<any>(null);
+
+    // Calculate total price from registration data
+    const totalPrice = registrationData
+        ? (registrationData.type === "individual"
+            ? registrationData.price + (registrationData.jerseyCharges || 0)
+            : registrationData.type === "family"
+            ? (registrationData.price * registrationData.participants) + (registrationData.jerseyCharges || 0)
+            : (registrationData.price * registrationData.participants) + (registrationData.jerseyCharges || 0))
+        : 0;
+
+    // Convert registration data to items array for compatibility with API
+    const items = registrationData ? [registrationData] : [];
 
     const [fullName, setFullName] = useState<string>("");
     const [email, setEmail] = useState<string>("");
@@ -46,40 +57,36 @@ export default function ConfirmPaymentClient() {
     ];
 
     useEffect(() => {
-        // Load from context first, then fallback to sessionStorage
-        if (userDetails) {
-            setFullName(userDetails.fullName);
-            setEmail(userDetails.email);
-            setPhone(userDetails.phone);
-            setBirthDate(userDetails.birthDate);
-            setGender(userDetails.gender);
-            setCurrentAddress(userDetails.currentAddress);
-            setNationality(userDetails.nationality || "");
-            setEmergencyPhone(userDetails.emergencyPhone || "");
-            setMedicalHistory(userDetails.medicalHistory || "");
-            setMedicationAllergy(userDetails.medicationAllergy || "");
-            setGroupName(userDetails.groupName || "");
-        } else {
-            setFullName(sessionStorage.getItem("reg_fullName") || search.get("fullName") || "");
-            setEmail(sessionStorage.getItem("reg_email") || search.get("email") || "");
-            setPhone(sessionStorage.getItem("reg_phone") || search.get("phone") || "");
-            setBirthDate(sessionStorage.getItem("reg_birthDate") || "");
-            setGender(sessionStorage.getItem("reg_gender") || "male");
-            setCurrentAddress(sessionStorage.getItem("reg_currentAddress") || "");
-            setNationality(sessionStorage.getItem("reg_nationality") || "WNI");
-            setEmergencyPhone(sessionStorage.getItem("reg_emergencyPhone") || "");
-            setMedicalHistory(sessionStorage.getItem("reg_medicalHistory") || "");
-            setMedicationAllergy(sessionStorage.getItem("reg_medicationAllergy") || "");
-            setGroupName(sessionStorage.getItem("reg_groupName") || "");
+        // Load registration data from session storage
+        const savedData = sessionStorage.getItem("currentRegistration");
+        if (!savedData) {
+            router.push("/registration");
+            return;
         }
-    }, [userDetails, search]);
-
-    // Redirect if cart is empty when coming from cart
-    useEffect(() => {
-        if (!submitted && fromCart && items.length === 0) {
+        
+        try {
+            const data = JSON.parse(savedData);
+            setRegistrationData(data);
+            
+            // Load user details from registration data
+            if (data.userDetails) {
+                setFullName(data.userDetails.fullName || "");
+                setEmail(data.userDetails.email || "");
+                setPhone(data.userDetails.phone || "");
+                setBirthDate(data.userDetails.birthDate || "");
+                setGender(data.userDetails.gender || "male");
+                setCurrentAddress(data.userDetails.currentAddress || "");
+                setNationality(data.userDetails.nationality || "WNI");
+                setEmergencyPhone(data.userDetails.emergencyPhone || "");
+                setMedicalHistory(data.userDetails.medicalHistory || "");
+                setMedicationAllergy(data.userDetails.medicationAllergy || "");
+                setGroupName(data.userDetails.groupName || data.groupName || "");
+            }
+        } catch (error) {
+            console.error("Failed to load registration data:", error);
             router.push("/registration");
         }
-    }, [fromCart, items, router, submitted]);
+    }, [router]);
 
     // Convert File to base64
     async function fileToBase64(file: File): Promise<string> {
@@ -160,6 +167,15 @@ export default function ConfirmPaymentClient() {
             return;
         }
 
+        // Validate file type
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
+        if (!validTypes.includes(file.type)) {
+            setProofFile(null);
+            setFileName(null);
+            showToast("Invalid file type. Please upload PNG, JPG, JPEG, or PDF.", "error");
+            return;
+        }
+
         setProofFile(file);
         setFileName(`${file.name} (${(file.size / 1024).toFixed(0)}KB)`);
     }
@@ -196,24 +212,34 @@ export default function ConfirmPaymentClient() {
             let proofUrl: string | undefined = undefined;
             let idCardUrl: string | undefined = undefined;
 
-            const canUseFormData = proofFile.size < 500_000 &&
-                (!userDetails?.idCardPhoto || !(userDetails.idCardPhoto instanceof File) || userDetails.idCardPhoto.size < 500_000);
+            // idCardPhoto may be a File (if preserved) — otherwise check for an existing uploaded URL
+            const idCardPhoto = registrationData?.userDetails?.idCardPhoto;
+            const existingIdCardUrl = registrationData?.userDetails?.existingIdCardPhotoUrl || registrationData?.userDetails?.idCardUrl || undefined;
+            // debug: ensure we are actually carrying an existing URL to the submit step
+            console.log("[handleConfirmedSubmit] existingIdCardUrl:", existingIdCardUrl);
+            
+            // Ensure we propagate existing URL if no File is present
+            let resolvedIdCardUrl: string | undefined = existingIdCardUrl;
 
-            // Prefer groupName from a family cart item, then from form/session/userDetails
-            const familyItem = items.find((it: any) => it.type === "family");
+            // Get groupName from registration data
             const resolvedGroupName =
-                (familyItem?.groupName && String(familyItem.groupName).trim()) ||
+                (registrationData.groupName && String(registrationData.groupName).trim()) ||
+                (registrationData.userDetails?.groupName && String(registrationData.userDetails.groupName).trim()) ||
                 (groupName && String(groupName).trim()) ||
-                (userDetails?.groupName && String(userDetails.groupName).trim()) ||
-                (sessionStorage.getItem("reg_groupName") || "").trim() ||
                 undefined;
 
-            // Ensure each family cart item carries the resolved groupName so backend receives it per-registration
-            const itemsToSend = items.map((it: any) =>
-                it.type === "family"
-                    ? { ...it, groupName: (it.groupName && String(it.groupName).trim()) || resolvedGroupName }
-                    : it
-            );
+            // Ensure registration carries the resolved groupName
+            const itemsToSend = [{
+                ...registrationData,
+                groupName: resolvedGroupName
+            }];
+
+            // Decide whether we can POST FormData directly.
+            // Use small threshold to avoid large FormData requests — larger files will use chunked upload.
+            const canUseFormData =
+                !!proofFile &&
+                proofFile.size < 500_000 &&
+                (!idCardPhoto || !(idCardPhoto instanceof File) || idCardPhoto.size < 500_000);
  
              if (canUseFormData) {
                  // direct FormData POST
@@ -232,11 +258,15 @@ export default function ConfirmPaymentClient() {
                  formData.append("emergencyPhone", emergencyPhone);
                  formData.append("medicalHistory", medicalHistory);
                  formData.append("medicationAllergy", medicationAllergy || "");
-                 formData.append("registrationType", items[0]?.type || "individual");
+                 formData.append("registrationType", registrationData.type || "individual");
                 if (resolvedGroupName) formData.append("groupName", resolvedGroupName);
-                 if (userDetails?.idCardPhoto instanceof File) {
-                     formData.append("idCardPhoto", userDetails.idCardPhoto);
-                 }
+                 // Always send existingIdCardUrl if available (fallback for File not present)
+                 if (idCardPhoto instanceof File) {
+                    formData.append("idCardPhoto", idCardPhoto);
+                }
+                if (existingIdCardUrl) {
+                    formData.append("existingIdCardUrl", String(existingIdCardUrl));
+                }
                 // send items with per-item groupName populated
                 formData.append("items", JSON.stringify(itemsToSend));
  
@@ -270,17 +300,21 @@ export default function ConfirmPaymentClient() {
                 proofUrl = await uploadFileInChunks(proofFile, "proofs");
                 console.log("[handleConfirmedSubmit] Proof uploaded:", proofUrl);
 
-                if (userDetails?.idCardPhoto instanceof File) {
+                if (idCardPhoto instanceof File) {
                     setUploadStatus("Uploading ID card...");
-                    idCardUrl = await uploadFileInChunks(userDetails.idCardPhoto, "id-cards");
+                    idCardUrl = await uploadFileInChunks(idCardPhoto, "id-cards");
                     console.log("[handleConfirmedSubmit] ID card uploaded:", idCardUrl);
+                } else if (existingIdCardUrl) {
+                    // reuse previously uploaded id card URL stored in session
+                    idCardUrl = existingIdCardUrl;
                 }
 
                 setUploadStatus("Saving registration...");
 
                 const payload: any = {
                      proofUrl,
-                     idCardUrl,
+                     // prefer newly uploaded or uploaded-by-registration URL
+                     idCardUrl: idCardUrl || resolvedIdCardUrl || existingIdCardUrl || undefined,
                      // send items with per-item groupName populated
                      items: itemsToSend,
                      amount: totalPrice,
@@ -336,10 +370,10 @@ export default function ConfirmPaymentClient() {
                 console.log("[handleConfirmedSubmit] Registration successful");
             }
 
-            // Clear cart and session data ONLY after successful upload
-            clearCart();
+            // Clear session data ONLY after successful upload
+            sessionStorage.removeItem("currentRegistration");
 
-            // NEW: clear all registration session keys after successful payment submission
+            // Clear all registration session keys after successful payment submission
             try {
                 const keysToClear = [
                     "reg_formData",
@@ -396,54 +430,47 @@ export default function ConfirmPaymentClient() {
                     <div className="mb-6">
                         <h3 className="font-semibold mb-3">Order Summary:</h3>
                         <div className="space-y-2">
-                            {items.map((item) => {
-                                let secondaryLabel = "";
-                                if (item.type === "community" || item.type === "family") {
-                                    const jerseysObj: Record<string, number> = item.jerseys || {};
-                                    const pairs = Object.entries(jerseysObj)
-                                        .filter(([, cnt]) => Number(cnt) > 0)
-                                        .map(([size, cnt]) => `${size}(${cnt})`);
-                                    secondaryLabel = pairs.length > 0 ? pairs.join(", ") : `${item.participants || 0} participants`;
-                                } else {
-                                    secondaryLabel = `Size ${item.jerseySize || "—"}`;
-                                }
+                            {items.map((item, idx) => {
+    const itemKey = item.id ?? `item-${idx}`;
 
-                                const itemTotal = (item.type === "community" || item.type === "family")
-                                    ? Number(item.price) * Number(item.participants || 0)
-                                    : Number(item.price);
+    // If community/family, build JSX list of pairs with keys
+    let secondaryLabel: React.ReactNode = "";
+    if (item.type === "community" || item.type === "family") {
+        const jerseysObj: Record<string, number> = item.jerseys || {};
+        const pairs = Object.entries(jerseysObj).filter(([, cnt]) => Number(cnt) > 0);
+        if (pairs.length > 0) {
+            secondaryLabel = (
+                <>
+                    {pairs.map(([size, cnt], i) => (
+                        <span key={size}>
+                            {`${size}(${cnt})`}
+                            {i < pairs.length - 1 ? ", " : ""}
+                        </span>
+                    ))}
+                </>
+            );
+        } else {
+            secondaryLabel = `${item.participants || 0} participants`;
+        }
+    } else {
+        secondaryLabel = `Size ${item.jerseySize || "—"}`;
+    }
 
-                                // extra charge amount saved on cart item
-                                const extraCharge = Number(item.jerseyCharges || 0);
-
-                                // compute 6XL count for display (community/family use jerseys map, individual uses jerseySize)
-                                const count6XL =
-                                    (item.jerseys && Number(item.jerseys["6XL"] || 0)) ||
-                                    (item.type === "individual" && item.jerseySize === "6XL" ? 1 : 0);
-
-                                return (
-                                    <div key={item.id} className="flex justify-between text-sm border-b pb-2">
-                                      <div>
-                                        <p className="font-semibold text-gray-900">{item.categoryName}</p>
-                                        <p className="text-gray-600 text-xs">{secondaryLabel}</p>
-
-                                        {/* EXTRA: show human-friendly note when extra-size charges exist */}
-                                        {extraCharge > 0 && (
-                                          <p className="text-xs text-orange-700 mt-1">
-                                            <strong>Note:</strong>{" "}
-                                            {count6XL > 0
-                                              ? `Includes extra size charge for ${count6XL}× 6XL`
-                                              : "Includes extra size charge"}
-                                            : <span className="font-semibold">+Rp {extraCharge.toLocaleString("id-ID")}</span>
-                                          </p>
-                                        )}
-                                      </div>
-
-                                      <div>
-                                        <p className="font-semibold">Rp {itemTotal.toLocaleString("id-ID")}</p>
-                                      </div>
-                                    </div>
-                                );
-                            })}
+    return (
+        <div key={itemKey} className="flex justify-between text-sm border-b pb-2">
+            <div>
+                <p className="font-semibold text-gray-900">{item.categoryName}</p>
+                <p className="text-gray-600 text-xs">{secondaryLabel}</p>
+            </div>
+            <p className="font-semibold text-gray-900">
+                Rp {((item.type === "community" || item.type === "family")
+                    ? Number(item.price) * Number(item.participants || 0)
+                    : Number(item.price)
+                ).toLocaleString("id-ID")}
+            </p>
+        </div>
+    );
+})}
                             <div className="flex justify-between font-bold text-lg pt-2">
                                 <span>Total:</span>
                                 <span>Rp {totalPrice.toLocaleString("id-ID")}</span>
@@ -498,11 +525,12 @@ export default function ConfirmPaymentClient() {
                                 onChange={(e) => setProofSenderName(e.target.value)}
                                 className="w-full px-4 py-3 border rounded-md"
                                 placeholder="e.g. PT. Example / John Doe"
+                                required
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-2">
-                                Upload Payment Proof *
+                                Upload Payment Proof <strong className="text-red-500">*</strong>
                             </label>
 
                             <label
@@ -513,13 +541,13 @@ export default function ConfirmPaymentClient() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
                                 <span className="text-sm text-gray-600">
-                                    {uploadStatus || fileName || "Click to upload payment proof (PNG, JPG, JPEG)"}
+                                    {uploadStatus || fileName || "Click to upload payment proof (PNG, JPG, JPEG, PDF)"}
                                 </span>
                             </label>
                             <input
                                 id="proofUpload"
                                 type="file"
-                                accept="image/png,image/jpeg,image/jpg"
+                                accept="image/png,image/jpeg,image/jpg,application/pdf"
                                 className="hidden"
                                 onChange={handleProofSelect}
                                 required
@@ -599,32 +627,47 @@ export default function ConfirmPaymentClient() {
                                 <div className="space-y-3">
                                     <h4 className="font-bold text-gray-900 text-base">Order Summary:</h4>
                                     <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
-                                        {items.map((item) => {
-                                            let secondaryLabel = "";
-                                            if (item.type === "community" || item.type === "family") {
-                                                const jerseysObj: Record<string, number> = item.jerseys || {};
-                                                const pairs = Object.entries(jerseysObj)
-                                                    .filter(([, cnt]) => Number(cnt) > 0)
-                                                    .map(([size, cnt]) => `${size}(${cnt})`);
-                                                secondaryLabel = pairs.length > 0 ? pairs.join(", ") : `${item.participants || 0} participants`;
-                                            } else {
-                                                secondaryLabel = `Size ${item.jerseySize || "—"}`;
-                                            }
+                                        {items.map((item, idx) => {
+    const itemKey = item.id ?? `item-${idx}`;
 
-                                            return (
-                                                <div key={item.id} className="flex justify-between border-b border-gray-300 pb-2">
-                                                    <div>
-                                                        <p className="font-semibold text-gray-900">{item.categoryName}</p>
-                                                        <p className="text-gray-600 text-xs">{secondaryLabel}</p>
-                                                    </div>
-                                                    <p className="font-semibold text-gray-900">
-                                                        Rp {((item.type === "community" || item.type === "family") 
-                                                            ? Number(item.price) * Number(item.participants || 0)
-                                                            : Number(item.price)).toLocaleString("id-ID")}
-                                                    </p>
-                                                </div>
-                                            );
-                                        })}
+    // If community/family, build JSX list of pairs with keys
+    let secondaryLabel: React.ReactNode = "";
+    if (item.type === "community" || item.type === "family") {
+        const jerseysObj: Record<string, number> = item.jerseys || {};
+        const pairs = Object.entries(jerseysObj).filter(([, cnt]) => Number(cnt) > 0);
+        if (pairs.length > 0) {
+            secondaryLabel = (
+                <>
+                    {pairs.map(([size, cnt], i) => (
+                        <span key={size}>
+                            {`${size}(${cnt})`}
+                            {i < pairs.length - 1 ? ", " : ""}
+                        </span>
+                    ))}
+                </>
+            );
+        } else {
+            secondaryLabel = `${item.participants || 0} participants`;
+        }
+    } else {
+        secondaryLabel = `Size ${item.jerseySize || "—"}`;
+    }
+
+    return (
+        <div key={itemKey} className="flex justify-between border-b border-gray-300 pb-2">
+            <div>
+                <p className="font-semibold text-gray-900">{item.categoryName}</p>
+                <p className="text-gray-600 text-xs">{secondaryLabel}</p>
+            </div>
+            <p className="font-semibold text-gray-900">
+                Rp {((item.type === "community" || item.type === "family")
+                    ? Number(item.price) * Number(item.participants || 0)
+                    : Number(item.price)
+                ).toLocaleString("id-ID")}
+            </p>
+        </div>
+    );
+})}
                                     </div>
                                 </div>
                             </div>
