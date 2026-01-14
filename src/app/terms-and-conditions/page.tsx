@@ -69,15 +69,21 @@ export default function TermsAndConditionsPage() {
                         >
                             <li>
                                 <strong>Identification Card Definition:</strong>
-                                {/* IMPORTANT: Use terms-ol-roman class for second level */}
-                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
+                                {/* CRITICAL: Add inline style for roman numerals */}
+                                <ol 
+                                    className="pl-6 mt-1 space-y-1 terms-ol-roman"
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside' }}
+                                >
                                     <li>
                                         Identification Card as referred to in these terms and conditions is an official personal identification document issued by an authorized agency and is still valid.
                                     </li>
                                     <li>
                                         Documents that can be used for registration, data verification, and race pack collection include:
-                                        {/* IMPORTANT: Use terms-ol-alpha class for third level */}
-                                        <ol className="pl-6 mt-1 space-y-1 terms-ol-alpha">
+                                        {/* CRITICAL: Add inline style for alphabetic */}
+                                        <ol 
+                                            className="pl-6 mt-1 space-y-1 terms-ol-alpha"
+                                            style={{ listStyleType: 'lower-alpha', listStylePosition: 'outside' }}
+                                        >
                                             <li><strong>Adult Indonesian Citizen: </strong> Resident Identity Card (KTP), Driver's License (SIM), Digital Population Identity (IKD), or other official identification cards issued by the Government of the Republic of Indonesia.</li>
                                             <li><strong>Child Participants (under 17 years old):</strong> Child Identity Card (KIA), Birth Certificate, Student Card, or other official documents.</li>
                                             <li><strong>Foreign Citizens (WNA):</strong> Passport, Limited Stay Permit Card (KITAS), Permanent Stay Permit Card (KITAP), or other internationally recognized official identification documents.</li>
