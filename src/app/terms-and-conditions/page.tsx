@@ -142,49 +142,6 @@ export default function TermsAndConditionsPage() {
                                     </li>
                                 </ol>
                             </li>
-                            <li>
-                                <strong>Registration Status: </strong>
-                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>
-                                        Registration will be declared successful and valid after the participant has made full payment. The organizer will send a confirmation email as proof of ticket purchase.
-                                    </li>
-                                </ol>
-                            </li>
-                            <li>
-                                <strong>Data Accuracy: </strong>
-                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>
-                                        Participants are required to complete the registration form with accurate personal information, including but not limited to name, date of birth, email address, and phone number. Once the registration is submitted, the data cannot be changed under any circumstances.
-                                    </li>
-                                    <li>
-                                        Errors in data entry that result in the cancellation of results or prizes are entirely the responsibility of the participants.
-                                    </li>
-                                </ol>
-                            </li>
-                            <li>
-                                <strong>Quota: </strong>
-                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>
-                                        The organizer reserves the right to close ticket sales if the quota has been met without prior notice.
-                                    </li>
-                                </ol>
-                            </li>
-                            <li>
-                                <strong>Ticket Transfer: </strong>
-                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>
-                                        Reselling tickets is prohibited.
-                                    </li>
-                                </ol>
-                            </li>
-                            <li>
-                                <strong>Category Changes: </strong>
-                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>
-                                        Participants are not allowed to change the distance category.
-                                    </li>
-                                </ol>
-                            </li>
                         </ol>
 
                         <h2 className="mt-4 font-bold">SECTION 3: CANCELLATION & REFUND POLICY</h2>
