@@ -63,13 +63,13 @@ export default function TermsAndConditionsPage() {
 
                         <h2 className="mt-4 font-bold">SECTION 2: REGISTRATION & PARTICIPANT CATEGORIES</h2>
                         <ol 
-                            className="pl-6 text-sm space-y-2 terms-ol-numbered"
+                            className="pl-6 text-sm space-y-2"
                             style={{ listStyleType: 'decimal', listStylePosition: 'outside', paddingLeft: '1.5rem' }}
                         >
                             <li style={{ display: 'list-item' }}>
                                 <strong>Identification Card Definition:</strong>
                                 <ol 
-                                    className="pl-6 mt-1 space-y-1 terms-ol-roman"
+                                    className="pl-6 mt-1 space-y-1"
                                     style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
                                 >
                                     <li style={{ display: 'list-item' }}>
@@ -78,7 +78,7 @@ export default function TermsAndConditionsPage() {
                                     <li style={{ display: 'list-item' }}>
                                         Documents that can be used for registration, data verification, and race pack collection include:
                                         <ol 
-                                            className="pl-6 mt-1 space-y-1 terms-ol-alpha"
+                                            className="pl-6 mt-1 space-y-1"
                                             style={{ listStyleType: 'lower-alpha', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
                                         >
                                             <li style={{ display: 'list-item' }}><strong>Adult Indonesian Citizen: </strong> Resident Identity Card (KTP), Driver's License (SIM), Digital Population Identity (IKD), or other official identification cards issued by the Government of the Republic of Indonesia.</li>
@@ -92,7 +92,7 @@ export default function TermsAndConditionsPage() {
                             <li style={{ display: 'list-item' }}>
                                 <strong>Participants:</strong>
                                 <ol 
-                                    className="pl-6 mt-1 space-y-1 terms-ol-roman"
+                                    className="pl-6 mt-1 space-y-1"
                                     style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
                                 >
                                     <li style={{ display: 'list-item' }}>This event is open to the General Public, Indonesian Citizens (WNI), and Foreign Citizens (WNA).</li>
@@ -102,9 +102,9 @@ export default function TermsAndConditionsPage() {
                             </li>
 
                             <li style={{ display: 'list-item' }}>
-                                <strong>Registration Period: </strong>
+                                <strong>Registration Period:</strong>
                                 <ol 
-                                    className="pl-6 mt-1 space-y-1 terms-ol-roman"
+                                    className="pl-6 mt-1 space-y-1"
                                     style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
                                 >
                                     <li style={{ display: 'list-item' }}>
@@ -114,9 +114,9 @@ export default function TermsAndConditionsPage() {
                             </li>
 
                             <li style={{ display: 'list-item' }}>
-                                <strong>Registration Platform: </strong>
+                                <strong>Registration Platform:</strong>
                                 <ol 
-                                    className="pl-6 mt-1 space-y-1 terms-ol-roman"
+                                    className="pl-6 mt-1 space-y-1"
                                     style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
                                 >
                                     <li style={{ display: 'list-item' }}>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputrarun.com</a>.</li>
@@ -125,14 +125,14 @@ export default function TermsAndConditionsPage() {
                             </li>
 
                             <li style={{ display: 'list-item' }}>
-                                <strong>Categories & Pricing: </strong>
+                                <strong>Categories & Pricing:</strong>
                                 <ol 
-                                    className="pl-6 mt-1 space-y-1 terms-ol-roman"
+                                    className="pl-6 mt-1 space-y-1"
                                     style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
                                 >
                                     <li style={{ display: 'list-item' }}>The registration fee is categorized based on the distance covered, as follows:
                                         <ol 
-                                            className="pl-6 mt-1 space-y-1 terms-ol-alpha"
+                                            className="pl-6 mt-1 space-y-1"
                                             style={{ listStyleType: 'lower-alpha', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
                                         >
                                             <li style={{ display: 'list-item' }}>3 KM: Rp 130.000,- (Early Bird) | Rp 150.000,- (Normal Price)</li>
