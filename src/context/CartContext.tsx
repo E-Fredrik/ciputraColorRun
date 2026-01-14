@@ -132,10 +132,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setIsCartOpen(!isCartOpen);
   };
 
+  // Add a method to clear cart
+  const clearCart = () => {
+    setCart([]);
+    sessionStorage.removeItem("cart");
+  };
+
   return (
-    <CartContext.Provider
-      value={{ cart, setCart, isCartOpen, toggleCart, discountMessages }}
-    >
+    <CartContext.Provider value={{ 
+      cart, 
+      setCart, 
+      clearCart, // Export clearCart function
+      isCartOpen, 
+      setIsCartOpen, 
+      toggleCart, 
+      categories, 
+      discountMessages 
+    }}>
       {children}
     </CartContext.Provider>
   );

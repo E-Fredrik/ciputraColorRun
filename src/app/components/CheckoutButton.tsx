@@ -35,6 +35,14 @@ const CheckoutButton = ({ onCheckout }: CheckoutButtonProps) => {
     }
 
     // Load user details from session storage
+    const existingIdCardPhotoUrl = sessionStorage.getItem("reg_existingIdCardPhotoUrl") || "";
+    
+    // CRITICAL: Check if ID card is available
+    if (!existingIdCardPhotoUrl) {
+      showToast("Please upload an ID card photo before checking out. Go back to registration form to upload.", "error");
+      return;
+    }
+
     const userDetails = {
       fullName: sessionStorage.getItem("reg_fullName") || "",
       email: sessionStorage.getItem("reg_email") || "",
@@ -46,10 +54,17 @@ const CheckoutButton = ({ onCheckout }: CheckoutButtonProps) => {
       nationality: sessionStorage.getItem("reg_nationality") || "WNI",
       medicalHistory: sessionStorage.getItem("reg_medicalHistory") || "",
       medicationAllergy: sessionStorage.getItem("reg_medicationAllergy") || "",
-      existingIdCardPhotoUrl: sessionStorage.getItem("reg_existingIdCardPhotoUrl") || "",
+      existingIdCardPhotoUrl: existingIdCardPhotoUrl,
+      idCardUrl: existingIdCardPhotoUrl, // Also set as idCardUrl for compatibility
       registrationType: "cart",
       groupName: sessionStorage.getItem("reg_groupName") || "",
     };
+
+    // Validate required user details
+    if (!userDetails.fullName || !userDetails.email || !userDetails.phone) {
+      showToast("Please complete your personal details in the registration form before checking out.", "error");
+      return;
+    }
 
     // Build cart registration data with proper structure
     const cartRegistrationData = {
@@ -67,7 +82,13 @@ const CheckoutButton = ({ onCheckout }: CheckoutButtonProps) => {
         groupName: item.groupName || userDetails.groupName || "",
       })),
       userDetails,
+      // Also include at top level for easier access
+      existingIdCardPhotoUrl: existingIdCardPhotoUrl,
+      idCardUrl: existingIdCardPhotoUrl,
     };
+
+    console.log("[CheckoutButton] Saving cart registration data:", cartRegistrationData);
+    console.log("[CheckoutButton] ID Card URL:", existingIdCardPhotoUrl);
 
     // Save to session storage
     sessionStorage.setItem("currentRegistration", JSON.stringify(cartRegistrationData));

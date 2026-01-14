@@ -1,9 +1,11 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import TutorialModal from "../../components/TutorialModal";
 import { showToast } from "../../../lib/toast";
+import { uploadFileInChunks } from "@/lib/fileUpload";
+import { CartContext } from "@/context/CartContext"; // Add this import
 
 export default function ConfirmPaymentClient() {
     const [showPopup, setShowPopup] = useState(false);
@@ -13,6 +15,7 @@ export default function ConfirmPaymentClient() {
 
     const search = useSearchParams();
     const router = useRouter();
+    const { clearCart } = useContext(CartContext); // Add this line
 
     // Load registration data from session storage
     const [registrationData, setRegistrationData] = useState<any>(null);
@@ -22,7 +25,29 @@ export default function ConfirmPaymentClient() {
         if (storedData) {
             try {
                 const parsed = JSON.parse(storedData);
+                
+                // CRITICAL: Ensure ID card URL is properly set from all possible sources
+                const idCardUrl = 
+                    parsed.existingIdCardPhotoUrl ||
+                    parsed.idCardUrl ||
+                    parsed.userDetails?.existingIdCardPhotoUrl ||
+                    parsed.userDetails?.idCardUrl ||
+                    sessionStorage.getItem("reg_existingIdCardPhotoUrl") ||
+                    null;
+                
+                // Update the parsed data with the resolved ID card URL
+                if (idCardUrl) {
+                    parsed.existingIdCardPhotoUrl = idCardUrl;
+                    parsed.idCardUrl = idCardUrl;
+                    if (parsed.userDetails) {
+                        parsed.userDetails.existingIdCardPhotoUrl = idCardUrl;
+                        parsed.userDetails.idCardUrl = idCardUrl;
+                    }
+                }
+                
                 setRegistrationData(parsed);
+                console.log("[ConfirmPaymentClient] Loaded registration data:", parsed);
+                console.log("[ConfirmPaymentClient] Resolved ID card URL:", idCardUrl);
             } catch (e) {
                 console.error("Failed to parse registration data:", e);
             }
@@ -34,9 +59,9 @@ export default function ConfirmPaymentClient() {
         ? registrationData.type === "cart"
             ? registrationData.items.reduce((total: number, item: any) => {
                 const itemPrice = (item.type === "community" || item.type === "family")
-                    ? Number(item.price) * Number(item.participants || 0)
-                    : Number(item.price);
-                return total + itemPrice + (Number(item.jerseyCharges) || 0);
+                    ? Number(item.price || 0) * Number(item.participants || 0)
+                    : Number(item.price || 0);
+                return total + itemPrice + Number(item.jerseyCharges || 0);
               }, 0)
             : (registrationData.type === "individual"
                 ? registrationData.price + (registrationData.jerseyCharges || 0)
@@ -237,12 +262,29 @@ export default function ConfirmPaymentClient() {
 
             // idCardPhoto may be a File (if preserved) — otherwise check for an existing uploaded URL
             const idCardPhoto = registrationData?.userDetails?.idCardPhoto;
-            const existingIdCardUrl = registrationData?.userDetails?.existingIdCardPhotoUrl || registrationData?.userDetails?.idCardUrl || undefined;
-            // debug: ensure we are actually carrying an existing URL to the submit step
+            
+            // CRITICAL: Get ID card URL from ALL possible sources
+            const existingIdCardUrl = 
+                registrationData?.existingIdCardPhotoUrl ||
+                registrationData?.idCardUrl ||
+                registrationData?.userDetails?.existingIdCardPhotoUrl || 
+                registrationData?.userDetails?.idCardUrl || 
+                sessionStorage.getItem("reg_existingIdCardPhotoUrl") || 
+                undefined;
+            
             console.log("[handleConfirmedSubmit] existingIdCardUrl:", existingIdCardUrl);
+            console.log("[handleConfirmedSubmit] idCardPhoto:", idCardPhoto);
+            console.log("[handleConfirmedSubmit] registrationData:", registrationData);
             
             // Ensure we propagate existing URL if no File is present
             let resolvedIdCardUrl: string | undefined = existingIdCardUrl;
+
+            // CRITICAL: Validate that we have an ID card URL for cart registrations
+            if (registrationData?.type === "cart" && !resolvedIdCardUrl && !(idCardPhoto instanceof File)) {
+                showToast("ID card photo is missing. Please go back to the registration form and upload your ID card.", "error");
+                setIsSubmitting(false);
+                return;
+            }
 
             // Get groupName from registration data
             const resolvedGroupName =
@@ -252,177 +294,165 @@ export default function ConfirmPaymentClient() {
                 undefined;
 
             // Ensure registration carries the resolved groupName
-            const itemsToSend = [{
-                ...registrationData,
-                groupName: resolvedGroupName
-            }];
+            const itemsToSend = registrationData.type === "cart" 
+                ? registrationData.items.map((item: any) => ({
+                    ...item,
+                    groupName: item.groupName || resolvedGroupName || undefined,
+                  }))
+                : [{
+                    type: registrationData.type,
+                    categoryId: registrationData.categoryId,
+                    categoryName: registrationData.categoryName,
+                    price: registrationData.price,
+                    participants: registrationData.participants || 1,
+                    jerseys: registrationData.jerseys || {},
+                    jerseySize: registrationData.jerseySize || null,
+                    jerseyCharges: registrationData.jerseyCharges || 0,
+                    groupName: resolvedGroupName || undefined,
+                  }];
 
-            // Decide whether we can POST FormData directly.
-            // Use small threshold to avoid large FormData requests — larger files will use chunked upload.
-            const canUseFormData =
-                !!proofFile &&
-                proofFile.size < 500_000 &&
-                (!idCardPhoto || !(idCardPhoto instanceof File) || idCardPhoto.size < 500_000);
- 
-             if (canUseFormData) {
-                 // direct FormData POST
-                 console.log("[handleConfirmedSubmit] Trying direct FormData upload...");
-                 const formData = new FormData();
-                 formData.append("proof", proofFile);
-                 if (proofSenderName?.trim()) formData.append("proofSenderName", proofSenderName.trim());
-                 formData.append("amount", String(totalPrice));
-                 formData.append("fullName", fullName);
-                 formData.append("email", email);
-                 formData.append("phone", phone);
-                 formData.append("birthDate", birthDate);
-                 formData.append("gender", gender);
-                 formData.append("currentAddress", currentAddress);
-                 formData.append("nationality", nationality);
-                 formData.append("emergencyPhone", emergencyPhone);
-                 formData.append("medicalHistory", medicalHistory);
-                 formData.append("medicationAllergy", medicationAllergy || "");
-                 formData.append("registrationType", registrationData.type || "individual");
-                if (resolvedGroupName) formData.append("groupName", resolvedGroupName);
-                 // Always send existingIdCardUrl if available (fallback for File not present)
-                 if (idCardPhoto instanceof File) {
-                    formData.append("idCardPhoto", idCardPhoto);
-                }
-                if (existingIdCardUrl) {
-                    formData.append("existingIdCardUrl", String(existingIdCardUrl));
-                }
-                // send items with per-item groupName populated
-                formData.append("items", JSON.stringify(itemsToSend));
- 
-                 let res: Response = await fetch("/api/payments", { method: "POST", body: formData, credentials: "include" });
-                 let body: any = await res.json().catch(() => ({}));
+            console.log("[handleConfirmedSubmit] Items to send:", itemsToSend);
 
-                // handle email/name mismatch if server still returns 409 (legacy/modal flow may intercept)
-                if (res.status === 409 && body?.error === "EMAIL_NAME_MISMATCH") {
-                    const proceed = window.confirm(`The email you provided (${email}) is already associated with the account name "${body.existingName}". It's recommended to login first. Press OK to continue registering with this email anyway, or Cancel to login.`);
-                    if (!proceed) {
-                        router.push("/auth/login");
-                        return;
-                    }
-                    // retry with forceCreate
-                    formData.append("forceCreate", "true");
-                    res = await fetch("/api/payments", { method: "POST", body: formData, credentials: "include" });
-                    body = await res.json().catch(() => ({}));
-                }
+            // ALWAYS use base64 endpoint for reliability
+            setUploadStatus("Uploading payment proof...");
+            proofUrl = await uploadFileInChunks(proofFile, "proofs");
+            console.log("[handleConfirmedSubmit] Proof uploaded:", proofUrl);
 
-                if (!res.ok) {
-                    const errMsg = body?.error || "Upload failed";
-                    throw new Error(errMsg);
-                }
-
-                console.log("[handleConfirmedSubmit] Upload successful");
-            } else {
-                // chunked upload -> obtain URLs -> send JSON to /api/payments/base64
-                console.log("[handleConfirmedSubmit] Using chunked upload...");
-                setUploadStatus("Uploading payment proof...");
-
-                proofUrl = await uploadFileInChunks(proofFile, "proofs");
-                console.log("[handleConfirmedSubmit] Proof uploaded:", proofUrl);
-
-                if (idCardPhoto instanceof File) {
-                    setUploadStatus("Uploading ID card...");
-                    idCardUrl = await uploadFileInChunks(idCardPhoto, "id-cards");
-                    console.log("[handleConfirmedSubmit] ID card uploaded:", idCardUrl);
-                } else if (existingIdCardUrl) {
-                    // reuse previously uploaded id card URL stored in session
-                    idCardUrl = existingIdCardUrl;
-                }
-
-                setUploadStatus("Saving registration...");
-
-                const payload: any = {
-                     proofUrl,
-                     // prefer newly uploaded or uploaded-by-registration URL
-                     idCardUrl: idCardUrl || resolvedIdCardUrl || existingIdCardUrl || undefined,
-                     // send items with per-item groupName populated
-                     items: itemsToSend,
-                     amount: totalPrice,
-                     fullName,
-                     email,
-                     phone,
-                     birthDate,
-                     gender,
-                     currentAddress,
-                     nationality,
-                     emergencyPhone,
-                     medicalHistory,
-                     medicationAllergy: medicationAllergy || "",
-                     registrationType: itemsToSend[0]?.type || "individual",
-                     proofSenderName: proofSenderName?.trim() || undefined,
-                    groupName: resolvedGroupName,
-                 };
-
-                let res = await fetch("/api/payments/base64", {
-                     method: "POST",
-                     headers: { "Content-Type": "application/json" },
-                     body: JSON.stringify(payload),
-                     credentials: "include",
-                 });
-                const body: any = await res.json().catch(() => ({}));
-
-                if (res.status === 409 && body?.error === "EMAIL_NAME_MISMATCH") {
-                    const proceed = window.confirm(`The email you provided (${email}) is already associated with the account name "${body.existingName}". It's recommended to login first. Press OK to continue registering with this email anyway, or Cancel to login.`);
-                    if (!proceed) {
-                        router.push("/auth/login");
-                        return;
-                    }
-                    // retry with forceCreate
-                    payload.forceCreate = true;
-                    res = await fetch("/api/payments/base64", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload),
-                        credentials: "include",
-                    });
-                    const retryBody: any = await res.json().catch(() => ({}));
-                    if (!res.ok) {
-                        const errMsg = retryBody?.error || "Upload failed";
-                        throw new Error(errMsg);
-                    }
-                } else {
-                    if (!res.ok) {
-                        const errMsg = body?.error || "Upload failed";
-                        throw new Error(errMsg);
-                    }
-                }
-
-                console.log("[handleConfirmedSubmit] Registration successful");
+            // Upload ID card if it's a File
+            if (idCardPhoto instanceof File) {
+                setUploadStatus("Uploading ID card...");
+                idCardUrl = await uploadFileInChunks(idCardPhoto, "id-cards");
+                console.log("[handleConfirmedSubmit] ID card uploaded:", idCardUrl);
+            } else if (resolvedIdCardUrl) {
+                // reuse previously uploaded id card URL stored in session
+                idCardUrl = resolvedIdCardUrl;
+                console.log("[handleConfirmedSubmit] Reusing existing ID card URL:", idCardUrl);
             }
 
-            // Clear session data ONLY after successful upload
-            sessionStorage.removeItem("currentRegistration");
-
-            // Clear all registration session keys after successful payment submission
-            try {
-                const keysToClear = [
-                    "reg_formData",
-                    "reg_fullName","reg_email","reg_phone","reg_emergencyPhone",
-                    "reg_birthDate","reg_gender","reg_currentAddress","reg_nationality",
-                    "reg_medicalHistory","reg_medicationAllergy","reg_groupName",
-                    "reg_idCardPhotoName","reg_existingIdCardPhotoUrl",
-                    "reg_type","reg_registrationType","reg_categoryId","reg_participants",
-                    "reg_selectedJerseySize","reg_jerseys"
-                ];
-                keysToClear.forEach(k => sessionStorage.removeItem(k));
-                console.log("[handleConfirmedSubmit] Cleared registration form session data");
-            } catch (e) {
-                console.error("[handleConfirmedSubmit] Failed to clear session data:", e);
+            // Final validation - ensure we have an ID card URL
+            if (!idCardUrl) {
+                showToast("ID card photo is required. Please go back and upload your ID card.", "error");
+                setIsSubmitting(false);
+                return;
             }
 
+            setUploadStatus("Saving registration...");
+
+            // Get personal details from registration data
+            const fullName = registrationData.userDetails?.fullName || sessionStorage.getItem("reg_fullName") || "";
+            const email = registrationData.userDetails?.email || sessionStorage.getItem("reg_email") || "";
+            const phone = registrationData.userDetails?.phone || sessionStorage.getItem("reg_phone") || "";
+            const birthDate = registrationData.userDetails?.birthDate || sessionStorage.getItem("reg_birthDate") || "";
+            const gender = registrationData.userDetails?.gender || sessionStorage.getItem("reg_gender") || "male";
+            const currentAddress = registrationData.userDetails?.currentAddress || sessionStorage.getItem("reg_currentAddress") || "";
+            const nationality = registrationData.userDetails?.nationality || sessionStorage.getItem("reg_nationality") || "WNI";
+            const emergencyPhone = registrationData.userDetails?.emergencyPhone || sessionStorage.getItem("reg_emergencyPhone") || "";
+            const medicalHistory = registrationData.userDetails?.medicalHistory || sessionStorage.getItem("reg_medicalHistory") || "";
+            const medicationAllergy = registrationData.userDetails?.medicationAllergy || sessionStorage.getItem("reg_medicationAllergy") || "";
+
+            const payload: any = {
+                 proofUrl,
+                 idCardUrl: idCardUrl, // This should now always have a value
+                 items: itemsToSend,
+                 amount: totalPrice,
+                 fullName,
+                 email,
+                 phone,
+                 birthDate,
+                 gender,
+                 currentAddress,
+                 nationality,
+                 emergencyPhone,
+                 medicalHistory,
+                 medicationAllergy: medicationAllergy || "",
+                 registrationType: registrationData.type || "individual",
+                 proofSenderName: proofSenderName,
+                 groupName: resolvedGroupName || undefined,
+                 forceCreate: false,
+            };
+
+            console.log("[handleConfirmedSubmit] Sending payload to /api/payments/base64:", payload);
+            console.log("[handleConfirmedSubmit] ID Card URL in payload:", payload.idCardUrl);
+
+            let res: Response = await fetch("/api/payments/base64", { 
+                method: "POST", 
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+                credentials: "include"
+            });
+
+            let body: any = await res.json().catch(() => ({}));
+            console.log("[handleConfirmedSubmit] Response from server:", body);
+
+            if (res.status === 409 && body?.error === "EMAIL_NAME_MISMATCH") {
+                const proceed = window.confirm(`The email you provided (${email}) is already associated with the account name "${body.existingName}". It's recommended to login first. Press OK to continue registering with this email anyway, or Cancel to login.`);
+                if (!proceed) {
+                    router.push("/auth/login");
+                    return;
+                }
+
+                // Retry with forceCreate
+                payload.forceCreate = true;
+                res = await fetch("/api/payments/base64", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                    credentials: "include"
+                });
+                body = await res.json().catch(() => ({}));
+            }
+
+            if (!res.ok) {
+                throw new Error(body?.error || `Submission failed (${res.status})`);
+            }
+
+            setUploadStatus("Registration complete!");
             setSubmitted(true);
             setShowPopup(true);
-            showToast("Payment submitted — awaiting verification.", "success");
 
-        } catch (err: any) {
-            console.error("[ConfirmPayment] submit error:", err);
-            showToast(err?.message || "Upload failed. Please try again.", "error");
+            // Clear cart using context function
+            clearCart();
+
+            // Clear ALL registration-related session storage
+            sessionStorage.removeItem("currentRegistration");
+            sessionStorage.removeItem("reg_formData");
+            
+            // Clear personal details
+            sessionStorage.removeItem("reg_fullName");
+            sessionStorage.removeItem("reg_email");
+            sessionStorage.removeItem("reg_phone");
+            sessionStorage.removeItem("reg_emergencyPhone");
+            sessionStorage.removeItem("reg_birthDate");
+            sessionStorage.removeItem("reg_gender");
+            sessionStorage.removeItem("reg_currentAddress");
+            sessionStorage.removeItem("reg_nationality");
+            sessionStorage.removeItem("reg_medicalHistory");
+            sessionStorage.removeItem("reg_medicationAllergy");
+            sessionStorage.removeItem("reg_groupName");
+            
+            // Clear ID card related data
+            sessionStorage.removeItem("reg_idCardPhotoName");
+            sessionStorage.removeItem("reg_existingIdCardPhotoUrl");
+            
+            // Clear registration UI state
+            sessionStorage.removeItem("reg_type");
+            sessionStorage.removeItem("reg_registrationType");
+            sessionStorage.removeItem("reg_categoryId");
+            sessionStorage.removeItem("reg_participants");
+            sessionStorage.removeItem("reg_selectedJerseySize");
+            sessionStorage.removeItem("reg_jerseys");
+
+            // setTimeout(() => {
+            //     setShowPopup(false);
+            //     router.push("/");
+            // }, 3000);
+
+        } catch (error: any) {
+            console.error("[handleConfirmedSubmit] Error:", error);
+            setUploadStatus("");
+            showToast(error.message || "Failed to submit registration. Please try again.", "error");
         } finally {
             setIsSubmitting(false);
-            setUploadStatus("");
         }
     }
 

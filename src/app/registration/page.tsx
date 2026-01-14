@@ -743,7 +743,7 @@ export default function RegistrationPage() {
     }
 
     
-    function handleAddToCart() {
+    async function handleAddToCart() {
         if (!validatePersonalDetails()) return;
 
         const category = categories.find((c) => c.id === categoryId);
@@ -764,6 +764,39 @@ export default function RegistrationPage() {
                 return;
             }
         }
+
+        // CRITICAL: Upload ID card BEFORE adding to cart if not already uploaded
+        let resolvedIdCardUrl = existingIdCardPhotoUrl;
+        if (idCardPhoto instanceof File && !existingIdCardPhotoUrl) {
+            try {
+                setIsSubmitting(true);
+                showToast("Uploading ID card...", "info");
+                resolvedIdCardUrl = await uploadFileInChunksLocal(idCardPhoto, "id-cards");
+                setExistingIdCardPhotoUrl(resolvedIdCardUrl);
+                setIdCardPhotoName(idCardPhoto.name);
+                // Save to session storage immediately
+                sessionStorage.setItem("reg_existingIdCardPhotoUrl", resolvedIdCardUrl);
+                showToast("ID card uploaded successfully", "success");
+            } catch (e) {
+                console.error("[handleAddToCart] ID upload failed:", e);
+                showToast("Failed to upload ID card. Please try again.", "error");
+                setIsSubmitting(false);
+                return;
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
+
+        // Validate ID card is available
+        if (!resolvedIdCardUrl) {
+            showToast("Please upload an ID card photo", "error");
+            return;
+        }
+
+        // Save personal details to session (including ID card URL)
+        savePersonalDetailsToSession();
+        // Ensure ID card URL is saved
+        sessionStorage.setItem("reg_existingIdCardPhotoUrl", resolvedIdCardUrl);
 
         const newItem = {
             id: new Date().getTime(),
@@ -847,7 +880,7 @@ export default function RegistrationPage() {
                         registrationType,
                     }
                 };
-                
+
                 sessionStorage.setItem("currentRegistration", JSON.stringify(registrationData));
 
                 setAgreedToTerms(false);
@@ -882,11 +915,46 @@ export default function RegistrationPage() {
                 setIsModalOpen(true);
                 return;
             } else {
+                // COMMUNITY TYPE - Upload ID card BEFORE opening modal
+                const currentParticipants = Number(participants || 0);
+                if (currentParticipants < 10) {
+                    showToast(`Community registration requires minimum 10 participants. Currently have ${currentParticipants}`, "error");
+                    return;
+                }
+
                 const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
                 if (totalJerseys !== currentParticipants) {
                     showToast(`Jersey count must match participant count`, "error");
                     return;
                 }
+
+                // CRITICAL: Upload ID card photo BEFORE proceeding
+                let resolvedExistingIdUrl = existingIdCardPhotoUrl;
+                if (idCardPhoto instanceof File) {
+                    try {
+                        showToast("Uploading ID card...", "info");
+                        resolvedExistingIdUrl = await uploadFileInChunksLocal(idCardPhoto, "id-cards");
+                        setExistingIdCardPhotoUrl(resolvedExistingIdUrl);
+                        setIdCardPhotoName(idCardPhoto.name);
+                        showToast("ID card uploaded successfully", "success");
+                    } catch (e) {
+                        console.error("[handleCheckout] ID upload failed:", e);
+                        showToast("Failed to upload ID card. Please try again.", "error");
+                        return;
+                    }
+                }
+
+                // Ensure ID card is available
+                if (!resolvedExistingIdUrl) {
+                    showToast("Please upload an ID card photo", "error");
+                    return;
+                }
+
+                // Save to session for confirm page
+                savePersonalDetailsToSession();
+                
+                // Store the uploaded ID URL
+                sessionStorage.setItem("reg_existingIdCardPhotoUrl", resolvedExistingIdUrl);
 
                 setAgreedToTerms(false);
                 setIsModalOpen(true);
@@ -1926,7 +1994,7 @@ export default function RegistrationPage() {
                                 <button
                                     onClick={handleAddToCart}
                                     disabled={isSubmitting}
-                                    className={`w-1/2 md:w-1/3 px-6 py-3 rounded-full font-semibold shadow-xl transition-all transform bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95`}
+                                    className={`w-1/2 md:w-1/3 px-6 py-3 rounded-full font-bold shadow-xl transition-all transform bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95`}
                                 >
                                     {isSubmitting ? (
                                         <span className="flex items-center justify-center gap-2">
