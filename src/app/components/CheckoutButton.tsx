@@ -15,7 +15,7 @@ const CheckoutButton = ({ onCheckout }: CheckoutButtonProps) => {
 
   const handleCheckout = () => {
     if (cart.length === 0) {
-      showToast("Your cart is empty", "error");
+      showToast("Your cart is empty, please add item to cart before checking out.", "error");
       return;
     }
 

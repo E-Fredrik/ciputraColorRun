@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo, useRef, useContext } from "react";
 import { showToast } from "../../lib/toast";
 import TutorialModal from "../components/TutorialModal";
+import CheckoutButton from "../components/CheckoutButton";
 import { CartContext } from "@/context/CartContext";
 import { useSessionState } from "@/hooks/useSessionState";
 
@@ -770,13 +771,13 @@ export default function RegistrationPage() {
         if (idCardPhoto instanceof File && !existingIdCardPhotoUrl) {
             try {
                 setIsSubmitting(true);
-                showToast("Uploading ID card...", "info");
+                // showToast("Uploading ID card...", "info");
                 resolvedIdCardUrl = await uploadFileInChunksLocal(idCardPhoto, "id-cards");
                 setExistingIdCardPhotoUrl(resolvedIdCardUrl);
                 setIdCardPhotoName(idCardPhoto.name);
                 // Save to session storage immediately
                 sessionStorage.setItem("reg_existingIdCardPhotoUrl", resolvedIdCardUrl);
-                showToast("ID card uploaded successfully", "success");
+                // showToast("ID card uploaded successfully", "success");
             } catch (e) {
                 console.error("[handleAddToCart] ID upload failed:", e);
                 showToast("Failed to upload ID card. Please try again.", "error");
@@ -2009,6 +2010,18 @@ export default function RegistrationPage() {
                                     )}
                                 </button>
                             </div>
+
+                            {/* Add Checkout Button for Cart Items */}
+                            {cart.length > 0 && (
+                                <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg">
+                                    <div className="text-center mb-3">
+                                        <p className="text-sm font-semibold text-gray-700">
+                                            You have {cart.length} item{cart.length > 1 ? 's' : ''} in your cart
+                                        </p>
+                                    </div>
+                                    <CheckoutButton />
+                                </div>
+                            )}
                         </div>
                     )}
 
