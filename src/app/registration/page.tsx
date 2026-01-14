@@ -1683,10 +1683,17 @@ export default function RegistrationPage() {
                                             <div className="space-y-2 mb-3">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <span className="text-sm font-semibold text-gray-700">
-                                                        Base subtotal ({participants} people{getTotalCommunityParticipants() > 0 ? ` + ${getTotalCommunityParticipants()} in cart` : ""}):
+                                                        Base subtotal ({(() => {
+                                                            const cat = categories.find(c => c.id === categoryId);
+                                                            return cat?.bundleSize || 4;
+                                                        })()} people):
                                                     </span>
                                                     <span className="text-base font-bold text-emerald-700">
-                                                        Rp {(currentPrice * Number(participants || 0)).toLocaleString("id-ID")}
+                                                        Rp {(() => {
+                                                            const cat = categories.find(c => c.id === categoryId);
+                                                            const bundleSize = cat?.bundleSize || 4;
+                                                            return (currentPrice * bundleSize).toLocaleString("id-ID");
+                                                        })()}
                                                     </span>
                                                 </div>
                                                 {calculateJerseyCharges(jerseys) > 0 && (
