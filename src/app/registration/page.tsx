@@ -907,8 +907,8 @@ export default function RegistrationPage() {
                 }
 
                 const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
-                if (totalJerseys !== category.bundleSize && totalJerseys > 0) {
-                    showToast(`Please complete jersey selection`, "error");
+                if (totalJerseys !== category.bundleSize) {
+                    showToast(`Please select exactly ${category.bundleSize} jerseys for the family bundle.`, "error");
                     return;
                 }
 
