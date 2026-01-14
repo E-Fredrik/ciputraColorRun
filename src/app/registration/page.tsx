@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useContext } from "react";
 import { showToast } from "../../lib/toast";
 import TutorialModal from "../components/TutorialModal";
+import { CartContext } from "@/context/CartContext";
+import { useSessionState } from "@/hooks/useSessionState";
 
 interface Category {
     id: number;
@@ -37,6 +39,7 @@ interface JerseyOption {
 export default function RegistrationPage() {
     const router = useRouter();
     const [currentUser, setCurrentUser] = useState<any | null>(null);
+    const { cart, setCart } = useContext(CartContext);
     
     const [type, setType] = useState<"individual" | "community" | "family">("individual");
     // NEW: keep a separate registrationType state (used across the file)
@@ -74,10 +77,6 @@ export default function RegistrationPage() {
             // ignore parse errors
         }
     }
-
-    
-
-    // --- Replace selected personal states with session-backed states ---
     const [fullName, setFullName] = useSessionState<string>("reg_fullName", "");
     const [email, setEmail] = useSessionState<string>("reg_email", "");
     const [phone, setPhone] = useSessionState<string>("reg_phone", "");
@@ -90,10 +89,9 @@ export default function RegistrationPage() {
     const [medicationAllergy, setMedicationAllergy] = useSessionState<string>("reg_medicationAllergy", "");
     const [groupName, setGroupName] = useSessionState<string>("reg_groupName", "");
     const [idCardPhotoName, setIdCardPhotoName] = useSessionState<string | null>("reg_idCardPhotoName", null);
-
-    // Keep idCard photo File in memory only (cannot store File in sessionStorage)
     const [idCardPhoto, setIdCardPhoto] = useState<File | null>(null);
     const [existingIdCardPhotoUrl, setExistingIdCardPhotoUrl] = useSessionState<string | null>("reg_existingIdCardPhotoUrl", null);
+
 
     // Upload file in chunks to /api/payments/upload-chunk and return assembled file URL
     async function uploadFileInChunksLocal(file: File, subDir: string = "id-cards"): Promise<string> {
@@ -273,7 +271,11 @@ export default function RegistrationPage() {
                     cache: 'no-store',
                     headers: { 'Cache-Control': 'no-cache' }
                 });
-                if (!res.ok) throw new Error("Failed to load categories");
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({}));
+                    console.error('Error response from /api/categories:', errorData);
+                    throw new Error(`Failed to load categories. Status: ${res.status}. Details: ${errorData.details || 'No details'}`);
+                }
                 const data = await res.json();
                 setCategories(data);
                 if (data.length > 0) setCategoryId(data[0].id);
@@ -447,7 +449,11 @@ export default function RegistrationPage() {
 
     // COMMUNITY: Track participants added in current session
     function getTotalCommunityParticipants(): number {
-        return Number(participants || 0);
+        // Sum all community participants already in the cart
+        const cartCommunityTotal = cart
+            .filter((item) => item.type === "community")
+            .reduce((sum, item) => sum + Number(item.participants || 0), 0);
+        return cartCommunityTotal;
     }
 
     // Current community participant count (cart removed => rely on participants input)
@@ -521,7 +527,7 @@ export default function RegistrationPage() {
         return Number(category.basePrice);
     }
 
-    // Get current price for display
+    // Get current price for display - now accounts for cart participants
     const currentPrice = useMemo(() => {
         if (!categoryId) return 0;
         const category = categories.find(c => c.id === categoryId);
@@ -532,11 +538,14 @@ export default function RegistrationPage() {
         }
 
         const currentParticipants = Number(participants || 0);
-        // const totalWithCurrent = getTotalCommunityParticipants() + currentParticipants;
-        const totalWithCurrent = currentParticipants;
+        // Include participants already in the cart for community pricing
+        const cartParticipants = getTotalCommunityParticipants();
+        const totalWithCurrent = type === "community" 
+            ? cartParticipants + currentParticipants 
+            : currentParticipants;
         
         return calculatePrice(category, type === "community" ? totalWithCurrent : 1);
-    }, [categoryId, categories, participants, type]);
+    }, [categoryId, categories, participants, type, cart]);
 
     // NEW: Calculate subtotal including jersey charges
     const currentSubtotal = useMemo(() => {
@@ -612,11 +621,29 @@ export default function RegistrationPage() {
     }
 
     function validatePersonalDetails(): boolean {
-        // Accept either a newly uploaded idCardPhoto file OR an existing stored ID photo for logged-in users
-        // ALSO accept a previously-uploaded filename from session (idCardPhotoName)
+        if (!fullName) {
+            showToast("Please fill in your Full Name", "error");
+            return false;
+        }
+        if (!email) {
+            showToast("Please fill in your Email", "error");
+            return false;
+        }
+        if (!phone) {
+            showToast("Please fill in your WhatsApp Number", "error");
+            return false;
+        }
+        if (!birthDate) {
+            showToast("Please fill in your Birth Date", "error");
+            return false;
+        }
+        if (!currentAddress) {
+            showToast("Please fill in your Current Address", "error");
+            return false;
+        }
         const hasIdProof = Boolean(idCardPhoto) || Boolean(existingIdCardPhotoUrl) || Boolean(idCardPhotoName);
-        if (!fullName || !email || !phone || !birthDate || !currentAddress || !hasIdProof) {
-            showToast("Please fill all required fields (Name, Email, Phone, Birth Date, Address, and ID Card/Passport Photo)", "error");
+        if (!hasIdProof) {
+            showToast("Please upload an ID Card/Passport Photo", "error");
             return false;
         }
 
@@ -705,7 +732,96 @@ export default function RegistrationPage() {
         }
     }
 
+    function clearForm() {
+        setParticipants("");
+        
+        const initialJerseys: Record<string, number | ""> = {};
+        jerseyOptions.forEach((jersey) => {
+            initialJerseys[jersey.size] = "";
+        });
+        setJerseys(initialJerseys);
+    }
+
+    
+    async function handleAddToCart() {
+        if (!validatePersonalDetails()) return;
+
+        const category = categories.find((c) => c.id === categoryId);
+        if (!category) {
+            showToast("Please select a category", "error");
+            return;
+        }
+
+        if (type === "community") {
+            const currentParticipants = Number(participants || 0);
+            if (currentParticipants <= 0) {
+                showToast("Please enter the number of participants", "error");
+                return;
+            }
+            const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
+            if (totalJerseys !== currentParticipants) {
+                showToast(`Jersey count must match participant count`, "error");
+                return;
+            }
+        }
+
+        // CRITICAL: Upload ID card BEFORE adding to cart if not already uploaded
+        let resolvedIdCardUrl = existingIdCardPhotoUrl;
+        if (idCardPhoto instanceof File && !existingIdCardPhotoUrl) {
+            try {
+                setIsSubmitting(true);
+                showToast("Uploading ID card...", "info");
+                resolvedIdCardUrl = await uploadFileInChunksLocal(idCardPhoto, "id-cards");
+                setExistingIdCardPhotoUrl(resolvedIdCardUrl);
+                setIdCardPhotoName(idCardPhoto.name);
+                // Save to session storage immediately
+                sessionStorage.setItem("reg_existingIdCardPhotoUrl", resolvedIdCardUrl);
+                showToast("ID card uploaded successfully", "success");
+            } catch (e) {
+                console.error("[handleAddToCart] ID upload failed:", e);
+                showToast("Failed to upload ID card. Please try again.", "error");
+                setIsSubmitting(false);
+                return;
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
+
+        // Validate ID card is available
+        if (!resolvedIdCardUrl) {
+            showToast("Please upload an ID card photo", "error");
+            return;
+        }
+
+        // Save personal details to session (including ID card URL)
+        savePersonalDetailsToSession();
+        // Ensure ID card URL is saved
+        sessionStorage.setItem("reg_existingIdCardPhotoUrl", resolvedIdCardUrl);
+
+        const newItem = {
+            id: new Date().getTime(),
+            type,
+            categoryId: category.id,
+            categoryName: category.name,
+            participants: type === "community" ? participants : 1,
+            price: currentPrice,
+            jerseyCharges: calculateJerseyCharges(jerseys),
+            jerseys: type === "community" ? jerseys : { [selectedJerseySize]: 1 },
+            groupName: groupName,
+        };
+
+        setCart([...cart, newItem]);
+        showToast("Added to cart!", "success");
+
+        // Clear participant count and jersey inputs for community type
+        if (type === "community") {
+            setParticipants("");
+            setJerseys({});
+        }
+    }
+
     // No add-to-cart functionality - proceed directly to checkout
+
 
     // Direct checkout - no cart, go straight to confirmation
     async function handleCheckout() {
@@ -764,7 +880,7 @@ export default function RegistrationPage() {
                         registrationType,
                     }
                 };
-                
+
                 sessionStorage.setItem("currentRegistration", JSON.stringify(registrationData));
 
                 setAgreedToTerms(false);
@@ -799,6 +915,7 @@ export default function RegistrationPage() {
                 setIsModalOpen(true);
                 return;
             } else {
+                // COMMUNITY TYPE - Upload ID card BEFORE opening modal
                 const currentParticipants = Number(participants || 0);
                 if (currentParticipants < 10) {
                     showToast(`Community registration requires minimum 10 participants. Currently have ${currentParticipants}`, "error");
@@ -810,6 +927,34 @@ export default function RegistrationPage() {
                     showToast(`Jersey count must match participant count`, "error");
                     return;
                 }
+
+                // CRITICAL: Upload ID card photo BEFORE proceeding
+                let resolvedExistingIdUrl = existingIdCardPhotoUrl;
+                if (idCardPhoto instanceof File) {
+                    try {
+                        showToast("Uploading ID card...", "info");
+                        resolvedExistingIdUrl = await uploadFileInChunksLocal(idCardPhoto, "id-cards");
+                        setExistingIdCardPhotoUrl(resolvedExistingIdUrl);
+                        setIdCardPhotoName(idCardPhoto.name);
+                        showToast("ID card uploaded successfully", "success");
+                    } catch (e) {
+                        console.error("[handleCheckout] ID upload failed:", e);
+                        showToast("Failed to upload ID card. Please try again.", "error");
+                        return;
+                    }
+                }
+
+                // Ensure ID card is available
+                if (!resolvedExistingIdUrl) {
+                    showToast("Please upload an ID card photo", "error");
+                    return;
+                }
+
+                // Save to session for confirm page
+                savePersonalDetailsToSession();
+                
+                // Store the uploaded ID URL
+                sessionStorage.setItem("reg_existingIdCardPhotoUrl", resolvedExistingIdUrl);
 
                 setAgreedToTerms(false);
                 setIsModalOpen(true);
@@ -924,7 +1069,7 @@ export default function RegistrationPage() {
         router.push("/registration/confirm");
     }
 
-    // ADD THIS: Live tier info display for community
+    // ADD THIS: Live tier info display for community - now accounts for cart
     const tierInfo = useMemo(() => {
         if (type !== "community" || !categoryId) return null;
         const category = categories.find(c => c.id === categoryId);
@@ -932,8 +1077,7 @@ export default function RegistrationPage() {
 
         const currentParticipants = Number(participants || 0);
         const totalInCart = getTotalCommunityParticipants();
-        // const totalWithCurrent = totalInCart + currentParticipants;
-        const totalWithCurrent = currentParticipants;
+        const totalWithCurrent = totalInCart + currentParticipants;
 
         let tier = "Base Price";
         let nextTier = null;
@@ -979,10 +1123,10 @@ export default function RegistrationPage() {
             tier,
             nextTier,
             participantsToNext,
-            // totalInCart,
-            totalWithCurrent,
+            totalInCart,
+            totalWithCurrent
         };
-    }, [type, categoryId, categories, participants]);
+    }, [type, categoryId, categories, participants, cart]);
 
     function openSizeChart() {
         setShowSizeChart(true);
@@ -1059,6 +1203,7 @@ export default function RegistrationPage() {
                                     name="regType"
                                     value="community"
                                     checked={type === "community"}
+                                    // onChange={() => { setType("community"); setRegistrationType("community"); }}
                                     onChange={() => { setType("community"); setRegistrationType("community"); }}
                                     className="sr-only"
                                 />
@@ -1537,10 +1682,10 @@ export default function RegistrationPage() {
                                             <div className="space-y-2 mb-3">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <span className="text-sm font-semibold text-gray-700">
-                                                        Subtotal ({selectedCategory?.bundleSize || 4} people):
+                                                        Base subtotal ({participants} people{getTotalCommunityParticipants() > 0 ? ` + ${getTotalCommunityParticipants()} in cart` : ""}):
                                                     </span>
-                                                    <span className="text-base font-bold text-purple-700">
-                                                        Rp {(currentPrice * (selectedCategory?.bundleSize || 4)).toLocaleString("id-ID")}
+                                                    <span className="text-base font-bold text-emerald-700">
+                                                        Rp {(currentPrice * Number(participants || 0)).toLocaleString("id-ID")}
                                                     </span>
                                                 </div>
                                                 {calculateJerseyCharges(jerseys) > 0 && (
@@ -1585,12 +1730,12 @@ export default function RegistrationPage() {
 
                             <div className="rounded-lg border border-gray-200 p-5 bg-white">
                                 <div className="space-y-5">
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                        <p className="text-xs text-blue-700">
-                                                                                       💡 <strong>Tip:</strong> Add multiple categories! Total participants across all categories determine your tier pricing.
+                                    {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-3"> */}
+                                        {/* <p className="text-xs text-blue-700">
+                                            💡 <strong>Tip:</strong> Add multiple categories! Total participants across all categories determine your tier pricing.
                                             Example: 20 in 3K + 20 in 5K + 20 in 10K = 60 total → Best pricing tier!
-                                        </p>
-                                    </div>
+                                        </p> */}
+                                    {/* </div> */}
 
                                     <div className="grid gap-3">
                                         <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Race Category *</label>
@@ -1611,11 +1756,10 @@ export default function RegistrationPage() {
                                         <label className="text-xs font-medium text-gray-600 uppercase tracking-wide">Number of Participants (for this category) <strong className="text-red-500">*</strong></label>
                                         <input
                                             type="number"
-                                            min={1}
                                             value={participants}
                                             onChange={(e) => setParticipants(e.target.value === "" ? "" : Number(e.target.value))}
                                             className="w-full px-4 py-3 border-b-2 border-gray-200 bg-transparent text-gray-800 placeholder-gray-400 focus:border-emerald-500 focus:outline-none transition-colors text-base"
-                                            placeholder="Enter participant amount (minimum 10)"
+                                            placeholder="Enter participant amount"
                                         />
                                         {/* <p className="text-xs text-gray-500 mt-1">
                                             This will be added to your community total ({getTotalCommunityParticipants()} currently in cart)
@@ -1632,9 +1776,11 @@ export default function RegistrationPage() {
                                                         {tierInfo.tier}
                                                     </span>
                                                 </div>
-                                                {/* <div className="text-xs text-gray-600">
-                                                    Total: {tierInfo.totalWithCurrent} participants ({tierInfo.totalInCart} in cart + {Number(participants || 0)} current)
-                                                </div> */}
+                                                {tierInfo.totalInCart > 0 && (
+                                                    <div className="text-xs text-gray-600">
+                                                        Total: {tierInfo.totalWithCurrent} participants ({tierInfo.totalInCart} in cart + {Number(participants || 0)} current)
+                                                    </div>
+                                                )}
                                                 {tierInfo.nextTier && tierInfo.participantsToNext > 0 && (
                                                     <div className="pt-2 border-t border-purple-200">
                                                         <p className="text-xs text-purple-700">
@@ -1684,7 +1830,7 @@ export default function RegistrationPage() {
                                         </div>
 
                                         {/* Extra sizes: +Rp 10.000 each */}
-                                        <div className="mb-4">
+                                       <div className="mb-4">
                                           <div className="flex items-center justify-between mb-2">
                                             <p className="text-xs font-semibold text-orange-700">Adult Sizes (Extra - +Rp 10.000 each):</p>
                                             <button
@@ -1755,11 +1901,11 @@ export default function RegistrationPage() {
 
                                         <div className="mb-4">
                                           <div className="flex items-center justify-between mb-2">
-                                            <p className="text-xs font-semibold text-emerald-700">Kids Sizes:</p>
+                                            <p className="text-xs font-semibold text-purple-700">Kids Sizes:</p>
                                             <button
                                               type="button"
                                               onClick={() => openSizeChart()}
-                                              className="text-xs text-emerald-600 hover:text-emerald-700 underline"
+                                              className="text-xs text-purple-600 hover:text-purple-700 underline"
                                             >
                                               Size Guide
                                             </button>
@@ -1769,14 +1915,14 @@ export default function RegistrationPage() {
                                             {["XS - KIDS", "S - KIDS", "M - KIDS", "L - KIDS", "XL - KIDS"].map((size) => (
                                               <div key={size} className="flex flex-col items-center">
                                                 <div className="flex items-center gap-1 mb-2">
-                                                  <span className="text-xs font-medium text-emerald-700">{size}</span>
+                                                  <span className="text-xs font-medium text-purple-700">{size}</span>
                                                 </div>
                                                 <input
                                                   type="number"
                                                   min={0}
                                                   value={jerseys[size] ?? ""}
                                                   onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                                  className="jersey-input shift-right accent-emerald-500 border-emerald-300 focus:border-emerald-500"
+                                                  className="jersey-input shift-right accent-purple-500 border-purple-300 focus:border-purple-500"
                                                   placeholder="0"
                                                   inputMode="numeric"
                                                   aria-label={`Count for size ${size}`}
@@ -1816,7 +1962,7 @@ export default function RegistrationPage() {
                                             <div className="pt-3 border-t border-emerald-200">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <span className="text-sm font-semibold text-gray-700">
-                                                        Base subtotal ({participants} people):
+                                                        Base subtotal ({participants} people{getTotalCommunityParticipants() > 0 ? ` + ${getTotalCommunityParticipants()} in cart` : ""}):
                                                     </span>
                                                     <span className="text-base font-bold text-emerald-700">
                                                         Rp {(currentPrice * Number(participants || 0)).toLocaleString("id-ID")}
@@ -1846,13 +1992,9 @@ export default function RegistrationPage() {
 
                             <div className="flex justify-center mt-4">
                                 <button
-                                    onClick={handleCheckout}
-                                    disabled={isSubmitting || communityCount < 10}
-                                    className={`w-1/2 md:w-1/3 px-6 py-3 rounded-full font-semibold shadow-xl transition-all transform ${
-                                        communityCount >= 10 && !isSubmitting
-                                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95'
-                                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    }`}
+                                    onClick={handleAddToCart}
+                                    disabled={isSubmitting}
+                                    className={`w-1/2 md:w-1/3 px-6 py-3 rounded-full font-bold shadow-xl transition-all transform bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95`}
                                 >
                                     {isSubmitting ? (
                                         <span className="flex items-center justify-center gap-2">
@@ -1863,15 +2005,10 @@ export default function RegistrationPage() {
                                             Processing...
                                         </span>
                                     ) : (
-                                        "Proceed to Checkout"
+                                        "Add to Cart"
                                     )}
                                 </button>
                             </div>
-                            {communityCount < 10 && (
-                                <p className="text-center text-xs text-gray-500">
-                                    Need at least 10 participants for community registration
-                                </p>
-                            )}
                         </div>
                     )}
 
@@ -2096,20 +2233,20 @@ export default function RegistrationPage() {
                               <li>
                                 <strong>Registration Period: </strong>
                                 <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                  <li> Registration is opened from 1st December until the maximum quota has been fulfilled.</li>
+                                  Registration is opened from 1 December 2025 until the maximum quota has been fulfilled.
                                 </ol>
                               </li>
                               <li>
                                 <strong>Registration Platform: </strong>
                                 <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                  <li>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputracolorrun.com" className="text-blue-600 underline">https://ciputracolorrun.com</a>.</li>
+                                  <li>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputracolorrun.com</a>.</li>
                                   <li>Event organizers are not responsible for any consequences resulting from purchases made outside the official platform.</li>
                                 </ol>
                               </li>
                               <li>
                                 <strong>Categories & Pricing: </strong>
                                 <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>Registration fee pendaftaran dibagi berdasarkan kategori jarak tempuh sebagai berikut:
+                                    <li>The registration fee is categorized based on the distance covered, as follows:
                                         <ol type = "a" className="pl-6 mt-1 space-y-1 terms-ol-alpha">
                                             <li>3 KM: Rp 130.000,- (Early Bird) | Rp 150.000,- (Normal Price)</li>
                                             <li>5 KM: Rp 180.000,- (Early Bird) | Rp 200.000,- (Normal Price)</li>
@@ -2126,7 +2263,7 @@ export default function RegistrationPage() {
                                 <strong>Data Accuracy: </strong>
                                 <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
                                     <li>
-                                        Participants are required to fill in the registration data with accurate information (name, date of birth, email, and phone number).
+                                        Participants are required to complete the registration form with accurate personal information, including but not limited to name, date of birth, email address, and phone number. Once the registration is submitted, the data cannot be changed under any circumstances.
                                     </li>
                                     <li>
                                         Errors in data entry that result in the cancellation of results or prizes are entirely the responsibility of the participants.
@@ -2186,14 +2323,14 @@ export default function RegistrationPage() {
                                     </ol>
                                 </li>
                                 <li>
-                                    <strong>Late Collection (Race Day)</strong>
+                                    <strong>Late Collection (Race Day): </strong>
                                     Participants unable to collect during the main schedule are permitted to collect on the event day (April 12, 2026) at the event location, no later than 05:00 WIB.
                                 </li>
                                 <li>
                                     <strong>Collection Requirements: </strong>
                                     <ol type="a" className="pl-6 mt-1 space-y-1 terms-ol-alpha">
                                         <li>
-                                            <strong>Self Collection: </strong>Participants must present the purchase QR Code (print or digital) and a valid Identity Card (ID Card)
+                                            <strong>Self Collection: </strong>Participants must present the purchase QR Code (print or digital) and a valid Identity Card (ID Card).
                                         </li>
                                         <li>
                                             <strong>Collection via Representative: </strong>
@@ -2298,11 +2435,11 @@ export default function RegistrationPage() {
                                         </li>
                                         <li>
                                             <strong>Unclaimed Items: </strong>
-                                            Jika terdapat barang yang tidak diambil hingga acara berakhir, panitia akan melakukan identifikasi pemilik melalui Nomor Bib dan menghubungi peserta melalui nomor WhatsApp yang terdaftar untuk konfirmasi.
+                                            If any items remain unclaimed after the event, the organizing committee will attempt to identify the owner through the Bib Number and contact the participant via the registered WhatsApp number for confirmation.
                                         </li>
                                         <li>
                                             <strong>Claim Limits: </strong>
-                                            Peserta yang telah dikonfirmasi sebagai pemilik barang diberikan batas waktu maksimal 7 (tujuh) hari setelah hari acara untuk mengambil barang tertinggal tersebut di lokasi yang ditentukan.
+                                            Participants who have been confirmed as the owners of the items are given a maximum period of seven (7) days after the event date to collect the lost items at the designated location.
                                         </li>
                                         <li>
                                             <strong>Unclaimed Items Condition: </strong>
@@ -2393,7 +2530,7 @@ export default function RegistrationPage() {
                                     </ol>
                                 </li>
                                 <li>
-                                    <strong>Winner Verification</strong>
+                                    <strong>Winner Verification: </strong>
                                     Potential podium winners must verify their data immediately upon finishing by showing:
                                     <ol type = "a" className = "pl-6 mt-1 space-y-1 terms-ol-alpha">
                                         <li>
@@ -2708,59 +2845,4 @@ export default function RegistrationPage() {
             )}
         </main>
     );
-}
-
-// --- tiny hook: state synced to sessionStorage immediately ---
-function useSessionState<T>(key: string, initialValue: T) {
-    const [state, setState] = useState<T>(() => {
-        if (typeof window === "undefined") return initialValue;
-        try {
-            const v = sessionStorage.getItem(key);
-            if (v === null) return initialValue;
-
-            // Try parsing JSON first (handles values written via JSON.stringify)
-            try {
-                return JSON.parse(v) as T;
-            } catch (parseErr) {
-                // If parsing fails, fall back to the raw string for string-like keys
-                // This makes the hook tolerant of legacy / plain-string writes.
-                // For non-string initial types, attempt basic conversions for common primitives.
-                const trimmed = v.trim();
-                // null/undefined markers
-                if (trimmed === "null") return (null as unknown) as T;
-                if (trimmed === "undefined") return (undefined as unknown) as T;
-
-                // boolean
-                if (trimmed === "true") return (true as unknown) as T;
-                if (trimmed === "false") return (false as unknown) as T;
-
-                // number
-                const num = Number(trimmed);
-                if (!Number.isNaN(num) && typeof initialValue === "number") return (num as unknown) as T;
-
-                // otherwise return raw string cast to T (common case)
-                return (v as unknown) as T;
-            }
-        } catch (e) {
-            // on any error, return initial value
-            return initialValue;
-        }
-    });
-
-    useEffect(() => {
-        try {
-            // Always write a JSON-serialized value so future reads are consistent.
-            sessionStorage.setItem(key, JSON.stringify(state));
-        } catch (e) { /* ignore quota/errors */ }
-    }, [key, state]);
-
-    const setAndSave = (value: React.SetStateAction<T>) => {
-        setState(prev => {
-            const next = typeof value === "function" ? (value as (p: T) => T)(prev) : value;
-            try { sessionStorage.setItem(key, JSON.stringify(next)); } catch (e) { /* ignore */ }
-            return next;
-        });
-    };
-
-    return [state, setAndSave] as const;
 }

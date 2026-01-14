@@ -1,0 +1,34 @@
+.terms-modal {
+  animation: slide-up 0.3s ease-out;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Jersey input - underline style only (no box) */
+.jersey-input {
+  width: 60px;
+  text-align: center;
+  border: none;
+  border-radius: 0;
+  border-bottom: 2px solid #e5e7eb;
+  padding: 8px 0; /* Remove horizontal padding for better centering */
+  background: transparent;
+  transition: border-color 0.2s;
+}
+
+.jersey-input:focus {
+  outline: none;
+  border-bottom-color: #e687a4;
+}
+
+.shift-right {
+  margin-left: 0; /* Remove auto margins */
+  margin-right: 0;
+}

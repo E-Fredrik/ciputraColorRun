@@ -5,6 +5,7 @@ import NavBar from "./components/NavBar";
 import Script from "next/script";
 import Footer from "./components/Footer";
 import ClientToaster from "./components/ClientToaster";
+import ShoppingCart from "./components/ShoppingCart";
 
 export const metadata: Metadata = {
   title: "Ciputra Color Run 2026 - The Most Vibrant Fun Run in Surabaya",
@@ -70,6 +71,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { CartProvider } from "@/context/CartContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -128,9 +131,12 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <NavBar />
-        {/* ensure page content is pushed below fixed navbar */}
-        <div className="">{children}</div>
+        <CartProvider>
+          <NavBar />
+          {/* ensure page content is pushed below fixed navbar */}
+          <div className="">{children}</div>
+          <ShoppingCart />
+        </CartProvider>
 
         {/* Client-only toast container */}
         <ClientToaster />

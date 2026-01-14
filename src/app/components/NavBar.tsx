@@ -2,14 +2,24 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { User, Menu, X } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { User, Menu, X, HelpCircle, MessageCircle, PenTool, ShoppingCart } from "lucide-react";
+import { useState, useEffect, useRef, useContext } from "react";
+import { CartContext } from "@/context/CartContext";
+
 import { useRouter, usePathname } from "next/navigation";
 
 export default function NavBar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isHelpOpen, setIsHelpOpen] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
+    const { cart, toggleCart } = useContext(CartContext);
+
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     // hide on scroll down, show on scroll up
     const [isNavHidden, setIsNavHidden] = useState(false);
@@ -179,6 +189,7 @@ export default function NavBar() {
                         />
                     </Link>
 
+                    {/* DESKTOP MENU */}
                     <div className="hidden md:flex items-center gap-12">
                         <Link
                             href="/"
@@ -191,6 +202,13 @@ export default function NavBar() {
                             className="text-white font-bold text-lg hover:text-white/80 transition-colors tracking-wide"
                         >
                             REGISTER
+                        </Link>
+                        {/* 👇 TAMBAHAN BARU: Terms & Conditions */}
+                        <Link
+                            href="/terms-and-conditions"
+                            className="text-white font-bold text-lg hover:text-white/80 transition-colors tracking-wide"
+                        >
+                            T&C
                         </Link>
 
                         {/* Auth: show LOGIN when not logged in; show icon + name + logout when logged in */}
@@ -215,28 +233,139 @@ export default function NavBar() {
                                 </button>
                             </div>
                         ) : (
-                            <button
-                                onClick={() => router.push("/auth/login")}
-                                className="text-white font-bold"
-                            >
-                                LOGIN
-                            </button>
+                            <div className="flex items-center gap-6">
+                                <button
+                                    onClick={() => router.push("/auth/login")}
+                                    className="text-white font-bold"
+                                >
+                                    LOGIN
+                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setIsHelpOpen(!isHelpOpen)}
+                                        className="relative p-2 rounded-full hover:bg-white/10 transition-colors group"
+                                        aria-label="Help"
+                                    >
+                                        <HelpCircle size={24} strokeWidth={2} className="text-white" />
+                                        <span className="invisible group-hover:visible absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-2 py-1 bg-black/80 text-white text-xs rounded whitespace-nowrap">
+                                            Help
+                                        </span>
+                                    </button>
+
+                                    {/* DESKTOP / RESPONSIVE HELP PANEL */}
+                                    {isHelpOpen && (
+                                        <div
+                                            className={
+                                                // mobile-first: full width and scrollable; on md+ use compact card anchored to right
+                                                "absolute left-0 right-0 mt-2 md:right-0 md:left-auto w-full md:w-80 max-w-full md:max-w-none bg-white rounded-t-2xl md:rounded-2xl shadow-2xl p-4 md:p-6 z-50 border border-gray-200 max-h-[70vh] overflow-y-auto"
+                                            }
+                                        >
+                                            <button
+                                                onClick={() => setIsHelpOpen(false)}
+                                                className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                                                aria-label="Close help"
+                                            >
+                                                <X size={20} />
+                                            </button>
+
+                                            <div className="space-y-4 pt-2">
+                                                <div>
+                                                    <button
+                                                        onClick={() =>
+                                                            window.open(
+                                                            "https://www.instagram.com/reel/DTKAD_mEiGz/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==",
+                                                            "_blank"
+                                                            )
+                                                        }
+                                                        className="text-lg font-semibold flex items-center gap-2"
+                                                        >
+                                                        <PenTool size={20} className="text-purple-600" />
+                                                        <span className="register-loading">
+                                                            <h4 className = "text-black">How to Register</h4>
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-black mb-4 flex items-center gap-2">
+                                                        <MessageCircle size={20} className="text-green-600" />
+                                                        <span style={{ marginLeft: "10px" }}>Contact Person</span>
+                                                    </h3>
+                                                    <div className="flex pl-10 gap-10">
+                                                        <a
+                                                            href="https://wa.me/895410319676"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-black"
+                                                        >
+                                                            <span className="contact-loading font-medium">
+                                                            Abel
+                                                            </span>
+                                                        </a>
+
+                                                        <a
+                                                            href="https://wa.me/811306658"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-black"
+                                                        >
+                                                            <span className="contact-loading font-medium">
+                                                            Elysian
+                                                            </span>
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         )}
+                        <button onClick={toggleCart} className="relative text-white p-2">
+                            <ShoppingCart size={22} />
+                            {isClient && cart.length > 0 && (
+                                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                                    {cart.length}
+                                </span>
+                            )}
+                        </button>
                     </div>
 
-                    <button
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className="md:hidden text-white p-2"
-                        aria-label="Toggle menu"
-                    >
-                        {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
-                    </button>
+                    <div className="flex items-center md:hidden">
+                        <button onClick={toggleCart} className="relative text-white p-2">
+                            <ShoppingCart size={22} />
+                            {isClient && cart.length > 0 && (
+                                <span className="absolute top-1 right-1 text-xs bg-red-500 text-white rounded-full h-4 w-4 flex items-center justify-center">
+                                    {cart.length}
+                                </span>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            className="text-white p-2"
+                            aria-label="Toggle menu"
+                        >
+                            {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
+                        </button>
+                    </div>
 
-                    {/* Mobile Menu */}
+                    {/* MOBILE MENU */}
                     {isMenuOpen && (
                         <div className="absolute top-full left-0 right-0 md:hidden">
                             <div className="nav-glass backdrop-blur-lg border-b ">
                                 <div className="flex flex-col items-end px-6 py-6 gap-6">
+
+                                    {/* Mobile: visible Help button */}
+                                    <div className="w-full flex justify-end">
+                                        <button
+                                            onClick={() => setIsHelpOpen(!isHelpOpen)}
+                                            className="relative p-2 rounded-full hover:bg-white/10 transition-colors text-white z-50 pointer-events-auto"
+                                            aria-label="Help"
+                                            tabIndex={0}
+                                        >
+                                            <HelpCircle size={24} strokeWidth={2} className="text-white" />
+                                        </button>
+                                    </div>
+
                                     <nav className="flex flex-col items-end gap-4 w-full">
                                         <Link
                                             href="/"
@@ -251,6 +380,14 @@ export default function NavBar() {
                                             onClick={() => setIsMenuOpen(false)}
                                         >
                                             REGISTER
+                                        </Link>
+                                        {/* 👇 TAMBAHAN BARU: Terms & Conditions di Mobile */}
+                                        <Link
+                                            href="/terms-and-conditions"
+                                            className="text-white font-bold text-lg hover:text-white/80 transition-colors tracking-wide w-full text-right"
+                                            onClick={() => setIsMenuOpen(false)}
+                                        >
+                                            TERMS & CONDITIONS
                                         </Link>
 
                                         {/* Bottom actions: auth (right aligned) */}
@@ -294,6 +431,72 @@ export default function NavBar() {
                                             )}
                                         </div>
                                     </nav>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MOBILE HELP PANEL - Fixed positioning to viewport */}
+                    {isMenuOpen && isHelpOpen && (
+                        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4 md:hidden pt-32">
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[70vh] overflow-y-auto">
+                                <div className="sticky top-0 bg-white p-4 border-b border-gray-200 flex items-center justify-between rounded-t-2xl z-10">
+                                    <h3 className="text-lg font-semibold text-gray-800">Help & Support</h3>
+                                    <button
+                                        onClick={() => setIsHelpOpen(false)}
+                                        className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 flex-shrink-0"
+                                        aria-label="Close help"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="p-4 space-y-4">
+                                    <div>
+                                        <button
+                                            onClick={() => {
+                                                window.open(
+                                                    "https://www.instagram.com/reel/DTKAD_mEiGz/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==",
+                                                    "_blank"
+                                                );
+                                            }}
+                                            className="text-lg font-semibold flex items-center gap-2 text-blue-600 hover:text-blue-700 w-full"
+                                        >
+                                            <PenTool size={20} />
+                                            How to Register
+                                        </button>
+                                    </div>
+
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                            <MessageCircle size={18} />
+                                            Contact Person
+                                        </h4>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                                                <p className="font-semibold text-gray-800 mb-1">Abel</p>
+                                                <a
+                                                    href="https://wa.me/6289541031967"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-green-600 hover:text-green-700 text-sm font-medium"
+                                                >
+                                                    WhatsApp
+                                                </a>
+                                            </div>
+                                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                                                <p className="font-semibold text-gray-800 mb-1">Elysian</p>
+                                                <a
+                                                    href="https://wa.me/6281283494950"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-green-600 hover:text-green-700 text-sm font-medium"
+                                                >
+                                                    WhatsApp
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

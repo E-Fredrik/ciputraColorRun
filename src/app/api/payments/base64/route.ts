@@ -62,18 +62,18 @@ function generateBibNumber(categoryName: string | undefined, participantId: numb
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const fullName = String(body.fullName || "");
-  const email = String(body.email || "").trim();
-  const forceCreate = Boolean(body.forceCreate);
-
   try {
+    const body = await req.json();
+    console.log("[payments/base64] Received body keys:", Object.keys(body));
+
     const {
       proofUrl,
-      idCardUrl,
+      idCardUrl,  // This should now always be present
       items,
       amount,
-      phone,                 // <-- added
+      fullName,
+      email,
+      phone,
       birthDate,
       gender,
       currentAddress,
@@ -84,10 +84,20 @@ export async function POST(req: Request) {
       registrationType,
       proofSenderName,
       groupName,
+      forceCreate,
     } = body;
 
+    console.log("[payments/base64] idCardUrl received:", idCardUrl);
+    console.log("[payments/base64] proofUrl received:", proofUrl);
+
     if (!proofUrl) {
-      return NextResponse.json({ error: "Payment proof is required" }, { status: 400 });
+      return NextResponse.json({ error: "Payment proof URL is required" }, { status: 400 });
+    }
+
+    // CRITICAL: Validate ID card URL is present
+    if (!idCardUrl) {
+      console.error("[payments/base64] ID card URL is missing!");
+      return NextResponse.json({ error: "ID card photo is required" }, { status: 400 });
     }
 
     // Helper: normalize a name for robust comparison
@@ -168,7 +178,7 @@ export async function POST(req: Request) {
           data: {
             email: email || existingUser.email,
             phone: phone || existingUser.phone,
-            idCardPhoto: idCardUrl || existingUser.idCardPhoto,
+            idCardPhoto: idCardUrl || existingUser.idCardPhoto,  // Use idCardUrl
             birthDate: birthDate ? new Date(birthDate) : existingUser.birthDate,
             gender: gender || existingUser.gender,
             currentAddress: currentAddress || existingUser.currentAddress,
@@ -178,6 +188,7 @@ export async function POST(req: Request) {
             medicationAllergy: medicationAllergy || existingUser.medicationAllergy,
           },
         });
+        console.log("[payments/base64] Updated user idCardPhoto:", user.idCardPhoto);
       } else {
         // CREATE new user if name doesn't exist
         console.log("[payments/base64] Creating new user with name:", fullName);
@@ -188,7 +199,7 @@ export async function POST(req: Request) {
             phone: phone || "",
             accessCode,
             role: "user",
-            idCardPhoto: idCardUrl || undefined,
+            idCardPhoto: idCardUrl || undefined,  // Use idCardUrl
             birthDate: birthDate ? new Date(birthDate) : undefined,
             gender: gender || undefined,
             currentAddress: currentAddress || undefined,
@@ -198,6 +209,7 @@ export async function POST(req: Request) {
             medicationAllergy: medicationAllergy || undefined,
           },
         });
+        console.log("[payments/base64] Created new user with idCardPhoto:", user.idCardPhoto);
       }
 
       // Create a registration & payment per cart item so each item keeps its own groupName/registrationType
