@@ -64,81 +64,132 @@ export default function TermsAndConditionsPage() {
                         <h2 className="mt-4 font-bold">SECTION 2: REGISTRATION & PARTICIPANT CATEGORIES</h2>
                         <ol 
                             className="pl-6 text-sm space-y-2"
-                            style={{ listStyleType: 'decimal', listStylePosition: 'outside', paddingLeft: '1.5rem' }}
+                            style={{ listStyleType: 'decimal', listStylePosition: 'outside', paddingLeft: '1.5rem', counterReset: 'item' }}
                         >
-                            <li style={{ display: 'list-item' }}>
+                            <li style={{ display: 'list-item', listStyleType: 'decimal' }}>
                                 <strong>Identification Card Definition:</strong>
                                 <ol 
                                     className="pl-6 mt-1 space-y-1"
-                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem', counterReset: 'subitem' }}
                                 >
-                                    <li style={{ display: 'list-item' }}>
+                                    <li style={{ display: 'list-item', listStyleType: 'lower-roman' }}>
                                         Identification Card as referred to in these terms and conditions is an official personal identification document issued by an authorized agency and is still valid.
                                     </li>
-                                    <li style={{ display: 'list-item' }}>
+                                    <li style={{ display: 'list-item', listStyleType: 'lower-roman' }}>
                                         Documents that can be used for registration, data verification, and race pack collection include:
                                         <ol 
                                             className="pl-6 mt-1 space-y-1"
-                                            style={{ listStyleType: 'lower-alpha', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
+                                            style={{ listStyleType: 'lower-alpha', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem', counterReset: 'subsubitem' }}
                                         >
-                                            <li style={{ display: 'list-item' }}><strong>Adult Indonesian Citizen: </strong> Resident Identity Card (KTP), Driver's License (SIM), Digital Population Identity (IKD), or other official identification cards issued by the Government of the Republic of Indonesia.</li>
-                                            <li style={{ display: 'list-item' }}><strong>Child Participants (under 17 years old):</strong> Child Identity Card (KIA), Birth Certificate, Student Card, or other official documents.</li>
-                                            <li style={{ display: 'list-item' }}><strong>Foreign Citizens (WNA):</strong> Passport, Limited Stay Permit Card (KITAS), Permanent Stay Permit Card (KITAP), or other internationally recognized official identification documents.</li>
+                                            <li style={{ display: 'list-item', listStyleType: 'lower-alpha' }}><strong>Adult Indonesian Citizen: </strong> Resident Identity Card (KTP), Driver's License (SIM), Digital Population Identity (IKD), or other official identification cards issued by the Government of the Republic of Indonesia.</li>
+                                            <li style={{ display: 'list-item', listStyleType: 'lower-alpha' }}><strong>Child Participants (under 17 years old):</strong> Child Identity Card (KIA), Birth Certificate, Student Card, or other official documents.</li>
+                                            <li style={{ display: 'list-item', listStyleType: 'lower-alpha' }}><strong>Foreign Citizens (WNA):</strong> Passport, Limited Stay Permit Card (KITAS), Permanent Stay Permit Card (KITAP), or other internationally recognized official identification documents.</li>
                                         </ol>
                                     </li>
                                 </ol>
                             </li>
 
-                            <li style={{ display: 'list-item' }}>
+                            <li style={{ display: 'list-item', listStyleType: 'decimal' }}>
                                 <strong>Participants:</strong>
                                 <ol 
                                     className="pl-6 mt-1 space-y-1"
-                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem', counterReset: 'subitem' }}
                                 >
-                                    <li style={{ display: 'list-item' }}>This event is open to the General Public, Indonesian Citizens (WNI), and Foreign Citizens (WNA).</li>
-                                    <li style={{ display: 'list-item' }}>Incorrect data entry that results in discrepancies during verification may lead to registration cancellation.</li>
-                                    <li style={{ display: 'list-item' }}>Participants under the age of 13 must be accompanied by a guardian who is at least 17 years old throughout the entire event, including during race pack collection and while on the event premises. The guardian is fully responsible for the safety, security, and actions of the participant during the event.</li>
+                                    <li style={{ display: 'list-item', listStyleType: 'lower-roman' }}>This event is open to the General Public, Indonesian Citizens (WNI), and Foreign Citizens (WNA).</li>
+                                    <li style={{ display: 'list-item', listStyleType: 'lower-roman' }}>Incorrect data entry that results in discrepancies during verification may lead to registration cancellation.</li>
+                                    <li style={{ display: 'list-item', listStyleType: 'lower-roman' }}>Participants under the age of 13 must be accompanied by a guardian who is at least 17 years old throughout the entire event, including during race pack collection and while on the event premises. The guardian is fully responsible for the safety, security, and actions of the participant during the event.</li>
                                 </ol>
                             </li>
 
-                            <li style={{ display: 'list-item' }}>
+                            <li style={{ display: 'list-item', listStyleType: 'decimal' }}>
                                 <strong>Registration Period:</strong>
                                 <ol 
                                     className="pl-6 mt-1 space-y-1"
-                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem', counterReset: 'subitem' }}
                                 >
-                                    <li style={{ display: 'list-item' }}>
+                                    <li style={{ display: 'list-item', listStyleType: 'lower-roman' }}>
                                         Registration is opened from 1 December 2025 until the maximum quota has been fulfilled.
                                     </li>
                                 </ol>
                             </li>
 
-                            <li style={{ display: 'list-item' }}>
+                            <li style={{ display: 'list-item', listStyleType: 'decimal' }}>
                                 <strong>Registration Platform:</strong>
                                 <ol 
                                     className="pl-6 mt-1 space-y-1"
-                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem', counterReset: 'subitem' }}
                                 >
-                                    <li style={{ display: 'list-item' }}>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputrarun.com</a>.</li>
-                                    <li style={{ display: 'list-item' }}>Event organizers are not responsible for any consequences resulting from purchases made outside the official platform.</li>
+                                    <li style={{ display: 'list-item', listStyleType: 'lower-roman' }}>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputrarun.com</a>.</li>
+                                    <li style={{ display: 'list-item', listStyleType: 'lower-roman' }}>Event organizers are not responsible for any consequences resulting from purchases made outside the official platform.</li>
                                 </ol>
                             </li>
 
-                            <li style={{ display: 'list-item' }}>
+                            <li style={{ display: 'list-item', listStyleType: 'decimal' }}>
                                 <strong>Categories & Pricing:</strong>
                                 <ol 
                                     className="pl-6 mt-1 space-y-1"
-                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem', counterReset: 'subitem' }}
                                 >
-                                    <li style={{ display: 'list-item' }}>The registration fee is categorized based on the distance covered, as follows:
+                                    <li style={{ display: 'list-item', listStyleType: 'lower-roman' }}>The registration fee is categorized based on the distance covered, as follows:
                                         <ol 
                                             className="pl-6 mt-1 space-y-1"
-                                            style={{ listStyleType: 'lower-alpha', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem' }}
+                                            style={{ listStyleType: 'lower-alpha', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem', counterReset: 'subsubitem' }}
                                         >
-                                            <li style={{ display: 'list-item' }}>3 KM: Rp 130.000,- (Early Bird) | Rp 150.000,- (Normal Price)</li>
-                                            <li style={{ display: 'list-item' }}>5 KM: Rp 180.000,- (Early Bird) | Rp 200.000,- (Normal Price)</li>
-                                            <li style={{ display: 'list-item' }}>10 KM: Rp 220.000,- (Early Bird) | Rp 250.000,- (Normal Price)</li>
+                                            <li style={{ display: 'list-item', listStyleType: 'lower-alpha' }}>3 KM: Rp 130.000,- (Early Bird) | Rp 150.000,- (Normal Price)</li>
+                                            <li style={{ display: 'list-item', listStyleType: 'lower-alpha' }}>5 KM: Rp 180.000,- (Early Bird) | Rp 200.000,- (Normal Price)</li>
+                                            <li style={{ display: 'list-item', listStyleType: 'lower-alpha' }}>10 KM: Rp 220.000,- (Early Bird) | Rp 250.000,- (Normal Price)</li>
                                         </ol>
+                                    </li>
+                                </ol>
+                            </li>
+
+                            <li style={{ display: 'list-item', listStyleType: 'decimal' }}>
+                                <strong>Registration Status:</strong>
+                                <ol 
+                                    className="pl-6 mt-1 space-y-1"
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem', counterReset: 'subitem' }}
+                                >
+                                    <li style={{ display: 'list-item', listStyleType: 'lower-roman' }}>
+                                        Registration will be declared successful and valid after the participant has made full payment. The organizer will send a confirmation email as proof of ticket purchase.
+                                    </li>
+                                </ol>
+                            </li>
+
+                            <li style={{ display: 'list-item', listStyleType: 'decimal' }}>
+                                <strong>Data Accuracy:</strong>
+                                <ol 
+                                    className="pl-6 mt-1 space-y-1"
+                                    style={{ listStyleType: 'lower-roman', listStylePosition: 'outside', paddingLeft: '1.5rem', marginTop: '0.25rem', counterReset: 'subitem' }}
+                                >
+                                    <li style={{ display: 'list-item', listStyleType: 'lower-roman' }}>
+                                        Participants are required to complete the registration form with accurate personal information, including but not limited to name, date of birth, email address, and phone number. Once the registration is submitted, the data cannot be changed under any circumstances.
+                                    </li>
+                                    <li>
+                                        Errors in data entry that result in the cancellation of results or prizes are entirely the responsibility of the participants.
+                                    </li>
+                                </ol>
+                            </li>
+                            <li>
+                                <strong>Quota: </strong>
+                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
+                                    <li>
+                                        The organizer reserves the right to close ticket sales if the quota has been met without prior notice.
+                                    </li>
+                                </ol>
+                            </li>
+                            <li>
+                                <strong>Ticket Transfer: </strong>
+                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
+                                    <li>
+                                        Reselling tickets is prohibited.
+                                    </li>
+                                </ol>
+                            </li>
+                            <li>
+                                <strong>Category Changes: </strong>
+                                <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
+                                    <li>
+                                        Participants are not allowed to change the distance category.
                                     </li>
                                 </ol>
                             </li>
