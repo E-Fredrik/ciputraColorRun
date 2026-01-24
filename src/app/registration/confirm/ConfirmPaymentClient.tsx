@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useContext } from "react";
 import TutorialModal from "../../components/TutorialModal";
 import { showToast } from "../../../lib/toast";
-import { uploadFileInChunks } from "@/lib/fileUpload";
+// import { uploadFileInChunks } from "@/lib/fileUpload";
 import { CartContext } from "@/context/CartContext"; // Add this import
 
 export default function ConfirmPaymentClient() {
@@ -483,7 +483,7 @@ export default function ConfirmPaymentClient() {
                     <div className="mb-6">
                         <h3 className="font-semibold mb-3">Order Summary:</h3>
                         <div className="space-y-2">
-                            {items.map((item, idx) => {
+                            {items.map((item: any, idx: number) => {
     const itemKey = item.id ?? `item-${idx}`;
 
     // If community/family, build JSX list of pairs with keys
@@ -711,7 +711,7 @@ export default function ConfirmPaymentClient() {
                                 <div className="space-y-3">
                                     <h4 className="font-bold text-gray-900 text-base">Order Summary:</h4>
                                     <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
-                                        {items.map((item, idx) => {
+                                        {items.map((item: any, idx: number) => {
     const itemKey = item.id ?? `item-${idx}`;
 
     // If community/family, build JSX list of pairs with keys

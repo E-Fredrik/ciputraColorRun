@@ -36,7 +36,7 @@ const CartItem = ({ item }: { item: any }) => {
               {Object.entries(item.jerseys).map(([size, quantity]) =>
                 quantity ? (
                   <li key={size}>
-                    {size}: {quantity}
+                    {size}: {String(quantity)}
                     {/* Show extra charge indicator */}
                     {(size === "XXL" || size === "3L" || size === "4L" || size === "5L") && (
                       <span className="text-orange-500 ml-1">(+10k each)</span>

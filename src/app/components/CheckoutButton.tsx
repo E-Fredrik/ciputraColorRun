@@ -15,14 +15,14 @@ const CheckoutButton = ({ onCheckout }: CheckoutButtonProps) => {
 
   const handleCheckout = () => {
     if (cart.length === 0) {
-      showToast("Your cart is empty", "error");
+      showToast("Your cart is empty, please add item to cart before checking out.", "error");
       return;
     }
 
-    const communityItems = cart.filter((item) => item.type === "community");
+    const communityItems = cart.filter((item: any) => item.type === "community");
     if (communityItems.length > 0) {
       const totalCommunityParticipants = communityItems.reduce(
-        (total, item) => total + Number(item.participants || 0),
+        (total: number, item: any) => total + Number(item.participants || 0),
         0
       );
       if (totalCommunityParticipants < 10) {
@@ -69,7 +69,7 @@ const CheckoutButton = ({ onCheckout }: CheckoutButtonProps) => {
     // Build cart registration data with proper structure
     const cartRegistrationData = {
       type: "cart",
-      items: cart.map((item) => ({
+      items: cart.map((item: any) => ({
         id: item.id,
         type: item.type,
         categoryId: item.categoryId,
@@ -79,10 +79,8 @@ const CheckoutButton = ({ onCheckout }: CheckoutButtonProps) => {
         jerseyCharges: Number(item.jerseyCharges || 0),
         jerseys: item.jerseys || {},
         jerseySize: item.jerseySize || null,
-        groupName: item.groupName || userDetails.groupName || "",
       })),
       userDetails,
-      // Also include at top level for easier access
       existingIdCardPhotoUrl: existingIdCardPhotoUrl,
       idCardUrl: existingIdCardPhotoUrl,
     };
