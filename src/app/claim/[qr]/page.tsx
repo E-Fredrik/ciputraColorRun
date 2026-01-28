@@ -73,7 +73,7 @@ export default function ClaimPage() {
             </div>
             <div className="flex gap-3">
               <button type="submit" className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all">Unlock</button>
-              <button type="button" onClick={() => router.push('/')} className="px-4 py-3 bg-gray-100 rounded-lg">Cancel</button>
+              <button type="button" onClick={() => router.push('/')} className="px-4 py-3 bg-gray-500 rounded-lg">Cancel</button>
             </div>
           </form>
         </div>
@@ -178,6 +178,11 @@ export default function ClaimPage() {
   const registration = qrData.registration;
   const participants = registration.participants || [];
 
+  // Determine if this registration is a community/group registration
+  const regType = registration.registrationType || registration.type || registration.registration_type;
+  const groupName = registration.groupName || registration.group_name || registration.user?.name;
+  const isCommunity = String(regType || '').toLowerCase() === 'community';
+
   // Group participants by race category name (fallback "Unassigned")
   const groupedByCategory: Record<string, any[]> = {};
   participants.forEach((p: any) => {
@@ -208,7 +213,7 @@ export default function ClaimPage() {
                 Race Pack Claim
               </h1>
               <p className="text-lg text-gray-700 font-semibold">
-                {registration.user?.name || "Unknown Participant"}
+                {isCommunity ? (groupName || registration.user?.name || "Community Registration") : (registration.user?.name || "Unknown Participant")}
               </p>
             </div>
             <div className="hidden md:block w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-lg">
@@ -287,7 +292,7 @@ export default function ClaimPage() {
                               {p.bibNumber || `#${p.id}`}
                             </div>
                             <div className="text-xs text-gray-600 mt-0.5">
-                              {p.fullName || p.participantName || registration.user?.name || "Participant"}
+                              {isCommunity ? (groupName || registration.user?.name || "Community") : (p.fullName || p.participantName || registration.user?.name || "Participant")}
                             </div>
                           </div>
                         </div>
