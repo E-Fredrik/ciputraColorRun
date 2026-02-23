@@ -507,7 +507,7 @@ export default function NavBar() {
                     {/* MOBILE HELP PANEL - Fixed positioning to viewport */}
                     {isMenuOpen && isHelpOpen && (
                         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4 md:hidden pt-32">
-                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[70vh] overflow-y-auto">
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[70vh] overflow-y-auto pt-32 md:pt-0">
                                 <div className="sticky top-0 bg-white p-4 border-b border-gray-200 flex items-center justify-between rounded-t-2xl z-10">
                                     <h3 className="text-lg font-semibold text-gray-800">Help & Support</h3>
                                     <button
