@@ -315,7 +315,8 @@ html, body {
 /* Navbar hide on scroll */
 .nav-glass {
   transition: transform 260ms cubic-bezier(.2,.9,.2,1), opacity 260ms ease, box-shadow 260ms ease;
-  transform: translateY(0);
+  /* Don't apply a base transform so that fixed-position children (like modals)
+     remain anchored to the viewport instead of this navbar container. */
   will-change: transform, opacity;
 }
 

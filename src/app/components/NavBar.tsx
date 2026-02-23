@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { User, Menu, X, HelpCircle, MessageCircle, PenTool, ShoppingCart } from "lucide-react";
+import { User, Menu, X, HelpCircle, MessageCircle, PenTool, ShoppingCart, FileText } from "lucide-react";
 import { useState, useEffect, useRef, useContext } from "react";
 import { CartContext } from "@/context/CartContext";
 
@@ -11,6 +11,7 @@ import { useRouter, usePathname } from "next/navigation";
 export default function NavBar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isHelpOpen, setIsHelpOpen] = useState(false);
+    const [isAuthorizationModalOpen, setIsAuthorizationModalOpen] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
     const { cart, toggleCart } = useContext(CartContext);
@@ -313,6 +314,19 @@ export default function NavBar() {
                                                             </span>
                                                         </a>
                                                     </div>
+                                                    {/* Authorization Letter entry (desktop help) */}
+                                                    <div className="mt-6 pt-4 border-t border-gray-200">
+                                                        <button
+                                                            onClick={() => setIsAuthorizationModalOpen(true)}
+                                                            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-sm font-semibold transition-colors"
+                                                        >
+                                                            <span>Authorization Letter (Surat Kuasa)</span>
+                                                            <FileText size={18} className="text-emerald-600" />
+                                                        </button>
+                                                        <p className="mt-2 text-xs text-gray-500">
+                                                            Use this if someone else will collect your race pack for you.
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -497,6 +511,69 @@ export default function NavBar() {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Authorization Letter entry (mobile help) */}
+                                    <div className="pt-2 border-t border-gray-200">
+                                        <button
+                                            onClick={() => setIsAuthorizationModalOpen(true)}
+                                            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-sm font-semibold transition-colors"
+                                        >
+                                            <span>Authorization Letter (Surat Kuasa)</span>
+                                            <FileText size={18} className="text-emerald-600" />
+                                        </button>
+                                        <p className="mt-2 text-xs text-gray-500">
+                                            Learn how to authorize someone else to collect your race pack.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {/* Global Authorization Letter modal */}
+                    {isAuthorizationModalOpen && (
+                        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 transform -translate-x-1/2 -translate-y-1/2">
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative top-1/2 left-1/2">
+                                <button
+                                    onClick={() => setIsAuthorizationModalOpen(false)}
+                                    className="absolute top-3 right-3 p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+                                    aria-label="Close authorization modal"
+                                >
+                                    <X size={20} />
+                                </button>
+                                <div className="p-6 space-y-5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                                            <FileText size={24} className="text-emerald-600" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900">
+                                                Authorization Letter (Surat Kuasa)
+                                            </h3>
+                                            <p className="text-sm text-gray-600">
+                                                Go to the authorization letter page to download the official template
+                                                for authorizing someone else to collect your race pack.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() => {
+                                            setIsAuthorizationModalOpen(false);
+                                            setIsHelpOpen(false);
+                                            setIsMenuOpen(false);
+                                            router.push("/authorization-letter");
+                                        }}
+                                        className="w-full px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-full transition-all shadow-lg hover:shadow-xl"
+                                    >
+                                        Go to Authorization Letter Page
+                                    </button>
+
+                                    <button
+                                        onClick={() => setIsAuthorizationModalOpen(false)}
+                                        className="w-full mt-2 px-6 py-3 bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-sm font-medium rounded-full transition-all"
+                                    >
+                                        Maybe later
+                                    </button>
                                 </div>
                             </div>
                         </div>
