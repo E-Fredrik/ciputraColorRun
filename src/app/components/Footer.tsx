@@ -119,7 +119,7 @@ export default function Footer() {
       </div>
 
       {/* Sponsors Section */}
-      <div className="mt-10 text-center" data-aos="fade-up">
+      <div className="bg-gradient-to-r from-gray-800 to-gray-700 mt-0 py-8 sm:py-10 text-center" data-aos="fade-up">
         <h3 className="text-white font-semibold text-lg mb-4">Supported By</h3>
 
         <div className="flex justify-center items-center gap-6 flex-wrap">
