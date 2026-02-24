@@ -29,24 +29,35 @@ export async function GET() {
 
     console.log('[API] Found categories:', categories.length);
 
-    // compute remaining early-bird per category using EarlyBirdClaim count
-    const categoriesWithRemaining = await Promise.all(
-      categories.map(async (c) => {
-        const claims = await prisma.earlyBirdClaim.count({ where: { categoryId: c.id } });
-        const remaining =
-          typeof c.earlyBirdCapacity === "number" ? Math.max(0, c.earlyBirdCapacity - claims) : null;
-        console.log(`[API] Category ${c.name}: capacity=${c.earlyBirdCapacity}, claims=${claims}, remaining=${remaining}`);
-        return { ...c, earlyBirdRemaining: remaining };
-      })
-    );
+    // Optimized early bird count
+    const earlyBirdCounts = await prisma.earlyBirdClaim.groupBy({
+      by: ['categoryId'],
+      _count: {
+        categoryId: true,
+      },
+    });
 
-    console.log('[API] Returning categories with remaining:', categoriesWithRemaining);
-    return NextResponse.json(categoriesWithRemaining);
-  } catch (err: any) {
-    console.error("GET /api/categories error:", err);
-    return NextResponse.json(
-      { error: "failed to load categories", details: err?.message },
-      { status: 500 }
-    );
+    // Create a map for quick lookups
+    const claimsMap = new Map<number, number>();
+    for (const group of earlyBirdCounts) {
+      claimsMap.set(group.categoryId, group._count.categoryId);
+    }
+
+    const categoriesWithRemaining = categories.map((c: any) => {
+      const claims = claimsMap.get(c.id) || 0;
+      const remaining = Math.max(0, (c.earlyBirdCapacity ?? 0) - claims);
+      console.log(`[API] Category ${c.name}: ${claims} claims, ${remaining} remaining`);
+      return { ...c, earlyBirdRemaining: remaining };
+    });
+
+    return NextResponse.json(categoriesWithRemaining, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    });
+  } catch (error) {
+    console.error('[API] Error fetching categories:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return NextResponse.json({ error: 'Failed to fetch categories', details: errorMessage }, { status: 500 });
   }
 }

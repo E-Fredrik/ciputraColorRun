@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { authenticateAdmin, unauthorizedResponse } from '../../middleware/auth';
 import nodemailer from 'nodemailer';
 
@@ -26,77 +26,62 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing registrationId' }, { status: 400 });
     }
 
-    // Get registration details before updating
+    // Get registration details before updating (include payment relation to get payment id)
     const registrationBefore = await prisma.registration.findUnique({
       where: { id: registrationId },
-      include: { user: true },
+      include: { user: true, payment: true },
     });
-
+ 
     if (!registrationBefore) {
       return NextResponse.json({ error: 'Registration not found' }, { status: 404 });
     }
 
-    // Update both payment records and registration status inside a transaction
-    const registration = await prisma.$transaction(async (tx) => {
-      // mark pending payments as declined
-      await tx.payment.updateMany({
-        where: { registrationId, status: 'pending' },
-        data: { status: 'declined' },
-      });
-
-      // update registration status to declined
-      const reg = await tx.registration.update({
-        where: { id: registrationId },
-        data: { paymentStatus: 'declined' },
-        include: { user: true },
-      });
-
-      // Restore early-bird capacity
-      const participants = await tx.participant.findMany({
-        where: { registrationId },
-        select: { categoryId: true },
-      });
-
-      if (participants && participants.length > 0) {
-        const categoryMap: Record<number, number> = {};
-        participants.forEach((p) => {
-          const cid = typeof p.categoryId === "number" ? p.categoryId : null;
-          if (cid === null) return; // skip participants without a category
-          categoryMap[cid] = (categoryMap[cid] || 0) + 1;
-        });
+    // Track if this was previously confirmed (to skip email notification)
+    const wasConfirmed = registrationBefore.paymentStatus === 'confirmed';
  
-        for (const [catIdStr, count] of Object.entries(categoryMap)) {
-          const catId = Number(catIdStr);
-          const claims = await tx.earlyBirdClaim.findMany({
-            where: { categoryId: catId },
-            orderBy: { id: 'desc' },
-            take: count,
-          });
-          if (claims.length > 0) {
-            const claimsToRemove = claims.slice(0, Math.min(count, claims.length));
-            await tx.earlyBirdClaim.deleteMany({
-              where: { id: { in: claimsToRemove.map((c) => c.id) } },
-            });
-          }
-        }
-      }
-
+    // Update both payment records and registration status inside a transaction
+    const paymentIdForReg = registrationBefore.payment?.id ?? null;
+    const registration = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+       // If this registration belongs to a transaction-level payment, decline that payment (by id)
+       if (paymentIdForReg) {
+         await tx.payment.updateMany({
+           where: { id: paymentIdForReg },
+           data: { status: 'declined' },
+         });
+       } else {
+         // Fallback for legacy rows where Payment may have registrationId field
+         await tx.payment.updateMany({
+           where: { registrationId } as any,
+           data: { status: 'declined' },
+         });
+       }
+ 
+       // update registration status to declined
+       const reg = await tx.registration.update({
+         where: { id: registrationId },
+         data: { paymentStatus: 'declined' },
+         include: { user: true },
+       });
+ 
       return reg;
     });
 
-    // Send decline notification email
-    if (registration.user?.email) {
+    // Send decline notification email ONLY if payment was not previously confirmed
+    if (!wasConfirmed && registration.user?.email) {
       try {
         await sendDeclineEmail(
           registration.user.email,
-          registration.user.name,
+          registration.user.name || "Participant",
           registrationId,
           declineReason
         );
+        console.log('[payments/decline] Decline email sent to:', registration.user.email);
       } catch (emailError) {
         console.error('Failed to send decline email:', emailError);
         // Don't fail the request if email fails
       }
+    } else if (wasConfirmed) {
+      console.log('[payments/decline] Skipping email notification - payment was previously confirmed');
     }
 
     return NextResponse.json({ success: true, registration });
