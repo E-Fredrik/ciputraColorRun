@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import Image from "next/image";
+import "../styles/homepage.css";
 
 export default function Footer() {
   useEffect(() => {
@@ -25,7 +26,30 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className="bg-transparent mt-8">
+    <footer className="bg-transparent">
+      {/* Sponsors Section */}
+      <div className="bg-white mt-0 py-8 sm:py-10 text-center" data-aos="fade-up">
+        <h3 className="text-gradient-supported font-extrabold text-lg mb-4">Supported By</h3>
+        <div className="flex justify-center items-center gap-6 flex-wrap">
+          <div className="relative w-24 h-24 sm:w-28 sm:h-28">
+            <Image
+              src="/images/ALFAGIFT.png"
+              alt="Sponsor 1"
+              fill
+              className="object-contain opacity-80 hover:opacity-100 transition"
+            />
+          </div>
+
+          <div className="relative w-24 h-24 sm:w-28 sm:h-28">
+            <Image
+              src="/images/Oxycan Samator logo.png"
+              alt="Sponsor 2"
+              fill
+              className="object-contain opacity-80 hover:opacity-100 transition"
+            />
+          </div>
+        </div>
+      </div>
       {/* Contact Section */}
       <div className="bg-gradient-to-r from-gray-800 to-gray-700 py-8 sm:py-12 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
@@ -118,30 +142,7 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Sponsors Section */}
-      <div className="bg-gradient-to-r from-gray-800 to-gray-700 mt-0 py-8 sm:py-10 text-center" data-aos="fade-up">
-        <h3 className="text-white font-semibold text-lg mb-4">Supported By</h3>
-
-        <div className="flex justify-center items-center gap-6 flex-wrap">
-          <div className="relative w-24 h-24 sm:w-28 sm:h-28">
-            <Image
-              src="/images/ALFAGIFT.png"
-              alt="Sponsor 1"
-              fill
-              className="object-contain opacity-80 hover:opacity-100 transition"
-            />
-          </div>
-
-          <div className="relative w-24 h-24 sm:w-28 sm:h-28">
-            <Image
-              src="/images/Oxycan Samator logo.png"
-              alt="Sponsor 2"
-              fill
-              className="object-contain opacity-80 hover:opacity-100 transition"
-            />
-          </div>
-        </div>
-      </div>
+      
 
       {/* Copyright */}
       <div className="bg-gray-900 py-3">
