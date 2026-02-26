@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Package, User, Calendar, MapPin, Search, Eye, X } from 'lucide-react';
+import { Package, User, Calendar, MapPin, Search, Eye, CheckCircle, Clock, Filter, ChevronDown } from 'lucide-react';
 import { showToast } from '../../../lib/toast';
 import { getImageUrl, getPaymentProofUrl } from '../../../lib/imageUrl';
 
@@ -60,6 +60,10 @@ export default function ClaimPacksPage() {
   const [selectedRegistration, setSelectedRegistration] = useState<any | null>(null);
   const [showRegModal, setShowRegModal] = useState(false);
   const [loadingConfirmed, setLoadingConfirmed] = useState(false);
+
+  // Category filter for confirmed registrations
+  const [categoryFilter, setCategoryFilter] = useState<'all' | '3k' | '5k' | '10k'>('all');
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
   const STAFF_PASSWORD = process.env.NEXT_PUBLIC_CLAIM_PAGE_PASS;
 
@@ -149,6 +153,39 @@ export default function ClaimPacksPage() {
       )
     );
   });
+
+  // Count participants per category across ALL confirmed registrations (ignoring search)
+  const categoryCounts = confirmedRegs.reduce<{ all: number; '3k': number; '5k': number; '10k': number }>(
+    (acc, reg) => {
+      const participants = reg.participants || [];
+      participants.forEach((p: any) => {
+        const catName = (p.category?.name || '').toLowerCase().replace(/\s+/g, '');
+        acc.all += 1;
+        if (catName.includes('3k') || catName === '3km') acc['3k'] += 1;
+        else if (catName.includes('5k') || catName === '5km') acc['5k'] += 1;
+        else if (catName.includes('10k') || catName === '10km') acc['10k'] += 1;
+      });
+      return acc;
+    },
+    { all: 0, '3k': 0, '5k': 0, '10k': 0 }
+  );
+
+  // Apply the category filter on top of search-filtered results
+  const filteredConfirmedByCategory = categoryFilter === 'all'
+    ? filteredConfirmed
+    : filteredConfirmed
+        .map((reg: any) => {
+          const matchedParticipants = (reg.participants || []).filter((p: any) => {
+            const catName = (p.category?.name || '').toLowerCase().replace(/\s+/g, '');
+            if (categoryFilter === '3k') return catName.includes('3k') || catName === '3km';
+            if (categoryFilter === '5k') return catName.includes('5k') || catName === '5km';
+            if (categoryFilter === '10k') return catName.includes('10k') || catName === '10km';
+            return false;
+          });
+          if (matchedParticipants.length === 0) return null;
+          return { ...reg, participants: matchedParticipants };
+        })
+        .filter(Boolean);
 
   const totalPacksClaimed = claims.reduce((sum, claim) => sum + claim.packsClaimedCount, 0);
   const uniqueStaff = new Set(claims.map(claim => claim.claimedBy)).size;
@@ -327,6 +364,41 @@ export default function ClaimPacksPage() {
           </div>
         </div>
 
+        {/* Category Filter Tabs - only show when on Confirmed Registrations tab */}
+        {activeTab === 'confirmed' && (
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-4">
+            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">Filter by Category</p>
+            <div className="flex flex-wrap gap-2">
+              {([
+                { key: 'all' as const, label: 'All Categories' },
+                { key: '3k' as const, label: '3K' },
+                { key: '5k' as const, label: '5K' },
+                { key: '10k' as const, label: '10K' },
+              ]).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setCategoryFilter(key)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                    categoryFilter === key
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {label}
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                    categoryFilter === key
+                      ? 'bg-white/25 text-white'
+                      : 'bg-gray-300 text-gray-600'
+                  }`}>
+                    {categoryCounts[key]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+
         {/* Claims List Tab */}
         {activeTab === 'claims' && (
         <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6">
@@ -404,81 +476,78 @@ export default function ClaimPacksPage() {
         {activeTab === 'confirmed' && (
           <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Confirmed Registrations</h2>
-            
             {loadingConfirmed ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-emerald-600 mx-auto mb-4"></div>
                 <p className="text-gray-600">Loading confirmed registrations...</p>
               </div>
-            ) : filteredConfirmed.length === 0 ? (
-              <div className="text-center py-12">
-                <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 text-lg">No confirmed registrations found</p>
-                {searchTerm && (
-                  <p className="text-gray-500 text-sm mt-2">
-                    Try adjusting your search terms
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredConfirmed.map((reg) => {
-                  // Get unique categories
-                  const categories = [...new Set(reg.participants?.map((p: any) => p.category?.name).filter(Boolean))];
-                  const participantCount = reg.participants?.length || 0;
-                  
-                  return (
-                    <div key={reg.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-800 mb-1">
-                            {reg.user?.name || "Unknown"}
-                          </h3>
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {categories.map((cat, idx) => (
-                              <span key={idx} className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">
-                                {String(cat)}
-                              </span>
-                            ))}
+            ) : (() => {
+              // Filter registrations by search + category
+              const displayed = filteredConfirmed
+                .map((reg: any) => {
+                  if (categoryFilter === 'all') return reg;
+                  const matched = (reg.participants || []).filter((p: any) => {
+                    const cat = (p.category?.name || '').toLowerCase().replace(/\s+/g, '');
+                    return cat.includes(categoryFilter);
+                  });
+                  if (matched.length === 0) return null;
+                  return { ...reg, participants: matched };
+                })
+                .filter(Boolean);
+
+              if (displayed.length === 0) return (
+                <div className="text-center py-12">
+                  <p className="text-gray-600 text-lg">No confirmed registrations found</p>
+                  {(searchTerm || categoryFilter !== 'all') && (
+                    <p className="text-gray-500 text-sm mt-2">Try adjusting your search or category filter</p>
+                  )}
+                </div>
+              );
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {displayed.map((reg: any) => {
+                    const categories = [...new Set((reg.participants || []).map((p: any) => p.category?.name).filter(Boolean))];
+                    const participantCount = reg.participants?.length || 0;
+
+                    return (
+                      <div key={reg.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-all bg-white">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-800 mb-1">{reg.user?.name || "Unknown"}</h3>
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {categories.map((cat: any, idx: number) => (
+                                <span key={idx} className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">
+                                  {String(cat)}
+                                </span>
+                              ))}
+                            </div>
                           </div>
+                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">Confirmed</span>
                         </div>
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">
-                          Confirmed
-                        </span>
-                      </div>
-                      
-                      <div className="space-y-1 text-sm text-gray-600 mb-3">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          <span className="capitalize">{reg.registrationType}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Package className="w-4 h-4" />
-                          <span>{participantCount} participant{participantCount !== 1 ? 's' : ''}</span>
-                        </div>
-                        {reg.groupName && (
+                        <div className="space-y-1 text-sm text-gray-600 mb-3">
                           <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            <span className="truncate">{reg.groupName}</span>
+                            <User className="w-4 h-4" />
+                            <span className="capitalize">{reg.registrationType}</span>
                           </div>
-                        )}
+                          <div className="flex items-center gap-2">
+                            <Package className="w-4 h-4" />
+                            <span>{participantCount} participant{participantCount !== 1 ? 's' : ''}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => { setSelectedRegistration(reg); setShowRegModal(true); }}
+                          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all font-semibold shadow-md"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View Full Details
+                        </button>
                       </div>
-                      
-                      <button
-                        onClick={() => {
-                          setSelectedRegistration(reg);
-                          setShowRegModal(true);
-                        }}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all font-semibold shadow-md"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View Full Details
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
