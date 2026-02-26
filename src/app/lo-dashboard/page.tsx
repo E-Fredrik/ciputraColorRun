@@ -72,6 +72,18 @@ interface StatusCounts {
   declined: number;
 }
 
+interface DailyStatsData {
+  days: {
+    date: string;
+    categories: Record<string, number>;
+    total: number;
+  }[];
+  todaySummary: Record<string, number>;
+  todayKey: string;
+  from: string;
+  to: string;
+}
+
 // Helper to detect file type
 function getFileType(path?: string): 'pdf' | 'image' | 'unknown' {
   if (!path) return 'unknown';
