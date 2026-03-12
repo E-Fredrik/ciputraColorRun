@@ -621,6 +621,13 @@ export default function RegistrationPage() {
       return /^0\d{8,14}$/.test(cleaned);
     }
 
+    function isValidEmergencyPhone(value: string) {
+      // Accept local format (starting with 0) or international format (starting with +).
+      // Minimum 8 digits total (excluding the + sign).
+      const cleaned = (value || "").replace(/[\s-]/g, "");
+      return /^(0\d{7,}|\+\d{7,})$/.test(cleaned);
+    }
+
     function validatePersonalDetails(): boolean {
         if (!fullName) {
             showToast("Please fill in your Full Name", "error");
@@ -691,8 +698,8 @@ export default function RegistrationPage() {
             return false;
         }
         // validate emergency phone format as well
-        if (!isValidPhone(emergencyPhone)) {
-            showToast("Please enter a valid emergency contact number starting with 0 (e.g. 081234567890)", "error");
+        if (!isValidEmergencyPhone(emergencyPhone)) {
+            showToast("Please enter a valid emergency contact number (e.g. 081234567890 or +6281234567890), minimum 8 digits", "error");
             return false;
         }
     }
