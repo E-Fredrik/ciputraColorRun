@@ -606,19 +606,19 @@ export default function RegistrationPage() {
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
     }
 
-    // Sanitize phone input: allow digits, spaces and dashes only (no letters)
+    // Sanitize phone input: allow digits, +, spaces and dashes only (no letters)
     function sanitizeLocalPhoneInput(value: string) {
-      // remove everything except digits, spaces and dashes
-      const cleaned = (value || "").replace(/[^\d\s-]/g, "");
+      // remove everything except digits, +, spaces and dashes
+      const cleaned = (value || "").replace(/[^\d\s\-+]/g, "");
       // optionally collapse multiple spaces
       return cleaned.replace(/\s{2,}/g, " ").trim();
     }
 
     function isValidPhone(value: string) {
-      // Require local-format phone starting with 0, digits only.
-      // Accepts 9..15 digits total (starts with 0). Example: 081234567890
+      // Accept local format (starting with 0) or international format (starting with +).
+      // Digits only after the prefix. Length 9..15 digits total.
       const cleaned = (value || "").replace(/[\s-]/g, "");
-      return /^0\d{8,14}$/.test(cleaned);
+      return /^(0\d{7,}|\+\d{7,})$/.test(cleaned);
     }
 
     function isValidEmergencyPhone(value: string) {
@@ -677,7 +677,7 @@ export default function RegistrationPage() {
     }
 
     if (!isValidPhone(phone)) {
-        showToast("Please enter a valid WhatsApp number starting with 0 (e.g. 081234567890), length 9 to 15 digits", "error");
+        showToast("Please enter a valid WhatsApp number starting with 0 or + (e.g. 081234567890 or +6281234567890), Minimal 8 digits", "error");
         return false;
     }
 
@@ -1317,8 +1317,8 @@ export default function RegistrationPage() {
                                     placeholder="0812 3456 7890"
                                     required
                                     inputMode="tel"
-                                    pattern="^0\d{8,14}$"
-                                    title="Enter a valid local phone number starting with 0 (e.g. 081234567890)"
+                                    pattern="^(0\d{8,14}|\+\d{8,14})$"
+                                    title="Enter a valid phone number starting with 0 or + (e.g. 081234567890 or +6281234567890)"
                                 />
                             </div>
                         </div>
