@@ -638,7 +638,7 @@ export default function RegistrationPage() {
             return false;
         }
         if (!phone) {
-            showToast("Please fill in your WhatsApp Number", "error");
+            showToast("Please fill in your Phone Number", "error");
             return false;
         }
         if (!birthDate) {
@@ -677,7 +677,7 @@ export default function RegistrationPage() {
     }
 
     if (!isValidPhone(phone)) {
-        showToast("Please enter a valid WhatsApp number starting with 0 or + (e.g. 081234567890 or +6281234567890), Minimal 8 digits", "error");
+        showToast("Please enter a valid phone number starting with 0 or + (e.g. 081234567890 or +6281234567890), Minimal 8 digits", "error");
         return false;
     }
 
