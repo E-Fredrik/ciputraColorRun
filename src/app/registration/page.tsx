@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo, useRef, useContext } from "react";
 import { showToast } from "../../lib/toast";
 import TutorialModal from "../components/TutorialModal";
+import CheckoutButton from "../components/CheckoutButton";
 import { CartContext } from "@/context/CartContext";
 import { useSessionState } from "@/hooks/useSessionState";
 
@@ -451,8 +452,8 @@ export default function RegistrationPage() {
     function getTotalCommunityParticipants(): number {
         // Sum all community participants already in the cart
         const cartCommunityTotal = cart
-            .filter((item) => item.type === "community")
-            .reduce((sum, item) => sum + Number(item.participants || 0), 0);
+            .filter((item: any) => item.type === "community")
+            .reduce((sum: number, item: any) => sum + Number(item.participants || 0), 0);
         return cartCommunityTotal;
     }
 
@@ -770,13 +771,13 @@ export default function RegistrationPage() {
         if (idCardPhoto instanceof File && !existingIdCardPhotoUrl) {
             try {
                 setIsSubmitting(true);
-                showToast("Uploading ID card...", "info");
+                // showToast("Uploading ID card...", "info");
                 resolvedIdCardUrl = await uploadFileInChunksLocal(idCardPhoto, "id-cards");
                 setExistingIdCardPhotoUrl(resolvedIdCardUrl);
                 setIdCardPhotoName(idCardPhoto.name);
                 // Save to session storage immediately
                 sessionStorage.setItem("reg_existingIdCardPhotoUrl", resolvedIdCardUrl);
-                showToast("ID card uploaded successfully", "success");
+                // showToast("ID card uploaded successfully", "success");
             } catch (e) {
                 console.error("[handleAddToCart] ID upload failed:", e);
                 showToast("Failed to upload ID card. Please try again.", "error");
@@ -906,8 +907,8 @@ export default function RegistrationPage() {
                 }
 
                 const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
-                if (totalJerseys !== category.bundleSize && totalJerseys > 0) {
-                    showToast(`Please complete jersey selection`, "error");
+                if (totalJerseys !== category.bundleSize) {
+                    showToast(`Please select exactly ${category.bundleSize} jerseys for the family bundle.`, "error");
                     return;
                 }
 
@@ -1682,10 +1683,17 @@ export default function RegistrationPage() {
                                             <div className="space-y-2 mb-3">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <span className="text-sm font-semibold text-gray-700">
-                                                        Base subtotal ({participants} people{getTotalCommunityParticipants() > 0 ? ` + ${getTotalCommunityParticipants()} in cart` : ""}):
+                                                        Base subtotal ({(() => {
+                                                            const cat = categories.find(c => c.id === categoryId);
+                                                            return cat?.bundleSize || 4;
+                                                        })()} people):
                                                     </span>
                                                     <span className="text-base font-bold text-emerald-700">
-                                                        Rp {(currentPrice * Number(participants || 0)).toLocaleString("id-ID")}
+                                                        Rp {(() => {
+                                                            const cat = categories.find(c => c.id === categoryId);
+                                                            const bundleSize = cat?.bundleSize || 4;
+                                                            return (currentPrice * bundleSize).toLocaleString("id-ID");
+                                                        })()}
                                                     </span>
                                                 </div>
                                                 {calculateJerseyCharges(jerseys) > 0 && (
@@ -2009,6 +2017,18 @@ export default function RegistrationPage() {
                                     )}
                                 </button>
                             </div>
+
+                            {/* Add Checkout Button for Cart Items */}
+                            {cart.length > 0 && (
+                                <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg">
+                                    <div className="text-center mb-3">
+                                        <p className="text-sm font-semibold text-gray-700">
+                                            You have {cart.length} item{cart.length > 1 ? 's' : ''} in your cart
+                                        </p>
+                                    </div>
+                                    <CheckoutButton />
+                                </div>
+                            )}
                         </div>
                     )}
 

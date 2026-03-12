@@ -114,6 +114,24 @@
     transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms ease;
 }
 
+.text-gradient-supported {
+  background: linear-gradient(
+    90deg,
+    /* #1a4d3a 0%,
+    #0d5c4a 35%,
+    #6b2d4a 65%,
+    #4a1a35 100% */
+    #eeeeee 0%,
+    #6f22be 25%,
+    #F581A4 60%,
+    #a70947 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
 /* Make button smaller on very small screens but still keep pill shape */
 @media (max-width: 640px) {
     .home_register_button {

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { X, User, Mail, Phone, Calendar, MapPin, AlertCircle, LogOut, FileText, IdCard, ExternalLink, Package } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, User, Mail, Phone, Calendar, MapPin, AlertCircle, LogOut, FileText, IdCard, ExternalLink, Package, BarChart2, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getImageUrl, getPaymentProofUrl } from '../../lib/imageUrl';
 
@@ -70,6 +70,18 @@ interface StatusCounts {
   pending: number;
   confirmed: number;
   declined: number;
+}
+
+interface DailyStatsData {
+  days: {
+    date: string;
+    categories: Record<string, number>;
+    total: number;
+  }[];
+  todaySummary: Record<string, number>;
+  todayKey: string;
+  from: string;
+  to: string;
 }
 
 // Helper to detect file type
@@ -426,6 +438,69 @@ export default function LODashboard() {
       .join(', ');
   };
 
+  // NEW: Daily stats state
+  const [dailyStats, setDailyStats] = useState<DailyStatsData | null>(null);
+  const [dailyStatsLoading, setDailyStatsLoading] = useState(false);
+  const [showDailyStats, setShowDailyStats] = useState(false);
+  const [statsFromDate, setStatsFromDate] = useState<string>(
+    () => new Date().toISOString().slice(0, 10)
+  );
+  const [statsToDate, setStatsToDate] = useState<string>(
+    () => new Date().toISOString().slice(0, 10)
+  );
+
+  // NEW: Midnight auto-reset
+  useEffect(() => {
+    if (!showDailyStats) return;
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5);
+    const ms = midnight.getTime() - now.getTime();
+    const timer = setTimeout(() => {
+      const today = new Date().toISOString().slice(0, 10);
+      setStatsFromDate(today);
+      setStatsToDate(today);
+      fetchDailyStats();
+    }, ms);
+    return () => clearTimeout(timer);
+  }, [showDailyStats]);
+
+  // NEW: Fetch daily stats
+  const fetchDailyStats = useCallback(async () => {
+    setDailyStatsLoading(true);
+    try {
+      const params = new URLSearchParams({ from: statsFromDate, to: statsToDate });
+      const res = await fetch(`/api/admin/daily-stats?${params}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDailyStats(data);
+      }
+    } catch (err) {
+      console.error('Error fetching daily stats:', err);
+    } finally {
+      setDailyStatsLoading(false);
+    }
+  }, [statsFromDate, statsToDate]);
+
+  // NEW: Category color helper
+  const getCategoryColor = (catName: string) => {
+    const name = catName.toLowerCase().replace(/\s+/g, '');
+    if (name.includes('3k')) return { bg: 'bg-emerald-500/20', text: 'text-emerald-300', border: 'border-emerald-500/40' };
+    if (name.includes('5k')) return { bg: 'bg-blue-500/20', text: 'text-blue-300', border: 'border-blue-500/40' };
+    if (name.includes('10k')) return { bg: 'bg-purple-500/20', text: 'text-purple-300', border: 'border-purple-500/40' };
+    return { bg: 'bg-[#73e9dd]/10', text: 'text-[#73e9dd]', border: 'border-[#73e9dd]/30' };
+  };
+
+  // NEW: Get count by fuzzy category key
+  const getCatCount = (categories: Record<string, number>, key: string) => {
+    const matchKey = Object.keys(categories).find(
+      k => k.toLowerCase().replace(/\s+/g, '').includes(key)
+    );
+    return matchKey ? categories[matchKey] : 0;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f1724] via-[#18181b] to-[#0f1724] p-3 sm:p-4 md:p-6 lg:p-8 pt-20 sm:pt-24">
       <div className="max-w-7xl mx-auto pt-16 sm:pt-20">
@@ -445,6 +520,237 @@ export default function LODashboard() {
             <span>Logout</span>
           </button>
         </div>
+
+        {/* ═══════════ DAILY REGISTRATION STATS SECTION ═══════════ */}
+        <div className="mb-6 sm:mb-8">
+          {/* Toggle Button */}
+          <button
+            onClick={() => {
+              setShowDailyStats(prev => {
+                if (!prev) fetchDailyStats();
+                return !prev;
+              });
+            }}
+            className="w-full flex items-center justify-between px-5 py-4 bg-[#1c1c1f] border border-[#73e9dd]/30 rounded-xl hover:border-[#73e9dd]/60 transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <BarChart2 size={20} className="text-[#73e9dd]" />
+              <span className="text-[#ffdfc0] font-bold text-base sm:text-lg">
+                Daily Registration Stats
+              </span>
+              {dailyStats && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs bg-[#73e9dd]/15 text-[#73e9dd] border border-[#73e9dd]/30">
+                  Today: {Object.values(dailyStats.todaySummary).reduce((s, c) => s + c, 0)} confirmed
+                </span>
+              )}
+            </div>
+            {showDailyStats
+              ? <ChevronUp size={18} className="text-[#73e9dd]" />
+              : <ChevronDown size={18} className="text-[#73e9dd]" />
+            }
+          </button>
+
+          {/* Expanded Panel */}
+          {showDailyStats && (
+            <div className="mt-2 bg-[#1c1c1f] border border-[#73e9dd]/20 rounded-xl p-4 sm:p-6 space-y-6">
+
+              {/* Date Range Controls */}
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-start sm:items-end">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-[#73e9dd]/60 font-semibold uppercase tracking-wider">From</label>
+                  <input
+                    type="date"
+                    value={statsFromDate}
+                    max={statsToDate}
+                    onChange={e => setStatsFromDate(e.target.value)}
+                    className="px-3 py-2 bg-[#18181b] border border-[#73e9dd]/30 text-[#ffdfc0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#73e9dd]/40"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-[#73e9dd]/60 font-semibold uppercase tracking-wider">To</label>
+                  <input
+                    type="date"
+                    value={statsToDate}
+                    min={statsFromDate}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={e => setStatsToDate(e.target.value)}
+                    className="px-3 py-2 bg-[#18181b] border border-[#73e9dd]/30 text-[#ffdfc0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#73e9dd]/40"
+                  />
+                </div>
+                <button
+                  onClick={fetchDailyStats}
+                  disabled={dailyStatsLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#73e9dd]/15 border border-[#73e9dd]/40 text-[#73e9dd] rounded-lg hover:bg-[#73e9dd]/25 transition-all text-sm font-semibold disabled:opacity-50"
+                >
+                  <RefreshCw size={14} className={dailyStatsLoading ? 'animate-spin' : ''} />
+                  {dailyStatsLoading ? 'Loading...' : 'Apply'}
+                </button>
+                {/* Quick Presets */}
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: 'Today', offset: 0 },
+                    { label: 'Last 7d', offset: 6 },
+                    { label: 'Last 30d', offset: 29 },
+                  ].map(preset => {
+                    const to = new Date().toISOString().slice(0, 10);
+                    const from = new Date(Date.now() - preset.offset * 86400000).toISOString().slice(0, 10);
+                    return (
+                      <button
+                        key={preset.label}
+                        onClick={() => { setStatsFromDate(from); setStatsToDate(to); }}
+                        className="px-3 py-2 bg-[#18181b] border border-[#73e9dd]/20 text-[#ffdfc0]/60 rounded-lg text-xs hover:border-[#73e9dd]/50 hover:text-[#ffdfc0] transition-all"
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Loading Spinner */}
+              {dailyStatsLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-4 border-[#73e9dd] border-t-transparent" />
+                </div>
+              )}
+
+              {/* Stats Content */}
+              {!dailyStatsLoading && dailyStats && (
+                <>
+                  {/* Today Summary Cards */}
+                  <div className="bg-[#18181b] rounded-xl p-4 sm:p-5 border border-[#73e9dd]/20">
+                    <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                      <h3 className="text-[#73e9dd] font-bold text-sm sm:text-base flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#73e9dd] animate-pulse inline-block" />
+                        Today —{' '}
+                        {new Date(dailyStats.todayKey + 'T00:00:00').toLocaleDateString('en-ID', {
+                          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+                        })}
+                      </h3>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-bold text-[#91dcac]">
+                          {Object.values(dailyStats.todaySummary).reduce((s, c) => s + c, 0)}
+                        </span>
+                        <span className="text-xs text-[#ffdfc0]/50">participants confirmed</span>
+                      </div>
+                    </div>
+                    {Object.keys(dailyStats.todaySummary).length === 0 ? (
+                      <p className="text-[#ffdfc0]/30 text-sm text-center py-6">No confirmed registrations today yet</p>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-3">
+                        {(['3k', '5k', '10k'] as const).map(key => {
+                          const count = getCatCount(dailyStats.todaySummary, key);
+                          const label = key.replace('k', 'K');
+                          const colors = getCategoryColor(key);
+                          return (
+                            <div key={key} className={`rounded-xl p-4 border ${colors.bg} ${colors.border} flex flex-col items-center gap-1`}>
+                              <span className={`text-xs font-bold uppercase tracking-wider ${colors.text}`}>{label}</span>
+                              <span className={`text-3xl font-extrabold ${colors.text}`}>{count}</span>
+                              <span className="text-[10px] text-[#ffdfc0]/40">participants</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* History Table */}
+                  {dailyStats.days.length === 0 ? (
+                    <div className="text-center py-12 text-[#ffdfc0]/30">
+                      <BarChart2 size={36} className="mx-auto mb-3 opacity-20" />
+                      <p className="text-sm">No confirmed registrations in this date range</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <h4 className="text-[#ffdfc0]/60 font-semibold text-xs uppercase tracking-wider mb-3">
+                        History — {dailyStats.days.length} day{dailyStats.days.length !== 1 ? 's' : ''}
+                      </h4>
+                      <div className="overflow-x-auto rounded-xl border border-[#73e9dd]/15">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-[#18181b] border-b border-[#73e9dd]/15">
+                              <th className="text-left px-4 py-3 text-[#73e9dd] font-semibold text-xs uppercase tracking-wide">Date</th>
+                              <th className="text-center px-4 py-3 text-emerald-300 font-semibold text-xs uppercase tracking-wide">3K</th>
+                              <th className="text-center px-4 py-3 text-blue-300 font-semibold text-xs uppercase tracking-wide">5K</th>
+                              <th className="text-center px-4 py-3 text-purple-300 font-semibold text-xs uppercase tracking-wide">10K</th>
+                              <th className="text-center px-4 py-3 text-[#91dcac] font-semibold text-xs uppercase tracking-wide">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {dailyStats.days.map((day, idx) => {
+                              const isToday = day.date === dailyStats.todayKey;
+                              const three = getCatCount(day.categories, '3k');
+                              const five = getCatCount(day.categories, '5k');
+                              const ten = getCatCount(day.categories, '10k');
+                              return (
+                                <tr
+                                  key={day.date}
+                                  className={`border-b border-[#73e9dd]/10 transition-colors ${
+                                    isToday
+                                      ? 'bg-[#73e9dd]/5 border-l-2 border-l-[#73e9dd]'
+                                      : idx % 2 === 0 ? 'bg-[#1c1c1f]' : 'bg-[#1a1a1d]'
+                                  }`}
+                                >
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      {isToday && <span className="w-1.5 h-1.5 rounded-full bg-[#73e9dd] animate-pulse flex-shrink-0" />}
+                                      <span className={isToday ? 'font-bold text-[#73e9dd]' : 'text-[#ffdfc0]'}>
+                                        {new Date(day.date + 'T00:00:00').toLocaleDateString('en-ID', {
+                                          weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+                                        })}
+                                      </span>
+                                      {isToday && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#73e9dd]/20 text-[#73e9dd] font-semibold">Today</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    {three > 0 ? <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 font-bold">{three}</span> : <span className="text-[#ffdfc0]/20">—</span>}
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    {five > 0 ? <span className="px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-300 font-bold">{five}</span> : <span className="text-[#ffdfc0]/20">—</span>}
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    {ten > 0 ? <span className="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 font-bold">{ten}</span> : <span className="text-[#ffdfc0]/20">—</span>}
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <span className="px-2.5 py-1 rounded-lg bg-[#91dcac]/15 text-[#91dcac] font-bold">{day.total}</span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                            {/* Grand Total Row */}
+                            {dailyStats.days.length > 1 && (() => {
+                              const gt = dailyStats.days.reduce(
+                                (acc, d) => ({
+                                  three: acc.three + getCatCount(d.categories, '3k'),
+                                  five: acc.five + getCatCount(d.categories, '5k'),
+                                  ten: acc.ten + getCatCount(d.categories, '10k'),
+                                  total: acc.total + d.total,
+                                }),
+                                { three: 0, five: 0, ten: 0, total: 0 }
+                              );
+                              return (
+                                <tr className="bg-[#18181b] border-t-2 border-[#73e9dd]/25">
+                                  <td className="px-4 py-3 text-[#73e9dd] font-bold text-xs uppercase tracking-wide">Grand Total</td>
+                                  <td className="px-4 py-3 text-center font-bold text-emerald-300">{gt.three || '—'}</td>
+                                  <td className="px-4 py-3 text-center font-bold text-blue-300">{gt.five || '—'}</td>
+                                  <td className="px-4 py-3 text-center font-bold text-purple-300">{gt.ten || '—'}</td>
+                                  <td className="px-4 py-3 text-center font-bold text-[#91dcac]">{gt.total}</td>
+                                </tr>
+                              );
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+        {/* ═══════════ END DAILY STATS ═══════════ */}
 
         {/* Status Tabs */}
         <div className="flex flex-wrap gap-2 sm:gap-3 mb-4 sm:mb-6">
@@ -798,7 +1104,7 @@ export default function LODashboard() {
                       return (
                         <div key={r.registrationId}>
                           <FileDisplay 
-                            src={imgUrl}
+                            src={imgUrl || ''} // coerce nullable -> string
                             originalPath={img}
                             alt={alt}
                             label={`ID Card - Reg #${r.registrationId}`}
@@ -817,7 +1123,7 @@ export default function LODashboard() {
                     {selectedPayment.user.nationality === 'WNI' ? 'KTP/ID Card' : 'Passport'}
                   </h3>
                   <FileDisplay 
-                    src={getImageUrl(selectedPayment.user.idCardPhoto)}
+                    src={String(getImageUrl(selectedPayment.user.idCardPhoto))}
                     originalPath={selectedPayment.user.idCardPhoto}
                     alt="ID Card"
                     label={selectedPayment.user.nationality === 'WNI' ? 'ID Card Document' : 'Passport Document'}
