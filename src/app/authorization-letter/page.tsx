@@ -41,7 +41,7 @@ export default function AuthorizationLetterPage() {
                             Surat Kuasa Pengambilan Race Pack
                         </h1>
                         <p className="text-white/90 text-center text-sm mt-2">
-                            Ciputra Color Run 2026
+                            Universitas Ciputra Color Run 2026
                         </p>
                     </div>
 

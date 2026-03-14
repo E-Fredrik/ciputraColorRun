@@ -297,7 +297,7 @@ export default function App() {
                   <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-linear-to-br from-[#FFF1C5] to-[#FFDFC0] border-2 border-white animate-pulse"></div>
                 </div>
                 <div>
-                  <span className="text-[#682950] tracking-wider">Ciputra Color Run 2026</span>
+                  <span className="text-[#682950] tracking-wider">Universitas Ciputra Color Run 2026</span>
                 </div>
               </div>
             </div>
@@ -386,7 +386,7 @@ export default function App() {
               {/* <div className="mb-6">
                 <div className="inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-[#FFF1C5]/80 to-[#FFDFC0]/80 backdrop-blur-xl border border-white/80 shadow-2xl">
                   <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#91DCAC] to-[#91DCAC] animate-pulse"></div>
-                  <p className="text-sm text-[#682950]">Ciputra Color Run 2026</p>
+                  <p className="text-sm text-[#682950]">Universitas Ciputra Color Run 2026</p>
                   <div className="w-2 h-2 rounded-full bg-gradient-to-r from-[#91DCAC] to-[#91DCAC] animate-pulse"></div>
                 </div>
               </div> */}

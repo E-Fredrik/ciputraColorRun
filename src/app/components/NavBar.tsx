@@ -237,7 +237,7 @@ export default function NavBar() {
                     <Link href="/" className="flex items-center">
                         <Image
                             src="/images/logo.png"
-                            alt="Ciputra Color Run Logo"
+                            alt="Universitas Ciputra Color Run Logo"
                             width={60}
                             height={60}
                             className="object-contain"

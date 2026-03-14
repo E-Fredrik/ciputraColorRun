@@ -107,7 +107,7 @@ export default function Home() {
 				<div className="text-center">
 					<div className="animate-spin rounded-full h-16 w-16 border-b-4 border-emerald-600 mx-auto mb-4"></div>
 					<p className="text-gray-600 font-semibold text-lg">
-						Loading Ciputra Color Run...
+						Loading Universitas Ciputra Color Run...
 					</p>
 				</div>
 			</div>
@@ -182,7 +182,7 @@ export default function Home() {
 				<div className="home_top_content">
 					<img
 						src="/images/logo.png"
-						alt="Ciputra Color Run Logo"
+						alt="Universitas Ciputra Color Run Logo"
 						className="home_top_logo pt-10"
 						data-aos="zoom-in"
 						data-aos-duration="1000"
@@ -195,7 +195,7 @@ export default function Home() {
 						data-aos-duration="1000"
 						data-aos-delay="300"
 					>
-						CIPUTRA COLOR RUN 2026
+						UNIVERSITAS CIPUTRA COLOR RUN 2026
 					</h1>
 
 					<CountdownTimer />
@@ -286,10 +286,10 @@ export default function Home() {
 							data-aos-duration="1200"
 						>
 							<h2 className="text-2xl md:text-4xl font-bold mb-4 md:mb-6 unified-gradient-title">
-								About Ciputra Color Run
+								About Universitas Ciputra Color Run
 							</h2>
 							<p className="text-sm text-justify md:text-lg text-[#1F6251] mb-3 leading-relaxed">
-								Ciputra Color Run is the most vibrant celebration of health and
+								Universitas Ciputra Color Run is the most vibrant celebration of health and
 								happiness in Surabaya. Proudly organized by the Student Council
 								of Universitas Ciputra, this annual Fun Run takes you through
 								CitraLand and ends with a twist.
@@ -301,7 +301,7 @@ export default function Home() {
 							<p className="text-sm text-justify md:text-lg text-[#1F6251] mb-5 leading-relaxed">
 								From casuals to professionals, individuals to families, everyone
 								is welcome to run and have fun with us. Let’s make colorful
-								memories at Ciputra Color Run 2026!
+								memories at Universitas Ciputra Color Run 2026!
 							</p>
 							<div className="flex flex-col sm:flex-row gap-3">
 								<Link
@@ -415,7 +415,7 @@ export default function Home() {
 					<table
 						className="pricing-table"
 						role="table"
-						aria-label="Ciputra Color Run Ticket Prices"
+						aria-label="Universitas Ciputra Color Run Ticket Prices"
 						data-aos="fade-up"
 						data-aos-delay="300"
 						data-aos-duration="900"

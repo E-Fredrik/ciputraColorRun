@@ -8,9 +8,9 @@ import ClientToaster from "./components/ClientToaster";
 import ShoppingCart from "./components/ShoppingCart";
 
 export const metadata: Metadata = {
-  title: "Ciputra Color Run 2026 - The Most Vibrant Fun Run in Surabaya",
-  description: "Join Ciputra Color Run 2026, the most vibrant celebration of health and happiness in Surabaya! Organized by Student Council of Universitas Ciputra. Register now for 3K, 5K, or 10K categories.",
-  keywords: "Ciputra Color Run, Ciputra Color Run 2026, color run Surabaya, fun run Surabaya, Universitas Ciputra, UC run, running event Surabaya, 3K 5K 10K run",
+  title: "Universitas Ciputra Color Run 2026 - The Most Vibrant Fun Run in Surabaya",
+  description: "Join Universitas Ciputra Color Run 2026, the most vibrant celebration of health and happiness in Surabaya! Organized by Student Council of Universitas Ciputra. Register now for 3K, 5K, or 10K categories.",
+  keywords: "Universitas Ciputra Color Run, Universitas Ciputra Color Run 2026, color run Surabaya, fun run Surabaya, Universitas Ciputra, UC run, running event Surabaya, 3K 5K 10K run",
   authors: [{ name: "Student Council Universitas Ciputra" }],
   
   // Primary metadata
@@ -21,16 +21,16 @@ export const metadata: Metadata = {
   
   // Open Graph
   openGraph: {
-    title: "Ciputra Color Run 2026",
+    title: "Universitas Ciputra Color Run 2026",
     description: "The most vibrant celebration of health and happiness in Surabaya. Join us on April 12, 2026!",
     url: "https://ciputrarun.com",
-    siteName: "Ciputra Color Run 2026",
+    siteName: "Universitas Ciputra Color Run 2026",
     images: [
       {
         url: "/images/logo.png",
         width: 1200,
         height: 630,
-        alt: "Ciputra Color Run 2026 Logo",
+        alt: "Universitas Ciputra Color Run 2026 Logo",
       },
     ],
     locale: "en_US",
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   // Twitter
   twitter: {
     card: "summary_large_image",
-    title: "Ciputra Color Run 2026",
+    title: "Universitas Ciputra Color Run 2026",
     description: "The most vibrant celebration of health and happiness in Surabaya",
     images: ["/images/logo.png"],
   },
@@ -97,7 +97,7 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "SportsEvent",
-              "name": "Ciputra Color Run 2026",
+              "name": "Universitas Ciputra Color Run 2026",
               "description": "The most vibrant celebration of health and happiness in Surabaya. Proudly organized by the Student Council of Universitas Ciputra.",
               "startDate": "2026-04-12T04:00:00+07:00",
               "endDate": "2026-04-12T09:30:00+07:00",

@@ -1169,7 +1169,7 @@ export default function RegistrationPage() {
         >
             <div className="mx-auto w-full max-w-5xl px-4">
                 <h1 className="text-4xl md:text-6xl text-center font-bold mb-8 tracking-wide unified-gradient-title font-moderniz">
-                    CIPUTRA COLOR RUN
+                    UNIVERSITAS CIPUTRA COLOR RUN
                 </h1>
 
                 <section className="bg-white/95 backdrop-blur-md rounded-lg p-8 md:p-10 shadow-lg text-gray-800" data-aos="zoom-in" data-aos-delay="200">
@@ -2210,16 +2210,16 @@ export default function RegistrationPage() {
 
                         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 text-gray-700 terms-content">
                             <h1 className="text-lg md:text-xl font-extrabold text-gray-900">
-                              TERMS AND CONDITIONS FOR PARTICIPANTS OF CIPUTRA COLOR RUN 2026
+                              TERMS AND CONDITIONS FOR PARTICIPANTS OF UNIVERSITAS CIPUTRA COLOR RUN 2026
                             </h1>
 
                             <p className="text-sm">
-                              <strong>By registering as a participant in Ciputra Color Run 2026, the participant fully accepts and agrees to comply with the rules and conditions below.</strong>
+                              <strong>By registering as a participant in Universitas Ciputra Color Run 2026, the participant fully accepts and agrees to comply with the rules and conditions below.</strong>
                             </p>
 
                             <h2 className="mt-4 font-bold">SECTION 1: GENERAL EVENT INFORMATION</h2>
                             <ul className="list-disc pl-6 text-sm">
-                              <li><strong>Event Name:</strong> Ciputra Color Run 2026</li>
+                              <li><strong>Event Name:</strong> Universitas Ciputra Color Run 2026</li>
                               <li><strong>Event Date:</strong> April 12, 2026</li>
                               <li><strong>Event Time:</strong> 04:00 - 09:30 WIB</li>
                               <li><strong>Event Location:</strong> Ciputra University Surabaya</li>
@@ -2266,7 +2266,7 @@ export default function RegistrationPage() {
                               <li>
                                 <strong>Registration Platform: </strong>
                                 <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                  <li>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputracolorrun.com</a>.</li>
+                                  <li>Participants can register through the official Universitas Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputracolorrun.com</a>.</li>
                                   <li>Event organizers are not responsible for any consequences resulting from purchases made outside the official platform.</li>
                                 </ol>
                               </li>
@@ -2595,7 +2595,7 @@ export default function RegistrationPage() {
                                     Participants agree that all photos, videos, and media recordings taken during the event may be used by the Organizer for promotional and marketing purposes across various platforms (social media, web, print) without obligation to provide compensation to the participant.
                                 </li>
                                 <li>
-                                    All photo and video materials are the intellectual property of Ciputra Color Run 2026 and its network.
+                                    All photo and video materials are the intellectual property of Universitas Ciputra Color Run 2026 and its network.
                                 </li>
                             </ol>
                             <h2 className="mt-4 font-bold">SECTION 9: SPECIAL PROVISIONS FOR RUNNING COMMUNITIES</h2>

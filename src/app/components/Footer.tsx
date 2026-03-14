@@ -133,7 +133,7 @@ export default function Footer() {
             <div className="relative w-28 h-28 sm:w-40 sm:h-40 lg:w-48 lg:h-48 overflow-hidden bg-transparent p-0">
               <Image
                 src="/images/logoWajib.png"
-                alt="Ciputra Color Run Logo"
+                alt="Universitas Ciputra Color Run Logo"
                 fill
                 className="object-contain opacity-100"
               />
@@ -147,7 +147,7 @@ export default function Footer() {
       {/* Copyright */}
       <div className="bg-gray-900 py-3">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center text-gray-300 text-xs sm:text-sm">
-          &copy; 2026 Ciputra Color Run. All rights reserved.
+          &copy; 2026 Universitas Ciputra Color Run. All rights reserved.
         </div>
       </div>
     </footer>

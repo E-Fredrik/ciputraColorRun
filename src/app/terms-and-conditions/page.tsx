@@ -32,7 +32,7 @@ export default function TermsAndConditionsPage() {
                             Terms & Conditions
                         </h1>
                         <p className="text-white/90 text-center text-sm mt-2">
-                            Ciputra Color Run 2026
+                            Universitas Ciputra Color Run 2026
                         </p>
                     </div>
 
@@ -46,16 +46,16 @@ export default function TermsAndConditionsPage() {
                         onScroll={handleScroll}
                     >
                         <h1 className="text-lg md:text-xl font-extrabold text-gray-900">
-                            TERMS AND CONDITIONS FOR PARTICIPANTS OF CIPUTRA COLOR RUN 2026
+                            TERMS AND CONDITIONS FOR PARTICIPANTS OF UNIVERSITAS CIPUTRA COLOR RUN 2026
                         </h1>
 
                         <p className="text-sm">
-                            <strong>By registering as a participant in Ciputra Color Run 2026, the participant fully accepts and agrees to comply with the rules and conditions below.</strong>
+                            <strong>By registering as a participant in Universitas Ciputra Color Run 2026, the participant fully accepts and agrees to comply with the rules and conditions below.</strong>
                         </p>
 
                         <h2 className="mt-4 font-bold">SECTION 1: GENERAL EVENT INFORMATION</h2>
                         <ul className="list-disc pl-6 text-sm">
-                            <li><strong>Event Name:</strong> Ciputra Color Run 2026</li>
+                            <li><strong>Event Name:</strong> Universitas Ciputra Color Run 2026</li>
                             <li><strong>Event Date:</strong> April 12, 2026</li>
                             <li><strong>Event Time:</strong> 04:00 - 09:30 WIB</li>
                             <li><strong>Event Location:</strong> Ciputra University Surabaya</li>
@@ -105,7 +105,7 @@ export default function TermsAndConditionsPage() {
                             <li>
                                 <strong>Registration Platform: </strong>
                                 <ol className="pl-6 mt-1 space-y-1 terms-ol-roman">
-                                    <li>Participants can register through the official Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputrarun.com</a>.</li>
+                                    <li>Participants can register through the official Universitas Ciputra Color Run 2026 website at <a href="https://ciputrarun.com" className="text-blue-600 underline">https://ciputrarun.com</a>.</li>
                                     <li>Event organizers are not responsible for any consequences resulting from purchases made outside the official platform.</li>
                                 </ol>
                             </li>
@@ -560,7 +560,7 @@ export default function TermsAndConditionsPage() {
                                 Participants agree that all photos, videos, and media recordings taken during the event may be used by the Organizer for promotional and marketing purposes across various platforms (social media, web, print) without obligation to provide compensation to the participant.
                             </li>
                             <li>
-                                All photo and video materials are the intellectual property of Ciputra Color Run 2026 and its network.
+                                All photo and video materials are the intellectual property of Universitas Ciputra Color Run 2026 and its network.
                             </li>
                         </ol>
 
