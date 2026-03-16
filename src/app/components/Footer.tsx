@@ -25,13 +25,43 @@ export default function Footer() {
     }
   }, []);
 
+  const sponsorLogos = [
+    "/images/sponsor/sedang/azzura-logo-sedang.png",
+    "/images/sponsor/sedang/cihos-logo-sedang.png",
+    "/images/sponsor/sedang/DRM-logo.png",
+    "/images/sponsor/sedang/fithub-logo.png",
+    "/images/sponsor/sedang/nuvo-logo-sedang.png",
+    "/images/sponsor/sedang/pewangi-edp-logo-sedang.png",
+    "/images/sponsor/sedang/poise-logo-sedang.png",
+    "/images/sponsor/sedang/rsot-logo-sedang.png",
+    "/images/sponsor/sedang/sofresh-logo-sedang.png",
+    "/images/sponsor/sedang/soklin-logo-sedang.png",
+    "/images/sponsor/sedang/wizz-logo-sedang.png",
+    "/images/sponsor/sedang/ALFAGIFT.png",
+    "/images/sponsor/sedang/oxygan-samator-sedang.png",
+    "/images/sponsor/sedang/amh-logo-kecil.png",
+    "/images/sponsor/sedang/deorex-logo-kecil.png",
+  ];
+
   return (
     <footer className="bg-transparent">
       {/* Sponsors Section */}
-      <div className="bg-white mt-0 py-8 sm:py-10 text-center" data-aos="fade-up">
+      <div className="bg-white py-10 px-6 md:px-16 lg:px-24 text-center" data-aos="fade-up">
         <h3 className="text-gradient-supported font-extrabold text-lg mb-4">Supported By</h3>
         <div className="flex justify-center items-center gap-6 flex-wrap">
-          <div className="relative w-24 h-24 sm:w-28 sm:h-28">
+
+          {sponsorLogos.map((logo, index) => (
+            <div key={index} className="relative w-24 h-24 sm:w-28 sm:h-28">
+              <Image
+                src={logo}
+                alt={`Sponsor ${index + 1}`}
+                fill
+                className="object-contain opacity-80 hover:opacity-100 transition"
+              />
+            </div>
+          ))}
+          
+          {/* <div className="relative w-24 h-24 sm:w-28 sm:h-28">
             <Image
               src="/images/ALFAGIFT.png"
               alt="Sponsor 1"
@@ -47,7 +77,9 @@ export default function Footer() {
               fill
               className="object-contain opacity-80 hover:opacity-100 transition"
             />
-          </div>
+          </div> */}
+
+
         </div>
       </div>
       {/* Contact Section */}

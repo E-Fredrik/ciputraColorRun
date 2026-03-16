@@ -114,21 +114,22 @@ export default function Home() {
 		);
 	}
 
-	const TEMP_LOGO_PATH = "/images/logo.png";
+	const TEMP_LOGO_PATH_BESAR = "/images/sponsor/besar";
 
-	const partnerLogos = [
+		const partnerLogoBesar = [
 		{
-			src: TEMP_LOGO_PATH,
-			alt: "Partner 1",
+			src: `${TEMP_LOGO_PATH_BESAR}/alganos-logo-besar.png`,
+			alt: "Azzura",
 		},
 		{
-			src: TEMP_LOGO_PATH,
-			alt: "Partner 2",
+			src: `${TEMP_LOGO_PATH_BESAR}/isoplus-logo-besar.jpeg`,
+			alt: "Cihos",
 		},
 		{
-			src: TEMP_LOGO_PATH,
-			alt: "Partner 3",
-		},
+			src: `${TEMP_LOGO_PATH_BESAR}/aquaviva-logo-besar.png`,
+			alt: "DRM",
+		}
+		
 	];
 
 	// list documentation images placed in /public/Homepage/documentation
@@ -241,7 +242,7 @@ export default function Home() {
 				</div>
 			</div>
 
-			{/* <div className="sponsor-container">
+			<div className="sponsor-container">
 				<h1
 					className="sponsor-title"
 					data-aos="fade-down"
@@ -250,6 +251,17 @@ export default function Home() {
 					MAIN SPONSORS
 				</h1>
 
+				<div className="flex justify-center mb-8">
+					<div className="relative w-96 h-96 sm:w-64 sm:h-64">
+						<Image
+						src="/images/sponsor/besar/wahyu-redjo-logo-besar.png"
+						alt="Sponsor Utama"
+						fill
+						className="object-contain opacity-90 hover:opacity-100 transition"
+						/>
+					</div>
+				</div>
+
 				<div
 					className="partner-loop-with-borders"
 					data-aos="fade-up"
@@ -257,7 +269,26 @@ export default function Home() {
 					data-aos-delay="200"
 				>
 					<LogoLoop
-						logos={partnerLogos}
+						logos={partnerLogoBesar}
+						speed={40}
+						direction="left"
+						logoHeight={120}
+						gap={100}
+						pauseOnHover={true}
+						fadeOut={false}
+						scaleOnHover={false}
+						className="partner-logo-loop"
+					/>
+				</div>
+
+				{/* <div
+					className="partner-loop-with-borders"
+					data-aos="fade-up"
+					data-aos-duration="1000"
+					data-aos-delay="200"
+				>
+					<LogoLoop
+						logos={partnerLogoSedang}
 						speed={40}
 						direction="left"
 						logoHeight={120}
@@ -267,8 +298,8 @@ export default function Home() {
 						scaleOnHover={false}
 						className="partner-logo-loop"
 					/>
-				</div>
-			</div> */}
+				</div> */}
+			</div>
 
 			{/* About Section - Two Column Layout (image fills entire section) */}
 			<section ref={aboutRef} className="w-full relative overflow-hidden pt-20">
