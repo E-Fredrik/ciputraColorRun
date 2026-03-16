@@ -3,11 +3,50 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🚀 Fetching participants from confirmed registrations...");
+  console.log("🚀 Starting database update...");
+
+  // ==========================================
+  // PART 1: Remove Bib Numbers for Declined Payments
+  // ==========================================
+  console.log("🔄 Step 1: Searching for declined/pending participants that have a bib number...");
+  
+  const invalidParticipants = await prisma.participant.findMany({
+    where: {
+      registration: {
+        paymentStatus: {
+          not: "confirmed"
+        }
+      },
+      bibNumber: {
+        not: null
+      }
+    }
+  });
+
+  if (invalidParticipants.length > 0) {
+    console.log(`📋 Found ${invalidParticipants.length} participants with unconfirmed payments. Removing bibs...`);
+    
+    // Create an array of updates to remove bibs
+    const removalUpdates = invalidParticipants.map(p => 
+      prisma.participant.update({
+        where: { id: p.id },
+        data: { bibNumber: null }
+      })
+    );
+    
+    await prisma.$transaction(removalUpdates);
+    console.log(`✅ Successfully removed ${removalUpdates.length} invalid bib numbers.`);
+  } else {
+    console.log("✅ No invalid bib numbers found. Skipping removal.");
+  }
+
+
+  // ==========================================
+  // PART 2: Generate New Bib Numbers for Confirmed Participants
+  // ==========================================
+  console.log("\n🔄 Step 2: Fetching participants from confirmed registrations...");
 
   // Fetch participants linked to confirmed registrations.
-  // We order by Registration creation date first, then by participant ID
-  // to ensure fairness (first confirmed registration gets the lowest number).
   const participants = await prisma.participant.findMany({
     where: {
       registration: {

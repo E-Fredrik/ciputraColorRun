@@ -170,51 +170,67 @@ export async function POST(request: Request) {
         orderBy: { id: 'asc' },
       });
  
-      // --- Global counter: scan DB for highest 4-digit suffix and start from max+1 ---
-      const existingBibs = await tx.participant.findMany({
-        where: { bibNumber: { not: null } as any },
-        select: { bibNumber: true },
-      });
-      let maxSuffix = 0;
-      for (const p of existingBibs) {
-        const bn = String(p.bibNumber || "");
-        if (bn.length < 4) continue;
-        const suffix = bn.slice(-4); // last 4 digits are the numeric counter
-        const n = parseInt(suffix, 10);
-        if (!Number.isNaN(n) && n > maxSuffix) maxSuffix = n;
-      }
-      let globalCounter = maxSuffix + 1;
- 
       const updatedParticipants: typeof participants = [];
+      
       for (const participant of participants) {
         try {
-          // defensive: ensure we have a numeric id
           const pid = Number(participant?.id);
           if (Number.isNaN(pid) || pid <= 0) {
             console.warn(`[payments/confirm] Skipping participant with invalid id:`, participant);
             continue;
           }
 
-          if (!participant.bibNumber) {
-            // compute prefix from category name
-            const catLower = (participant.category?.name || "").toLowerCase().replace(/\s+/g, "");
+          if (!participant.bibNumber && participant.category) {
+            // Determine prefix based on the actual category name
+            const catLower = (participant.category.name || "").toLowerCase().replace(/\s+/g, "");
             let prefix = "0";
             if (catLower.includes("3k") || catLower === "3km") prefix = "3";
             else if (catLower.includes("5k") || catLower === "5km") prefix = "5";
             else if (catLower.includes("10k") || catLower === "10km") prefix = "10";
 
-            const bibNumber = `${prefix}${String(globalCounter).padStart(4, "0")}`;
+            if (prefix !== "0") {
+              // Fetch ONLY the participants mapping to the current prefix that already have a bibNumber.
+              // Note: using startWith is possible in raw sql, but using Prisma we can do a descending search 
+              const latestParticipant = await tx.participant.findFirst({
+                where: {
+                  bibNumber: {
+                    startsWith: prefix,
+                  },
+                },
+                orderBy: {
+                  bibNumber: 'desc', // E.g., '100014' > '100013' will work structurally
+                },
+                select: {
+                  bibNumber: true
+                }
+              });
 
-            // Ensure we pass primitives to Prisma and not accidental objects
-            const updated = await tx.participant.update({
-              where: { id: pid },
-              data: { bibNumber: String(bibNumber) },
-            });
+              let nextCounter = 1;
+              
+              if (latestParticipant && latestParticipant.bibNumber) {
+                 // Slice off the prefix and parse the counter digits
+                 const prefixLen = prefix.length;
+                 const suffixStr = latestParticipant.bibNumber.substring(prefixLen);
+                 const parsed = parseInt(suffixStr, 10);
+                 if (!Number.isNaN(parsed)) {
+                    nextCounter = parsed + 1;
+                 }
+              }
 
-            globalCounter += 1; // advance global counter for next participant
+              const newBibNumber = `${prefix}${String(nextCounter).padStart(4, "0")}`;
 
-            updatedParticipants.push({ ...updated, category: participant.category });
-            console.log(`[payments/confirm] Assigned bib ${updated.bibNumber} -> participant ${pid}`);
+              // Ensure we pass primitives to Prisma and not accidental objects
+              const updated = await tx.participant.update({
+                where: { id: pid },
+                data: { bibNumber: newBibNumber },
+              });
+
+              updatedParticipants.push({ ...updated, category: participant.category });
+              console.log(`[payments/confirm] Assigned bib ${updated.bibNumber} -> participant ${pid}`);
+            } else {
+              // Unrecognized category, skip bib allocation
+              updatedParticipants.push(participant);
+            }
           } else {
             updatedParticipants.push(participant);
             console.log(`[payments/confirm] Participant ${participant.id} already has bib ${participant.bibNumber}`);
