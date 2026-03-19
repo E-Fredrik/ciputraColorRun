@@ -44,14 +44,14 @@ export default function Footer() {
     "/images/sponsor/sedang/sofresh-logo-sedang.png",
     "/images/sponsor/sedang/soklin-logo-sedang.png",
     "/images/sponsor/sedang/wizz-logo-sedang.png",
-    "/images/sponsor/sedang/ALFAGIFT.png",
-    "/images/sponsor/sedang/oxygan-samator-sedang.png",
   ];
 
   const sponsorLogosKecil = [
     "/images/sponsor/kecil/amh-logo-kecil.png",
     "/images/sponsor/kecil/deorex-logo-kecil.png",
     "/images/sponsor/kecil/fithub-logo.png",
+    "/images/sponsor/kecil/ALFAGIFT-kecil.png",
+    "/images/sponsor/kecil/oxygan-samator-kecil.png",
   ];
 
   return (
