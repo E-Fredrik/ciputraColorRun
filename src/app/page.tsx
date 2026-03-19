@@ -128,6 +128,10 @@ export default function Home() {
 		{
 			src: `${TEMP_LOGO_PATH_BESAR}/aquaviva-logo-besar.png`,
 			alt: "DRM",
+		},
+		{
+			src: `${TEMP_LOGO_PATH_BESAR}/entretive-logo-besar.png`,
+			alt: "DRM",
 		}
 		
 	];
@@ -252,7 +256,7 @@ export default function Home() {
 				</h1>
 
 				<div className="flex justify-center mb-8">
-					<div className="relative w-96 h-96 sm:w-64 sm:h-64">
+					<div className="relative w-88 h-80 sm:w-[36rem] sm:h-[20rem]">
 						<Image
 						src="/images/sponsor/besar/wahyu-redjo-logo-besar.png"
 						alt="Sponsor Utama"

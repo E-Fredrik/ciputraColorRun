@@ -25,11 +25,18 @@ export default function Footer() {
     }
   }, []);
 
-  const sponsorLogos = [
+  const sponsorLogosBesar = [
+    "/images/sponsor/besar/wahyu-redjo-logo-besar.png",
+    "/images/sponsor/besar/alganos-logo-besar.png",
+    "/images/sponsor/besar/isoplus-logo-besar.jpeg",
+    "/images/sponsor/besar/aquaviva-logo-besar.png",
+    "/images/sponsor/besar/entretive-logo-besar.png",
+  ];
+
+  const sponsorLogosSedang = [
     "/images/sponsor/sedang/azzura-logo-sedang.png",
     "/images/sponsor/sedang/cihos-logo-sedang.png",
     "/images/sponsor/sedang/DRM-logo.png",
-    "/images/sponsor/sedang/fithub-logo.png",
     "/images/sponsor/sedang/nuvo-logo-sedang.png",
     "/images/sponsor/sedang/pewangi-edp-logo-sedang.png",
     "/images/sponsor/sedang/poise-logo-sedang.png",
@@ -39,47 +46,77 @@ export default function Footer() {
     "/images/sponsor/sedang/wizz-logo-sedang.png",
     "/images/sponsor/sedang/ALFAGIFT.png",
     "/images/sponsor/sedang/oxygan-samator-sedang.png",
-    "/images/sponsor/sedang/amh-logo-kecil.png",
-    "/images/sponsor/sedang/deorex-logo-kecil.png",
+  ];
+
+  const sponsorLogosKecil = [
+    "/images/sponsor/kecil/amh-logo-kecil.png",
+    "/images/sponsor/kecil/deorex-logo-kecil.png",
+    "/images/sponsor/kecil/fithub-logo.png",
   ];
 
   return (
     <footer className="bg-transparent">
-      {/* Sponsors Section */}
+      {/* Premium Sponsors - BESAR - Wahyu Redjo JUMBO */}
       <div className="bg-white py-10 px-6 md:px-16 lg:px-24 text-center" data-aos="fade-up">
-        <h3 className="text-gradient-supported font-extrabold text-lg mb-4">Supported By</h3>
-        <div className="flex justify-center items-center gap-6 flex-wrap">
+        <h3 className="text-gradient-supported font-extrabold text-lg mb-6">Supported By</h3>
+        <div className="flex justify-center mb-8">
+          <div className="relative w-80 h-32 sm:w-120 sm:h-60">
+            <Image
+              src={sponsorLogosBesar[0]}
+              alt={`Premium Sponsor Wahyu Redjo`}
+              fill
+              className="object-contain opacity-80 hover:opacity-100 transition"
+            />
+          </div>
+        </div>
 
-          {sponsorLogos.map((logo, index) => (
-            <div key={index} className="relative w-24 h-24 sm:w-28 sm:h-28">
+        <div className="flex justify-center flex-wrap gap-8">
+          {sponsorLogosBesar.slice(1).map((logo, index) => (
+            <div key={`besar-${index + 1}`} className="relative w-48 h-40 sm:w-50 sm:h-48">
               <Image
                 src={logo}
-                alt={`Sponsor ${index + 1}`}
+                alt={`Premium Sponsor ${index + 2}`}
                 fill
                 className="object-contain opacity-80 hover:opacity-100 transition"
               />
             </div>
           ))}
-          
-          {/* <div className="relative w-24 h-24 sm:w-28 sm:h-28">
-            <Image
-              src="/images/ALFAGIFT.png"
-              alt="Sponsor 1"
-              fill
-              className="object-contain opacity-80 hover:opacity-100 transition"
-            />
+        </div>
+      </div>
+
+      {/* Main Sponsors - SEDANG */}
+      <div className="bg-white py-10 px-6 md:px-16 lg:px-24 text-center" data-aos="fade-up" data-aos-delay="100">
+        {/* <h3 className="text-gradient-supported font-extrabold text-lg mb-6">Main Sponsors</h3> */}
+        <div className="flex justify-center">
+          <div className="w-full max-w-7xl flex justify-center items-center gap-6 flex-wrap">
+            {sponsorLogosSedang.map((logo, index) => (
+              <div key={`sedang-${index}`} className="relative w-28 h-28 sm:w-36 sm:h-32">
+                <Image
+                  src={logo}
+                  alt={`Main Sponsor ${index + 1}`}
+                  fill
+                  className="object-contain opacity-80 hover:opacity-100 transition"
+                />
+              </div>
+            ))}
           </div>
+        </div>
+      </div>
 
-          <div className="relative w-24 h-24 sm:w-28 sm:h-28">
-            <Image
-              src="/images/Oxycan Samator logo.png"
-              alt="Sponsor 2"
-              fill
-              className="object-contain opacity-80 hover:opacity-100 transition"
-            />
-          </div> */}
-
-
+      {/* Supported By - KECIL */}
+      <div className="bg-white py-10 px-6 md:px-16 lg:px-24 text-center" data-aos="fade-up" data-aos-delay="200">
+        {/* <h3 className="text-gradient-supported font-extrabold text-lg mb-6">Supported By</h3> */}
+        <div className="flex justify-center items-center gap-4 flex-wrap">
+          {sponsorLogosKecil.map((logo, index) => (
+            <div key={`kecil-${index}`} className="relative w-12 h-16 sm:w-20 sm:h-20">
+              <Image
+                src={logo}
+                alt={`Supporter ${index + 1}`}
+                fill
+                className="object-contain opacity-80 hover:opacity-100 transition"
+              />
+            </div>
+          ))}
         </div>
       </div>
       {/* Contact Section */}
