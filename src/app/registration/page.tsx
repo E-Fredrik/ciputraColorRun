@@ -25,6 +25,7 @@ interface Category {
     bundleSize?: number;
     earlyBirdCapacity?: number;
     earlyBirdRemaining?: number | null;
+    totalParticipants?: number; // Add this line
 }
 
 // NEW: Interface for jersey option
@@ -78,6 +79,8 @@ export default function RegistrationPage() {
             // ignore parse errors
         }
     }
+    const threeKMCategory = categories.find(c => String(c.name).toLowerCase().includes("3km") || String(c.name).toLowerCase().includes("3k"));
+    const is3kSoldOut = threeKMCategory ? (threeKMCategory.totalParticipants || 0) >= 305 : false;
     const [fullName, setFullName] = useSessionState<string>("reg_fullName", "");
     const [email, setEmail] = useSessionState<string>("reg_email", "");
     const [phone, setPhone] = useSessionState<string>("reg_phone", "");
@@ -279,7 +282,11 @@ export default function RegistrationPage() {
                 }
                 const data = await res.json();
                 setCategories(data);
-                if (data.length > 0) setCategoryId(data[0].id);
+                // Change default category to 5km instead of 3km
+                if (data.length > 0) {
+                    const fiveKmCat = data.find((c: Category) => String(c.name).toLowerCase().includes("5km") || String(c.name).toLowerCase().includes("5k"));
+                    setCategoryId(fiveKmCat ? fiveKmCat.id : data[0].id);
+                }
             } catch (err) {
                 console.error("Failed to load categories:", err);
                 showToast("Failed to load categories. Please refresh the page.", "error");
@@ -1228,13 +1235,17 @@ export default function RegistrationPage() {
  
                             {/* Family */}
                             <label
-                              title="Family Bundle"
-                              className={`relative flex items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${type === "family" ? 'border-purple-500 bg-purple-50 shadow-lg scale-105' : 'border-gray-300 bg-white hover:border-purple-300 hover:bg-purple-50/50'}`}
+                              title={is3kSoldOut ? "Family Bundle requires 3K ticket which is currently sold out." : "Family Bundle"}
+                              className={`relative flex items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                                is3kSoldOut ? 'opacity-50 cursor-not-allowed bg-gray-100' : 
+                                type === "family" ? 'border-purple-500 bg-purple-50 shadow-lg scale-105' : 'border-gray-300 bg-white hover:border-purple-300 hover:bg-purple-50/50 cursor-pointer'
+                              }`}
                             >
                                 <input
                                     type="radio"
                                     name="regType"
                                     value="family"
+                                    disabled={is3kSoldOut}
                                     checked={type === "family"}
                                     // onChange={() => { setType("family"); setRegistrationType("family"); }}
                                     onChange={() => {
@@ -1255,6 +1266,11 @@ export default function RegistrationPage() {
                                         Family Bundle
                                         <span className="block text-xs font-normal">(4 people)</span>
                                     </span>
+                                    {is3kSoldOut && (
+                                        <span className="text-xs font-semibold text-red-500 text-center uppercase tracking-wide mt-1">
+                                            Sold Out
+                                        </span>
+                                    )}
                                 </div>
                             </label>
                         </div>
@@ -1484,11 +1500,15 @@ export default function RegistrationPage() {
                                     { /* Only show 3km option(s) for Family bundle to avoid accidental mismatch */ }
                                     {categories
                                       .filter(c => String(c.name).toLowerCase().trim() === "3km" || String(c.name).toLowerCase().includes("3k"))
-                                      .map(cat => (
-                                        <option key={cat.id} value={cat.id}>
-                                          {cat.name} - Rp {Number(cat.bundlePrice || cat.basePrice).toLocaleString("id-ID")}/person
-                                        </option>
-                                      ))}
+                                      .map(cat => {
+                                        const is3k = String(cat.name).toLowerCase().includes("3km") || String(cat.name).toLowerCase().includes("3k");
+                                        const isDisabled = is3k && is3kSoldOut;
+                                        return (
+                                            <option key={cat.id} value={cat.id} disabled={isDisabled}>
+                                                {cat.name} {isDisabled ? "(Sold Out!)" : ""} - Rp {Number(cat.bundlePrice || cat.basePrice).toLocaleString("id-ID")}/person
+                                            </option>
+                                        );
+                                      })}
                                 </select>
                                 <p className="text-xs text-gray-500">Only 3km category supports family bundle</p>
                             </div>
@@ -1759,11 +1779,15 @@ export default function RegistrationPage() {
                                             onChange={(e) => setCategoryId(Number(e.target.value))}
                                             className="w-full px-4 py-3 border-b-2 border-gray-200 bg-transparent text-gray-800 focus:border-emerald-500 focus:outline-none transition-colors text-base cursor-pointer"
                                         >
-                                            {categories.map((cat) => (
-                                                <option key={cat.id} value={cat.id}>
-                                                    {cat.name} - Starting from Rp {Number(cat.basePrice).toLocaleString("id-ID")}
-                                                </option>
-                                            ))}
+                                            {categories.map((cat) => {
+                                                const is3k = String(cat.name).toLowerCase().includes("3km") || String(cat.name).toLowerCase().includes("3k");
+                                                const isDisabled = is3k && is3kSoldOut;
+                                                return (
+                                                    <option key={cat.id} value={cat.id} disabled={isDisabled}>
+                                                        {cat.name} {isDisabled ? "(Sold Out!)" : ""} - Starting from Rp {Number(cat.basePrice).toLocaleString("id-ID")}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
                                     </div>
 
@@ -2049,11 +2073,15 @@ export default function RegistrationPage() {
                                     onChange={(e) => setCategoryId(Number(e.target.value))}
                                     className="w-full px-4 py-3 border-b-2 border-gray-200 bg-transparent text-gray-800 focus:border-blue-500 focus:outline-none transition-colors text-base cursor-pointer"
                                 >
-                                    {categories.map((cat) => (
-                                        <option key={cat.id} value={cat.id}>
-                                            {cat.name} - Rp {Number(cat.basePrice).toLocaleString("id-ID")}
-                                        </option>
-                                    ))}
+                                    {categories.map((cat) => {
+                                        const is3k = String(cat.name).toLowerCase().includes("3km") || String(cat.name).toLowerCase().includes("3k");
+                                        const isDisabled = is3k && is3kSoldOut;
+                                        return (
+                                            <option key={cat.id} value={cat.id} disabled={isDisabled}>
+                                                {cat.name} {isDisabled ? "(Sold Out!)" : ""} - Rp {Number(cat.basePrice).toLocaleString("id-ID")}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
 

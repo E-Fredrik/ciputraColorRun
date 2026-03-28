@@ -37,17 +37,43 @@ export async function GET() {
       },
     });
 
-    // Create a map for quick lookups
+    // NEW: Block for fetching total valid participants
+    const participantCounts = await prisma.participant.groupBy({
+      by: ['categoryId'],
+      where: {
+        registration: {
+          paymentStatus: {
+            in: ['pending', 'confirmed']
+          }
+        }
+      },
+      _count: {
+        categoryId: true,
+      }
+    });
+
+    // Create a map for quick lookups for early birds
     const claimsMap = new Map<number, number>();
     for (const group of earlyBirdCounts) {
       claimsMap.set(group.categoryId, group._count.categoryId);
     }
 
+    // Create a map for total participants
+    const participantMap = new Map<number, number>();
+    for (const group of participantCounts) {
+      if (group.categoryId) {
+         participantMap.set(group.categoryId, group._count.categoryId);
+      }
+    }
+
     const categoriesWithRemaining = categories.map((c: any) => {
       const claims = claimsMap.get(c.id) || 0;
       const remaining = Math.max(0, (c.earlyBirdCapacity ?? 0) - claims);
+      // Retrieve the new field count
+      const totalParticipants = participantMap.get(c.id) || 0; 
+      
       console.log(`[API] Category ${c.name}: ${claims} claims, ${remaining} remaining`);
-      return { ...c, earlyBirdRemaining: remaining };
+      return { ...c, earlyBirdRemaining: remaining, totalParticipants }; // Attach here
     });
 
     return NextResponse.json(categoriesWithRemaining, {
