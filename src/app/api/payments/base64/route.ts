@@ -279,7 +279,6 @@ export async function POST(req: Request) {
       const jerseyUsage = await tx.participant.groupBy({
         by: ["jerseyId"],
         where: {
-          jerseyId: { not: null },
           registration: {
             paymentStatus: {
               in: ["pending", "confirmed"],
@@ -293,7 +292,7 @@ export async function POST(req: Request) {
 
       const usedMap = new Map<number, number>();
       for (const row of jerseyUsage) {
-        if (row.jerseyId) {
+        if (typeof row.jerseyId === "number") {
           usedMap.set(row.jerseyId, row._count.jerseyId);
         }
       }
