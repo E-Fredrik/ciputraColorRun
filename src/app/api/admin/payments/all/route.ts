@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -55,17 +55,61 @@ export async function GET(request: Request) {
             createdAt: true,
           }
         },
-        participants: {
-          include: {
-            category: true,
-            jersey: true,
-          },
-        },
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
+
+    const registrationIds = registrations.map((reg) => reg.id);
+    const participantStatsByRegistration = new Map<number, {
+      total: number;
+      categoryCounts: Record<string, number>;
+      jerseySizes: Record<string, number>;
+    }>();
+
+    if (registrationIds.length > 0) {
+      const participantRows = await prisma.$queryRaw<Array<{
+        registrationId: number;
+        categoryName: string | null;
+        jerseySize: string | null;
+        participantCount: number;
+      }>>`
+        SELECT
+          p."registrationId" AS "registrationId",
+          rc."name" AS "categoryName",
+          jo."size" AS "jerseySize",
+          COUNT(*)::int AS "participantCount"
+        FROM "Participant" p
+        LEFT JOIN "RaceCategory" rc ON rc."id" = p."categoryId"
+        LEFT JOIN "JerseyOption" jo ON jo."id" = p."jerseyId"
+        WHERE p."registrationId" IN (${Prisma.join(registrationIds)})
+        GROUP BY p."registrationId", rc."name", jo."size"
+      `;
+
+      participantRows.forEach((row) => {
+        const regId = Number(row.registrationId);
+        const count = Number(row.participantCount || 0);
+
+        if (!participantStatsByRegistration.has(regId)) {
+          participantStatsByRegistration.set(regId, {
+            total: 0,
+            categoryCounts: {},
+            jerseySizes: {},
+          });
+        }
+
+        const stats = participantStatsByRegistration.get(regId)!;
+        stats.total += count;
+
+        const category = row.categoryName || 'Unknown';
+        stats.categoryCounts[category] = (stats.categoryCounts[category] || 0) + count;
+
+        if (row.jerseySize) {
+          stats.jerseySizes[row.jerseySize] = (stats.jerseySizes[row.jerseySize] || 0) + count;
+        }
+      });
+    }
 
     // Group registrations by transactionId (or payment.id if no transactionId)
     const txMap = new Map<string, {
@@ -97,6 +141,11 @@ export async function GET(request: Request) {
 
     registrations.forEach((reg: any) => {
       const p = reg.payment;
+      const regStats = participantStatsByRegistration.get(reg.id) || {
+        total: 0,
+        categoryCounts: {},
+        jerseySizes: {},
+      };
       const txId = p?.transactionId || (p ? `payment-${p.id}` : `reg-${reg.id}`);
       
       if (!txMap.has(txId)) {
@@ -137,7 +186,7 @@ export async function GET(request: Request) {
         registrationType: reg.registrationType,
         totalAmount: Number(reg.totalAmount || 0),
         groupName: reg.groupName || undefined,
-        participantCount: reg.participants?.length || 0,
+        participantCount: regStats.total,
         createdAt: toIsoStringSafe(reg.createdAt),
         user: {
           idCardPhoto: reg.user?.idCardPhoto,
@@ -145,14 +194,12 @@ export async function GET(request: Request) {
       });
 
       // Aggregate category counts and jersey sizes
-      reg.participants?.forEach((participant: any) => {
-        const catName = participant.category?.name || 'Unknown';
-        entry.categoryCounts[catName] = (entry.categoryCounts[catName] || 0) + 1;
+      Object.entries(regStats.categoryCounts).forEach(([catName, count]) => {
+        entry.categoryCounts[catName] = (entry.categoryCounts[catName] || 0) + count;
+      });
 
-        const size = participant.jersey?.size;
-        if (size) {
-          entry.jerseySizes[size] = (entry.jerseySizes[size] || 0) + 1;
-        }
+      Object.entries(regStats.jerseySizes).forEach(([size, count]) => {
+        entry.jerseySizes[size] = (entry.jerseySizes[size] || 0) + count;
       });
     });
 
