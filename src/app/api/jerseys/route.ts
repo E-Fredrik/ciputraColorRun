@@ -14,7 +14,6 @@ export async function GET() {
       prisma.participant.groupBy({
         by: ["jerseyId"],
         where: {
-          jerseyId: { not: null },
           registration: {
             paymentStatus: {
               in: ["pending", "confirmed"],
@@ -29,7 +28,7 @@ export async function GET() {
 
     const usageMap = new Map<number, number>();
     for (const row of jerseyUsage) {
-      if (row.jerseyId) {
+      if (typeof row.jerseyId === "number") {
         usageMap.set(row.jerseyId, row._count.jerseyId);
       }
     }
