@@ -84,6 +84,7 @@ export default function RegistrationPage() {
             // ignore parse errors
         }
     }
+    const isFamilyBundleSold = true
     const threeKMCategory = categories.find(c => String(c.name).toLowerCase().includes("3km") || String(c.name).toLowerCase().includes("3k"));
     const is3kSoldOut = threeKMCategory ? (threeKMCategory.totalParticipants || 0) >= 305 : false;
     const [fullName, setFullName] = useSessionState<string>("reg_fullName", "");
@@ -1472,9 +1473,9 @@ export default function RegistrationPage() {
  
                             {/* Family */}
                             <label
-                              title={is3kSoldOut ? "Family Bundle requires 3K ticket which is currently sold out." : "Family Bundle"}
+                                                            title="Family Bundle is sold out."
                               className={`relative flex items-center justify-center p-4 rounded-xl border-2 transition-all ${
-                                is3kSoldOut ? 'opacity-50 cursor-not-allowed bg-gray-100' : 
+                                                                isFamilyBundleSold ? 'opacity-50 cursor-not-allowed bg-gray-100' : 
                                 type === "family" ? 'border-purple-500 bg-purple-50 shadow-lg scale-105' : 'border-gray-300 bg-white hover:border-purple-300 hover:bg-purple-50/50 cursor-pointer'
                               }`}
                             >
@@ -1482,7 +1483,7 @@ export default function RegistrationPage() {
                                     type="radio"
                                     name="regType"
                                     value="family"
-                                    disabled={is3kSoldOut}
+                                    disabled= {true}
                                     checked={type === "family"}
                                     // onChange={() => { setType("family"); setRegistrationType("family"); }}
                                     onChange={() => {
@@ -1503,7 +1504,7 @@ export default function RegistrationPage() {
                                         Family Bundle
                                         <span className="block text-xs font-normal">(4 people)</span>
                                     </span>
-                                    {is3kSoldOut && (
+                                    {isFamilyBundleSold && (
                                         <span className="text-xs font-semibold text-red-500 text-center uppercase tracking-wide mt-1">
                                             Sold Out
                                         </span>
