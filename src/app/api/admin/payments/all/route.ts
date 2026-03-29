@@ -3,18 +3,45 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+type PaymentStatus = 'pending' | 'confirmed' | 'declined';
+
+const ALLOWED_STATUSES = new Set<PaymentStatus>(['pending', 'confirmed', 'declined']);
+
+function normalizeStatus(raw: string | null): PaymentStatus | null {
+  if (!raw) return null;
+  const value = raw.toLowerCase() as PaymentStatus;
+  return ALLOWED_STATUSES.has(value) ? value : null;
+}
+
+function toIsoStringSafe(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'string') {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+  return new Date(0).toISOString();
+}
+
 export async function GET(request: Request) {
   try {
     // Get status filter from query params
     const url = new URL(request.url);
-    const status = url.searchParams.get('status');
+    const rawStatus = url.searchParams.get('status');
+    const status = normalizeStatus(rawStatus);
+
+    if (rawStatus && !status) {
+      return NextResponse.json(
+        { error: 'Invalid status filter' },
+        { status: 400 }
+      );
+    }
 
     const registrations = await prisma.registration.findMany({
-      where: status ? {
-        payment: {
-          status: status
-        }
-      } : undefined,
+      where: status
+        ? {
+            paymentStatus: status,
+          }
+        : undefined,
       include: {
         user: true,
         payment: {
@@ -40,15 +67,14 @@ export async function GET(request: Request) {
       },
     });
 
-    console.log('[admin/payments/all] Sample payment object:', JSON.stringify(registrations[0]?.payment, null, 2));
-
     // Group registrations by transactionId (or payment.id if no transactionId)
     const txMap = new Map<string, {
       transactionId: string;
-      paymentId: number;
+      paymentId: number | null;
+      hasPayment: boolean;
       totalAmount: number;
       paymentStatus: string;
-      createdAt: Date;
+      createdAt: unknown;
       proofOfPayment?: string;
       proofSenderName?: string;
       registrationIds: Set<number>;
@@ -71,19 +97,18 @@ export async function GET(request: Request) {
 
     registrations.forEach((reg: any) => {
       const p = reg.payment;
-      if (!p) return; // Skip registrations without payment
-
-      const txId = p.transactionId || `payment-${p.id}`;
+      const txId = p?.transactionId || (p ? `payment-${p.id}` : `reg-${reg.id}`);
       
       if (!txMap.has(txId)) {
         txMap.set(txId, {
           transactionId: txId,
-          paymentId: p.id,
-          totalAmount: Number(p.amount || 0),
-          paymentStatus: p.status || 'pending',
-          createdAt: p.createdAt || reg.createdAt,
-          proofOfPayment: p.proofOfPayment,
-          proofSenderName: p.proofSenderName,
+          paymentId: p?.id ?? null,
+          hasPayment: Boolean(p),
+          totalAmount: Number(p?.amount ?? reg.totalAmount ?? 0),
+          paymentStatus: p?.status || reg.paymentStatus || 'pending',
+          createdAt: p?.createdAt || reg.createdAt,
+          proofOfPayment: p?.proofOfPayment,
+          proofSenderName: p?.proofSenderName,
           registrationIds: new Set(),
           registrations: [],
           userName: reg.user?.name || '',
@@ -113,7 +138,7 @@ export async function GET(request: Request) {
         totalAmount: Number(reg.totalAmount || 0),
         groupName: reg.groupName || undefined,
         participantCount: reg.participants?.length || 0,
-        createdAt: reg.createdAt.toISOString(),
+        createdAt: toIsoStringSafe(reg.createdAt),
         user: {
           idCardPhoto: reg.user?.idCardPhoto,
         },
@@ -144,10 +169,11 @@ export async function GET(request: Request) {
 
       // Get group name from first registration that has one
       const groupName = entry.registrations.find(r => r.groupName)?.groupName;
+      const firstRegistrationId = Array.from(entry.registrationIds)[0];
 
       return {
         // Use first registration ID as the primary identifier
-        registrationId: Array.from(entry.registrationIds)[0],
+        registrationId: firstRegistrationId,
         registrationIds: Array.from(entry.registrationIds),
         transactionId: entry.transactionId,
         userName: entry.userName,
@@ -156,20 +182,22 @@ export async function GET(request: Request) {
         registrationType: primaryType,
         groupName,
         totalAmount: entry.totalAmount,
-        createdAt: entry.createdAt instanceof Date ? entry.createdAt.toISOString() : entry.createdAt,
+        createdAt: toIsoStringSafe(entry.createdAt),
         paymentStatus: entry.paymentStatus,
         participantCount: totalParticipants,
         categoryCounts: Object.keys(entry.categoryCounts).length > 0 ? entry.categoryCounts : undefined,
         jerseySizes: Object.keys(entry.jerseySizes).length > 0 ? entry.jerseySizes : undefined,
-        payments: [{
-          id: entry.paymentId,
-          amount: entry.totalAmount,
-          proofOfPayment: entry.proofOfPayment,
-          proofSenderName: entry.proofSenderName,
-          status: entry.paymentStatus,
-          transactionId: entry.transactionId,
-          registrationId: Array.from(entry.registrationIds)[0],
-        }],
+        payments: entry.hasPayment && entry.paymentId !== null
+          ? [{
+              id: entry.paymentId,
+              amount: entry.totalAmount,
+              proofOfPayment: entry.proofOfPayment,
+              proofSenderName: entry.proofSenderName,
+              status: entry.paymentStatus,
+              transactionId: entry.transactionId,
+              registrationId: firstRegistrationId,
+            }]
+          : [],
         user: entry.user,
         // Include all registrations in this transaction for detail view
         registrations: entry.registrations,

@@ -234,7 +234,9 @@ export default function LODashboard() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch payments: ${response.statusText}`);
+        const errorBody = await response.json().catch(() => null);
+        const errorMessage = errorBody?.error || errorBody?.message || response.statusText;
+        throw new Error(`Failed to fetch payments: ${errorMessage}`);
       }
 
       const data = await response.json();
