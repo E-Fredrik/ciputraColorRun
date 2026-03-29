@@ -5,19 +5,19 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🚀 Starting database update...");
 
-  console.log("🔄 Searching for declined payments with an assigned jerseyId...");
-  
-  // Find all participants linked to a declined registration who have a jerseyId
-  const invalidParticipants = await prisma.participant.findMany({
+  console.log("🔄 Searching for declined payments and filtering assigned jerseyIds...");
+
+  // Find all participants linked to a declined registration (filter jerseyId in JS
+  // to avoid a Prisma where typing mismatch for `not: null`)
+  const declinedParticipants = await prisma.participant.findMany({
     where: {
       registration: {
         paymentStatus: "declined"
-      },
-      NOT: {
-        jerseyId: null
       }
     }
   });
+
+  const invalidParticipants = declinedParticipants.filter(p => p.jerseyId !== null);
 
   if (invalidParticipants.length > 0) {
     console.log(`📋 Found ${invalidParticipants.length} participants with declined payments. Removing jerseys...`);
