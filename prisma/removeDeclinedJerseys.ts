@@ -26,7 +26,7 @@ async function main() {
     const removalUpdates = invalidParticipants.map(p => 
       prisma.participant.update({
         where: { id: p.id },
-        data: { jerseyId: null }
+        data: { jersey: { disconnect: true } }
       })
     );
     
