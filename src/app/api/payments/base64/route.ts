@@ -159,11 +159,6 @@ export async function POST(req: Request) {
     // Debug: log cart shape so we can see why items might be missing
     console.log("[payments/base64] cartItems:", Array.isArray(cartItems) ? cartItems.length : typeof cartItems, cartItems);
 
-    const jerseyOptions = await prisma.jerseyOption.findMany();
-    // avoid implicit any by typing the map callback param
-    const jerseyMap = new Map(jerseyOptions.map((j: any) => [j.size, j.id]));
-    const defaultJerseyId = jerseyOptions[0]?.id ?? 1;
-
     const accessCode = existingUser?.accessCode || await generateAccessCode(fullName || "user");
 
     console.log("[payments/base64] Starting transaction...");
@@ -210,6 +205,133 @@ export async function POST(req: Request) {
           },
         });
         console.log("[payments/base64] Created new user with idCardPhoto:", user.idCardPhoto);
+      }
+
+      // Lock jersey rows and validate requested quantities against remaining quota.
+      // This prevents overselling when multiple submissions happen at the same time.
+      const jerseyOptions = await tx.jerseyOption.findMany({
+        orderBy: { id: "asc" },
+        select: {
+          id: true,
+          size: true,
+          quantity: true,
+        },
+      });
+
+      if (jerseyOptions.length === 0) {
+        const noJerseyError: any = new Error("Jersey options are not configured yet. Please contact admin.");
+        noJerseyError.code = "JERSEY_OPTIONS_MISSING";
+        throw noJerseyError;
+      }
+
+      await tx.$queryRaw`SELECT id FROM "JerseyOption" ORDER BY id FOR UPDATE`;
+
+      const jerseyMap = new Map(jerseyOptions.map((j) => [j.size, j.id]));
+      const defaultJerseyId = jerseyOptions[0].id;
+
+      const requestedJerseyCounts = new Map<number, number>();
+      const addRequestedJersey = (jerseyId: number, count: number) => {
+        if (count <= 0) return;
+        requestedJerseyCounts.set(jerseyId, (requestedJerseyCounts.get(jerseyId) || 0) + count);
+      };
+
+      for (const item of cartItems) {
+        if (item.type === "individual") {
+          const jerseyId = (item.jerseySize && jerseyMap.get(item.jerseySize)) || defaultJerseyId;
+          addRequestedJersey(jerseyId, 1);
+          continue;
+        }
+
+        if (item.type === "community" || item.type === "family") {
+          const jerseysObj: Record<string, unknown> =
+            item.jerseys && typeof item.jerseys === "object" ? item.jerseys : {};
+
+          const jerseyEntries = Object.entries(jerseysObj).map(
+            ([size, rawCount]) => [size, Math.max(0, Math.floor(Number(rawCount || 0)))] as [string, number]
+          );
+          const totalFromJerseys = jerseyEntries.reduce((sum, [, count]) => sum + count, 0);
+
+          let participantCount = Math.max(
+            0,
+            Math.floor(Number(item.participants ?? item.participantCount ?? item.count ?? 0) || 0)
+          );
+          if (item.type === "family" && participantCount <= 0) {
+            participantCount = Math.max(0, Math.floor(Number(item.participants || 4) || 4));
+          }
+
+          if (totalFromJerseys > 0) {
+            for (const [size, count] of jerseyEntries) {
+              if (count <= 0) continue;
+              const jerseyId = jerseyMap.get(size) || defaultJerseyId;
+              addRequestedJersey(jerseyId, count);
+            }
+
+            const remaining = Math.max(0, participantCount - totalFromJerseys);
+            if (remaining > 0) {
+              addRequestedJersey(defaultJerseyId, remaining);
+            }
+          } else if (participantCount > 0) {
+            addRequestedJersey(defaultJerseyId, participantCount);
+          }
+        }
+      }
+
+      const jerseyUsage = await tx.participant.groupBy({
+        by: ["jerseyId"],
+        where: {
+          jerseyId: { not: null },
+          registration: {
+            paymentStatus: {
+              in: ["pending", "confirmed"],
+            },
+          },
+        },
+        _count: {
+          jerseyId: true,
+        },
+      });
+
+      const usedMap = new Map<number, number>();
+      for (const row of jerseyUsage) {
+        if (row.jerseyId) {
+          usedMap.set(row.jerseyId, row._count.jerseyId);
+        }
+      }
+
+      const quotaViolations: Array<{
+        jerseyId: number;
+        size: string;
+        requested: number;
+        remaining: number;
+        quantity: number;
+        used: number;
+      }> = [];
+
+      for (const jersey of jerseyOptions) {
+        const requested = requestedJerseyCounts.get(jersey.id) || 0;
+        if (requested <= 0) continue;
+
+        if (typeof jersey.quantity === "number") {
+          const used = usedMap.get(jersey.id) || 0;
+          const remaining = Math.max(0, jersey.quantity - used);
+          if (requested > remaining) {
+            quotaViolations.push({
+              jerseyId: jersey.id,
+              size: jersey.size,
+              requested,
+              remaining,
+              quantity: jersey.quantity,
+              used,
+            });
+          }
+        }
+      }
+
+      if (quotaViolations.length > 0) {
+        const quotaError: any = new Error("One or more jersey sizes are no longer available in the requested quantity.");
+        quotaError.code = "JERSEY_QUOTA_EXCEEDED";
+        quotaError.details = quotaViolations;
+        throw quotaError;
       }
 
       // Create a registration & payment per cart item so each item keeps its own groupName/registrationType
@@ -264,11 +386,16 @@ export async function POST(req: Request) {
           }
         } else if (item.type === "community" || item.type === "family") {
           const jerseysObj: Record<string, number> = item.jerseys || {};
-          const jerseyEntries = Object.entries(jerseysObj).map(([k, v]) => [k, Number(v || 0)] as [string, number]);
+          const jerseyEntries = Object.entries(jerseysObj).map(
+            ([k, v]) => [k, Math.max(0, Math.floor(Number(v || 0)))] as [string, number]
+          );
           const totalFromJerseys = jerseyEntries.reduce((s, [, c]) => s + c, 0);
-          let participantCount = Number(item.participants ?? item.participantCount ?? item.count ?? 0);
+          let participantCount = Math.max(
+            0,
+            Math.floor(Number(item.participants ?? item.participantCount ?? item.count ?? 0) || 0)
+          );
           if (item.type === "family" && (!participantCount || participantCount <= 0)) {
-            participantCount = Number(item.participants || 4) || 4;
+            participantCount = Math.max(0, Math.floor(Number(item.participants || 4) || 4));
           }
 
           if (totalFromJerseys > 0) {
@@ -462,6 +589,27 @@ export async function POST(req: Request) {
      if (err?.code === "P6005" || err?.message?.includes("15000ms")) {
        return NextResponse.json({ error: "Server is busy. Please try again." }, { status: 503 });
      }
+
+      if (err?.code === "JERSEY_QUOTA_EXCEEDED") {
+        return NextResponse.json(
+          {
+            error: err?.message || "Some jersey sizes are sold out.",
+            code: "JERSEY_QUOTA_EXCEEDED",
+            details: err?.details || [],
+          },
+          { status: 409 }
+        );
+      }
+
+      if (err?.code === "JERSEY_OPTIONS_MISSING") {
+        return NextResponse.json(
+          {
+            error: err?.message || "Jersey options are not configured yet.",
+            code: "JERSEY_OPTIONS_MISSING",
+          },
+          { status: 500 }
+        );
+      }
  
      return NextResponse.json({ error: "An unexpected error occurred. Please try again." }, { status: 500 });
    }

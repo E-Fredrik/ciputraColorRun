@@ -403,6 +403,16 @@ export default function ConfirmPaymentClient() {
             }
 
             if (!res.ok) {
+                if (body?.code === "JERSEY_QUOTA_EXCEEDED" && Array.isArray(body?.details)) {
+                    const details = body.details
+                        .map((d: any) => `${d.size}: requested ${d.requested}, remaining ${d.remaining}`)
+                        .join("; ");
+                    throw new Error(
+                        details
+                            ? `Some jersey sizes are no longer available (${details}). Please go back to registration and adjust your sizes.`
+                            : "Some jersey sizes are no longer available. Please go back to registration and adjust your sizes."
+                    );
+                }
                 throw new Error(body?.error || `Submission failed (${res.status})`);
             }
 

@@ -34,6 +34,10 @@ interface JerseyOption {
     size: string;
     type: string;
     price: string;
+    quantity?: number | null;
+    orderedCount?: number;
+    remaining?: number | null;
+    isSoldOut?: boolean;
     isExtraSize: boolean;
     description: string | null;
 }
@@ -54,6 +58,7 @@ export default function RegistrationPage() {
     const [participants, setParticipants] = useState<number | "">("");
     const [selectedJerseySize, setSelectedJerseySize] = useState("M");
     const [useEarlyBird, setUseEarlyBird] = useState(false);
+    const soldOutSelectionNoticeRef = useRef<string | null>(null);
 
     // --- NEW: helper to restore session-backed personal fields immediately on mount ---
     function loadSessionPersonalData() {
@@ -301,7 +306,7 @@ export default function RegistrationPage() {
                     headers: { 'Cache-Control': 'no-cache' }
                 });
                 if (!res.ok) throw new Error("Failed to load jersey options");
-                const data = await res.json();
+                const data: JerseyOption[] = await res.json();
                 setJerseyOptions(data);
 
                 // Build default map for all sizes returned by server
@@ -379,6 +384,41 @@ export default function RegistrationPage() {
                     }
                 } catch (e) {
                     // ignore
+                }
+
+                // Clamp restored values to current quota and clear sold-out sizes.
+                data.forEach((jersey) => {
+                    let computedRemaining: number | null = null;
+                    if (typeof jersey.remaining === "number") {
+                        computedRemaining = Math.max(0, jersey.remaining);
+                    } else if (typeof jersey.quantity === "number") {
+                        computedRemaining = Math.max(0, jersey.quantity - Number(jersey.orderedCount || 0));
+                    }
+
+                    if (computedRemaining === 0) {
+                        merged[jersey.size] = "";
+                        return;
+                    }
+
+                    if (typeof computedRemaining === "number") {
+                        const currentValue = Number(merged[jersey.size] || 0);
+                        if (currentValue > computedRemaining) {
+                            merged[jersey.size] = computedRemaining;
+                        }
+                    }
+                });
+
+                const firstAvailable = data.find((j) => !j.isSoldOut);
+                const storedSelectedSize = sessionStorage.getItem("reg_selectedJerseySize");
+                if (storedSelectedSize) {
+                    const validStored = data.find((j) => j.size === storedSelectedSize && !j.isSoldOut);
+                    if (validStored) {
+                        setSelectedJerseySize(validStored.size);
+                    } else if (firstAvailable) {
+                        setSelectedJerseySize(firstAvailable.size);
+                    }
+                } else if (firstAvailable) {
+                    setSelectedJerseySize(firstAvailable.size);
                 }
 
                 // Finally set jerseys without overwriting with empty defaults
@@ -603,8 +643,113 @@ export default function RegistrationPage() {
     const adultJerseys = useMemo(() => jerseyOptions.filter(j => j.type === "adult"), [jerseyOptions]);
     const kidsJerseys = useMemo(() => jerseyOptions.filter(j => j.type === "kids"), [jerseyOptions]);
 
+    const jerseyMapBySize = useMemo(() => {
+        const map = new Map<string, JerseyOption>();
+        jerseyOptions.forEach((jersey) => {
+            map.set(jersey.size, jersey);
+        });
+        return map;
+    }, [jerseyOptions]);
+
+    function getComputedRemainingForSize(size: string): number | null {
+        const jersey = jerseyMapBySize.get(size);
+        if (!jersey) return null;
+
+        if (typeof jersey.remaining === "number") {
+            return Math.max(0, jersey.remaining);
+        }
+
+        if (typeof jersey.quantity === "number") {
+            return Math.max(0, jersey.quantity - Number(jersey.orderedCount || 0));
+        }
+
+        return null;
+    }
+
+    function isSizeSoldOut(size: string): boolean {
+        const jersey = jerseyMapBySize.get(size);
+        if (!jersey) return false;
+        if (typeof jersey.isSoldOut === "boolean") return jersey.isSoldOut;
+
+        const remaining = getComputedRemainingForSize(size);
+        return typeof remaining === "number" ? remaining <= 0 : false;
+    }
+
+    function getSelectableMaxForSize(size: string): number | null {
+        return getComputedRemainingForSize(size);
+    }
+
+    useEffect(() => {
+        if (!selectedJerseySize || jerseyOptions.length === 0) return;
+
+        const selected = jerseyMapBySize.get(selectedJerseySize);
+        if (selected && !isSizeSoldOut(selectedJerseySize)) return;
+
+        const firstAvailable = jerseyOptions.find((j) => !isSizeSoldOut(j.size));
+        if (!firstAvailable) return;
+
+        setSelectedJerseySize(firstAvailable.size);
+
+        if (selected && isSizeSoldOut(selected.size) && soldOutSelectionNoticeRef.current !== selected.size) {
+            soldOutSelectionNoticeRef.current = selected.size;
+            showToast(`Jersey size ${selected.size} is sold out. Switched to ${firstAvailable.size}.`, "info");
+        }
+    }, [jerseyMapBySize, jerseyOptions, selectedJerseySize]);
+
+    function validateIndividualJerseyQuota(size: string): boolean {
+        if (!jerseyMapBySize.has(size)) {
+            showToast("Please select a valid jersey size.", "error");
+            return false;
+        }
+
+        const remaining = getSelectableMaxForSize(size);
+        if (typeof remaining === "number" && remaining <= 0) {
+            showToast(`Jersey size ${size} is sold out. Please choose another size.`, "error");
+            return false;
+        }
+        return true;
+    }
+
+    function validateGroupJerseyQuota(selection: Record<string, number | "">): boolean {
+        for (const [size, rawCount] of Object.entries(selection)) {
+            const requested = Math.max(0, Math.floor(Number(rawCount || 0)));
+            if (requested <= 0) continue;
+
+            if (!jerseyMapBySize.has(size)) {
+                showToast(`Invalid jersey size in selection: ${size}. Please refresh and try again.`, "error");
+                return false;
+            }
+
+            const remaining = getSelectableMaxForSize(size);
+            if (typeof remaining === "number" && requested > remaining) {
+                showToast(`Only ${remaining} jersey(s) left for size ${size}. Please adjust your selection.`, "error");
+                return false;
+            }
+        }
+        return true;
+    }
+
     function updateJersey(size: string, value: number | "") {
-        setJerseys((s) => ({ ...s, [size]: value }));
+        const maxSelectable = getSelectableMaxForSize(size);
+        if (typeof maxSelectable === "number" && maxSelectable <= 0) {
+            setJerseys((s) => ({ ...s, [size]: "" }));
+            showToast(`Jersey size ${size} is sold out.`, "error");
+            return;
+        }
+
+        if (value === "") {
+            setJerseys((s) => ({ ...s, [size]: "" }));
+            return;
+        }
+
+        const normalized = Math.max(0, Math.floor(Number(value || 0)));
+        if (typeof maxSelectable === "number" && normalized > maxSelectable) {
+            setJerseys((s) => ({ ...s, [size]: maxSelectable }));
+            showToast(`Only ${maxSelectable} jersey(s) left for size ${size}.`, "error");
+            return;
+        }
+
+        setJerseys((s) => ({ ...s, [size]: normalized }));
     }
 
     // Add helpers (place these above validatePersonalDetails)
@@ -773,6 +918,9 @@ export default function RegistrationPage() {
                 showToast("Please enter the number of participants", "error");
                 return;
             }
+            if (!validateGroupJerseyQuota(jerseys)) {
+                return;
+            }
             const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
             if (totalJerseys !== currentParticipants) {
                 showToast(`Jersey count must match participant count`, "error");
@@ -848,6 +996,10 @@ export default function RegistrationPage() {
         
         try {
             if (type === "individual") {
+                if (!validateIndividualJerseyQuota(selectedJerseySize)) {
+                    return;
+                }
+
                 savePersonalDetailsToSession();
 
                 const jerseyCharge = calculateIndividualJerseyCharge(selectedJerseySize);
@@ -920,6 +1072,10 @@ export default function RegistrationPage() {
                     return;
                 }
 
+                if (!validateGroupJerseyQuota(jerseys)) {
+                    return;
+                }
+
                 const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
                 if (totalJerseys !== category.bundleSize) {
                     showToast(`Please select exactly ${category.bundleSize} jerseys for the family bundle.`, "error");
@@ -934,6 +1090,10 @@ export default function RegistrationPage() {
                 const currentParticipants = Number(participants || 0);
                 if (currentParticipants < 10) {
                     showToast(`Community registration requires minimum 10 participants. Currently have ${currentParticipants}`, "error");
+                    return;
+                }
+
+                if (!validateGroupJerseyQuota(jerseys)) {
                     return;
                 }
 
@@ -989,6 +1149,10 @@ export default function RegistrationPage() {
 
         // If individual, session already contains currentRegistration -> proceed directly
         if (type === "individual") {
+            if (!validateIndividualJerseyQuota(selectedJerseySize)) {
+                return;
+            }
+
             setIsModalOpen(false);
             router.push("/registration/confirm");
             return;
@@ -1000,6 +1164,10 @@ export default function RegistrationPage() {
         if (!category) return;
  
         if (type === "family") {
+            if (!validateGroupJerseyQuota(jerseys)) {
+                return;
+            }
+
             // Force 3km category for family
             const threeKm = categories.find(c => String(c.name).toLowerCase().trim() === "3km")
                 || categories.find(c => String(c.name).toLowerCase().includes("3k"));
@@ -1043,6 +1211,10 @@ export default function RegistrationPage() {
             sessionStorage.setItem("currentRegistration", JSON.stringify(registrationData));
         } else {
             // Community
+            if (!validateGroupJerseyQuota(jerseys)) {
+                return;
+            }
+
             const currentParticipants = Number(participants || 0);
             const jerseyCharge = calculateJerseyCharges(jerseys);
             
@@ -1557,23 +1729,34 @@ export default function RegistrationPage() {
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-3 gap-3">
-                                        {["S", "M", "L", "XL"].map((size) => (
-                                          <div key={size} className="flex flex-col items-center">
-                                            <div className="flex items-center gap-1 mb-2">
-                                              <span className="text-xs font-medium text-gray-700">{size}</span>
-                                            </div>
-                                            <input
-                                              type="number"
-                                              min={0}
-                                              value={jerseys[size] ?? ""}
-                                              onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                              className="jersey-input shift-right accent-purple-500 border-purple-300 focus:border-purple-500"
-                                              placeholder="0"
-                                              inputMode="numeric"
-                                              aria-label={`Count for size ${size}`}
-                                            />
-                                          </div>
-                                        ))}
+                                                                                {["S", "M", "L", "XL"].map((size) => {
+                                                                                    const soldOut = isSizeSoldOut(size);
+                                                                                    const remaining = getSelectableMaxForSize(size);
+                                                                                    return (
+                                                                                        <div key={size} className="flex flex-col items-center">
+                                                                                            <div className="flex items-center gap-1 mb-2">
+                                                                                                <span className="text-xs font-medium text-gray-700">{size}</span>
+                                                                                            </div>
+                                                                                            <input
+                                                                                                type="number"
+                                                                                                min={0}
+                                                                                                max={typeof remaining === "number" ? remaining : undefined}
+                                                                                                value={jerseys[size] ?? ""}
+                                                                                                onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
+                                                                                                className="jersey-input shift-right accent-purple-500 border-purple-300 focus:border-purple-500"
+                                                                                                placeholder="0"
+                                                                                                inputMode="numeric"
+                                                                                                aria-label={`Count for size ${size}`}
+                                                                                                disabled={soldOut}
+                                                                                            />
+                                                                                            {soldOut ? (
+                                                                                                <span className="text-[10px] text-red-600 font-semibold mt-1">Sold Out</span>
+                                                                                            ) : (typeof remaining === "number" ? (
+                                                                                                <span className="text-[10px] text-gray-500 mt-1">{remaining} left</span>
+                                                                                            ) : null)}
+                                                                                        </div>
+                                                                                    );
+                                                                                })}
                                          </div>
                                        </div>
  
@@ -1591,24 +1774,35 @@ export default function RegistrationPage() {
                                           </div>
 
                                           <div className="grid grid-cols-4 gap-3">
-                                            {["XXL","3L","4L","5L"].map((size) => (
-                                              <div key={size} className="flex flex-col items-center">
-                                                <div className="flex items-center gap-1 mb-2">
-                                                  <span className="text-xs font-medium text-orange-700">{size}</span>
-                                                  <span className="text-[10px] text-orange-500 font-semibold">+10k</span>
-                                                </div>
-                                                <input
-                                                  type="number"
-                                                  min={0}
-                                                  value={jerseys[size] ?? ""}
-                                                  onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                                  className="jersey-input shift-right accent-orange-500 border-orange-300 focus:border-orange-500"
-                                                  placeholder="0"
-                                                  inputMode="numeric"
-                                                  aria-label={`Count for size ${size}`}
-                                                />
-                                              </div>
-                                            ))}
+                                                                                        {["XXL","3L","4L","5L"].map((size) => {
+                                                                                            const soldOut = isSizeSoldOut(size);
+                                                                                            const remaining = getSelectableMaxForSize(size);
+                                                                                            return (
+                                                                                                <div key={size} className="flex flex-col items-center">
+                                                                                                    <div className="flex items-center gap-1 mb-2">
+                                                                                                        <span className="text-xs font-medium text-orange-700">{size}</span>
+                                                                                                        <span className="text-[10px] text-orange-500 font-semibold">+10k</span>
+                                                                                                    </div>
+                                                                                                    <input
+                                                                                                        type="number"
+                                                                                                        min={0}
+                                                                                                        max={typeof remaining === "number" ? remaining : undefined}
+                                                                                                        value={jerseys[size] ?? ""}
+                                                                                                        onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
+                                                                                                        className="jersey-input shift-right accent-orange-500 border-orange-300 focus:border-orange-500"
+                                                                                                        placeholder="0"
+                                                                                                        inputMode="numeric"
+                                                                                                        aria-label={`Count for size ${size}`}
+                                                                                                        disabled={soldOut}
+                                                                                                    />
+                                                                                                    {soldOut ? (
+                                                                                                        <span className="text-[10px] text-red-600 font-semibold mt-1">Sold Out</span>
+                                                                                                    ) : (typeof remaining === "number" ? (
+                                                                                                        <span className="text-[10px] text-gray-500 mt-1">{remaining} left</span>
+                                                                                                    ) : null)}
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
                                           </div>
                                         </div>
 
@@ -1626,24 +1820,35 @@ export default function RegistrationPage() {
                                           </div>
 
                                           <div className="grid grid-cols-3 gap-3">
-                                            {["6L"].map((size) => (
-                                              <div key={size} className="flex flex-col items-center">
-                                                <div className="flex items-center gap-1 mb-2">
-                                                  <span className="text-xs font-medium text-red-600">{size}</span>
-                                                  <span className="text-[10px] text-red-500 font-semibold">+20k</span>
-                                                </div>
-                                                <input
-                                                  type="number"
-                                                  min={0}
-                                                  value={jerseys[size] ?? ""}
-                                                  onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                                  className="jersey-input shift-right accent-red-500 border-red-300 focus:border-red-500"
-                                                  placeholder="0"
-                                                  inputMode="numeric"
-                                                  aria-label={`Count for size ${size}`}
-                                                />
-                                              </div>
-                                            ))}
+                                                                                        {["6L"].map((size) => {
+                                                                                            const soldOut = isSizeSoldOut(size);
+                                                                                            const remaining = getSelectableMaxForSize(size);
+                                                                                            return (
+                                                                                                <div key={size} className="flex flex-col items-center">
+                                                                                                    <div className="flex items-center gap-1 mb-2">
+                                                                                                        <span className="text-xs font-medium text-red-600">{size}</span>
+                                                                                                        <span className="text-[10px] text-red-500 font-semibold">+20k</span>
+                                                                                                    </div>
+                                                                                                    <input
+                                                                                                        type="number"
+                                                                                                        min={0}
+                                                                                                        max={typeof remaining === "number" ? remaining : undefined}
+                                                                                                        value={jerseys[size] ?? ""}
+                                                                                                        onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
+                                                                                                        className="jersey-input shift-right accent-red-500 border-red-300 focus:border-red-500"
+                                                                                                        placeholder="0"
+                                                                                                        inputMode="numeric"
+                                                                                                        aria-label={`Count for size ${size}`}
+                                                                                                        disabled={soldOut}
+                                                                                                    />
+                                                                                                    {soldOut ? (
+                                                                                                        <span className="text-[10px] text-red-600 font-semibold mt-1">Sold Out</span>
+                                                                                                    ) : (typeof remaining === "number" ? (
+                                                                                                        <span className="text-[10px] text-gray-500 mt-1">{remaining} left</span>
+                                                                                                    ) : null)}
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
                                           </div>
                                         </div>
 
@@ -1660,23 +1865,34 @@ export default function RegistrationPage() {
                                   </div>
 
                                   <div className="grid grid-cols-3 gap-3">
-                                    {["XS - KIDS", "S - KIDS", "M - KIDS", "L - KIDS", "XL - KIDS"].map((size) => (
-                                      <div key={size} className="flex flex-col items-center">
-                                        <div className="flex items-center gap-1 mb-2">
-                                          <span className="text-xs font-medium text-purple-700">{size}</span>
-                                        </div>
-                                        <input
-                                          type="number"
-                                          min={0}
-                                          value={jerseys[size] ?? ""}
-                                          onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                          className="jersey-input shift-right accent-purple-500 border-purple-300 focus:border-purple-500"
-                                          placeholder="0"
-                                          inputMode="numeric"
-                                          aria-label={`Count for size ${size}`}
-                                        />
-                                      </div>
-                                    ))}
+                                                                        {["XS - KIDS", "S - KIDS", "M - KIDS", "L - KIDS", "XL - KIDS"].map((size) => {
+                                                                            const soldOut = isSizeSoldOut(size);
+                                                                            const remaining = getSelectableMaxForSize(size);
+                                                                            return (
+                                                                                <div key={size} className="flex flex-col items-center">
+                                                                                    <div className="flex items-center gap-1 mb-2">
+                                                                                        <span className="text-xs font-medium text-purple-700">{size}</span>
+                                                                                    </div>
+                                                                                    <input
+                                                                                        type="number"
+                                                                                        min={0}
+                                                                                        max={typeof remaining === "number" ? remaining : undefined}
+                                                                                        value={jerseys[size] ?? ""}
+                                                                                        onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
+                                                                                        className="jersey-input shift-right accent-purple-500 border-purple-300 focus:border-purple-500"
+                                                                                        placeholder="0"
+                                                                                        inputMode="numeric"
+                                                                                        aria-label={`Count for size ${size}`}
+                                                                                        disabled={soldOut}
+                                                                                    />
+                                                                                    {soldOut ? (
+                                                                                        <span className="text-[10px] text-red-600 font-semibold mt-1">Sold Out</span>
+                                                                                    ) : (typeof remaining === "number" ? (
+                                                                                        <span className="text-[10px] text-gray-500 mt-1">{remaining} left</span>
+                                                                                    ) : null)}
+                                                                                </div>
+                                                                            );
+                                                                        })}
                                   </div>
                                 </div>
 
@@ -1847,23 +2063,34 @@ export default function RegistrationPage() {
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-3 gap-3">
-                                                {["S", "M", "L", "XL"].map((size) => (
-                                                  <div key={size} className="flex flex-col items-center">
-                                                    <div className="flex items-center gap-1 mb-2">
-                                                      <span className="text-xs font-medium text-gray-700">{size}</span>
-                                                    </div>
-                                                    <input
-                                                      type="number"
-                                                      min={0}
-                                                      value={jerseys[size] ?? ""}
-                                                      onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                                      className="jersey-input shift-right accent-purple-500 border-purple-300 focus:border-purple-500"
-                                                      placeholder="0"
-                                                      inputMode="numeric"
-                                                      aria-label={`Count for size ${size}`}
-                                                    />
-                                                  </div>
-                                                ))}
+                                                                                                {["S", "M", "L", "XL"].map((size) => {
+                                                                                                    const soldOut = isSizeSoldOut(size);
+                                                                                                    const remaining = getSelectableMaxForSize(size);
+                                                                                                    return (
+                                                                                                        <div key={size} className="flex flex-col items-center">
+                                                                                                            <div className="flex items-center gap-1 mb-2">
+                                                                                                                <span className="text-xs font-medium text-gray-700">{size}</span>
+                                                                                                            </div>
+                                                                                                            <input
+                                                                                                                type="number"
+                                                                                                                min={0}
+                                                                                                                max={typeof remaining === "number" ? remaining : undefined}
+                                                                                                                value={jerseys[size] ?? ""}
+                                                                                                                onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
+                                                                                                                className="jersey-input shift-right accent-purple-500 border-purple-300 focus:border-purple-500"
+                                                                                                                placeholder="0"
+                                                                                                                inputMode="numeric"
+                                                                                                                aria-label={`Count for size ${size}`}
+                                                                                                                disabled={soldOut}
+                                                                                                            />
+                                                                                                            {soldOut ? (
+                                                                                                                <span className="text-[10px] text-red-600 font-semibold mt-1">Sold Out</span>
+                                                                                                            ) : (typeof remaining === "number" ? (
+                                                                                                                <span className="text-[10px] text-gray-500 mt-1">{remaining} left</span>
+                                                                                                            ) : null)}
+                                                                                                        </div>
+                                                                                                    );
+                                                                                                })}
                                                  </div>
                                               
                                         </div>
@@ -1882,24 +2109,35 @@ export default function RegistrationPage() {
                                           </div>
 
                                           <div className="grid grid-cols-4 gap-3">
-                                            {["XXL","3L","4L","5L"].map((size) => (
-                                              <div key={size} className="flex flex-col items-center">
-                                                <div className="flex items-center gap-1 mb-2">
-                                                  <span className="text-xs font-medium text-orange-700">{size}</span>
-                                                  <span className="text-[10px] text-orange-500 font-semibold">+10k</span>
-                                                </div>
-                                                <input
-                                                  type="number"
-                                                  min={0}
-                                                  value={jerseys[size] ?? ""}
-                                                  onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                                  className="jersey-input shift-right accent-orange-500 border-orange-300 focus:border-orange-500"
-                                                  placeholder="0"
-                                                  inputMode="numeric"
-                                                  aria-label={`Count for size ${size}`}
-                                                />
-                                              </div>
-                                            ))}
+                                                                                        {["XXL","3L","4L","5L"].map((size) => {
+                                                                                            const soldOut = isSizeSoldOut(size);
+                                                                                            const remaining = getSelectableMaxForSize(size);
+                                                                                            return (
+                                                                                                <div key={size} className="flex flex-col items-center">
+                                                                                                    <div className="flex items-center gap-1 mb-2">
+                                                                                                        <span className="text-xs font-medium text-orange-700">{size}</span>
+                                                                                                        <span className="text-[10px] text-orange-500 font-semibold">+10k</span>
+                                                                                                    </div>
+                                                                                                    <input
+                                                                                                        type="number"
+                                                                                                        min={0}
+                                                                                                        max={typeof remaining === "number" ? remaining : undefined}
+                                                                                                        value={jerseys[size] ?? ""}
+                                                                                                        onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
+                                                                                                        className="jersey-input shift-right accent-orange-500 border-orange-300 focus:border-orange-500"
+                                                                                                        placeholder="0"
+                                                                                                        inputMode="numeric"
+                                                                                                        aria-label={`Count for size ${size}`}
+                                                                                                        disabled={soldOut}
+                                                                                                    />
+                                                                                                    {soldOut ? (
+                                                                                                        <span className="text-[10px] text-red-600 font-semibold mt-1">Sold Out</span>
+                                                                                                    ) : (typeof remaining === "number" ? (
+                                                                                                        <span className="text-[10px] text-gray-500 mt-1">{remaining} left</span>
+                                                                                                    ) : null)}
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
                                           </div>
                                         </div>
 
@@ -1917,24 +2155,35 @@ export default function RegistrationPage() {
                                           </div>
 
                                           <div className="grid grid-cols-3 gap-3">
-                                            {["6L"].map((size) => (
-                                              <div key={size} className="flex flex-col items-center">
-                                                <div className="flex items-center gap-1 mb-2">
-                                                  <span className="text-xs font-medium text-red-600">{size}</span>
-                                                  <span className="text-[10px] text-red-500 font-semibold">+20k</span>
-                                                </div>
-                                                <input
-                                                  type="number"
-                                                  min={0}
-                                                  value={jerseys[size] ?? ""}
-                                                  onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                                  className="jersey-input shift-right accent-red-500 border-red-300 focus:border-red-500"
-                                                  placeholder="0"
-                                                  inputMode="numeric"
-                                                  aria-label={`Count for size ${size}`}
-                                                />
-                                              </div>
-                                            ))}
+                                                                                        {["6L"].map((size) => {
+                                                                                            const soldOut = isSizeSoldOut(size);
+                                                                                            const remaining = getSelectableMaxForSize(size);
+                                                                                            return (
+                                                                                                <div key={size} className="flex flex-col items-center">
+                                                                                                    <div className="flex items-center gap-1 mb-2">
+                                                                                                        <span className="text-xs font-medium text-red-600">{size}</span>
+                                                                                                        <span className="text-[10px] text-red-500 font-semibold">+20k</span>
+                                                                                                    </div>
+                                                                                                    <input
+                                                                                                        type="number"
+                                                                                                        min={0}
+                                                                                                        max={typeof remaining === "number" ? remaining : undefined}
+                                                                                                        value={jerseys[size] ?? ""}
+                                                                                                        onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
+                                                                                                        className="jersey-input shift-right accent-red-500 border-red-300 focus:border-red-500"
+                                                                                                        placeholder="0"
+                                                                                                        inputMode="numeric"
+                                                                                                        aria-label={`Count for size ${size}`}
+                                                                                                        disabled={soldOut}
+                                                                                                    />
+                                                                                                    {soldOut ? (
+                                                                                                        <span className="text-[10px] text-red-600 font-semibold mt-1">Sold Out</span>
+                                                                                                    ) : (typeof remaining === "number" ? (
+                                                                                                        <span className="text-[10px] text-gray-500 mt-1">{remaining} left</span>
+                                                                                                    ) : null)}
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
                                           </div>
                                         </div>
 
@@ -1951,23 +2200,34 @@ export default function RegistrationPage() {
                                           </div>
 
                                           <div className="grid grid-cols-3 gap-3">
-                                            {["XS - KIDS", "S - KIDS", "M - KIDS", "L - KIDS", "XL - KIDS"].map((size) => (
-                                              <div key={size} className="flex flex-col items-center">
-                                                <div className="flex items-center gap-1 mb-2">
-                                                  <span className="text-xs font-medium text-purple-700">{size}</span>
-                                                </div>
-                                                <input
-                                                  type="number"
-                                                  min={0}
-                                                  value={jerseys[size] ?? ""}
-                                                  onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
-                                                  className="jersey-input shift-right accent-purple-500 border-purple-300 focus:border-purple-500"
-                                                  placeholder="0"
-                                                  inputMode="numeric"
-                                                  aria-label={`Count for size ${size}`}
-                                                />
-                                              </div>
-                                            ))}
+                                                                                        {["XS - KIDS", "S - KIDS", "M - KIDS", "L - KIDS", "XL - KIDS"].map((size) => {
+                                                                                            const soldOut = isSizeSoldOut(size);
+                                                                                            const remaining = getSelectableMaxForSize(size);
+                                                                                            return (
+                                                                                                <div key={size} className="flex flex-col items-center">
+                                                                                                    <div className="flex items-center gap-1 mb-2">
+                                                                                                        <span className="text-xs font-medium text-purple-700">{size}</span>
+                                                                                                    </div>
+                                                                                                    <input
+                                                                                                        type="number"
+                                                                                                        min={0}
+                                                                                                        max={typeof remaining === "number" ? remaining : undefined}
+                                                                                                        value={jerseys[size] ?? ""}
+                                                                                                        onChange={(e) => updateJersey(size, e.target.value === "" ? "" : Number(e.target.value))}
+                                                                                                        className="jersey-input shift-right accent-purple-500 border-purple-300 focus:border-purple-500"
+                                                                                                        placeholder="0"
+                                                                                                        inputMode="numeric"
+                                                                                                        aria-label={`Count for size ${size}`}
+                                                                                                        disabled={soldOut}
+                                                                                                    />
+                                                                                                    {soldOut ? (
+                                                                                                        <span className="text-[10px] text-red-600 font-semibold mt-1">Sold Out</span>
+                                                                                                    ) : (typeof remaining === "number" ? (
+                                                                                                        <span className="text-[10px] text-gray-500 mt-1">{remaining} left</span>
+                                                                                                    ) : null)}
+                                                                                                </div>
+                                                                                            );
+                                                                                        })}
                                           </div>
                                         </div>
 
@@ -2114,20 +2374,41 @@ export default function RegistrationPage() {
                                     className="w-full px-4 py-3 border-b-2 border-gray-200 bg-transparent text-gray-800 focus:border-blue-500 focus:outline-none transition-colors text-base cursor-pointer"
                                 >
                                     <optgroup label="Adult Sizes">
-                                        {adultJerseys.map((jersey) => (
-                                            <option key={jersey.size} value={jersey.size}>
-                                                {jersey.size} {jersey.isExtraSize ? `(+Rp ${Number(jersey.price).toLocaleString("id-ID")})` : ''}
-                                            </option>
-                                        ))}
+                                        {adultJerseys.map((jersey) => {
+                                            const soldOut = isSizeSoldOut(jersey.size);
+                                            const remaining = getSelectableMaxForSize(jersey.size);
+                                            return (
+                                                <option key={jersey.size} value={jersey.size} disabled={soldOut}>
+                                                    {jersey.size}
+                                                    {jersey.isExtraSize ? ` (+Rp ${Number(jersey.price).toLocaleString("id-ID")})` : ''}
+                                                    {soldOut ? " (Sold Out)" : (typeof remaining === "number" ? ` (${remaining} left)` : "")}
+                                                </option>
+                                            );
+                                        })}
                                     </optgroup>
                                     <optgroup label="Kids Sizes">
-                                        {kidsJerseys.map((jersey) => (
-                                            <option key={jersey.size} value={jersey.size}>
-                                                {jersey.size}
-                                            </option>
-                                        ))}
+                                        {kidsJerseys.map((jersey) => {
+                                            const soldOut = isSizeSoldOut(jersey.size);
+                                            const remaining = getSelectableMaxForSize(jersey.size);
+                                            return (
+                                                <option key={jersey.size} value={jersey.size} disabled={soldOut}>
+                                                    {jersey.size}
+                                                    {soldOut ? " (Sold Out)" : (typeof remaining === "number" ? ` (${remaining} left)` : "")}
+                                                </option>
+                                            );
+                                        })}
                                     </optgroup>
                                 </select>
+
+                                {(() => {
+                                    const remaining = getSelectableMaxForSize(selectedJerseySize);
+                                    if (typeof remaining !== "number") return null;
+                                    return (
+                                        <p className="text-xs text-gray-500">
+                                            Remaining quota for {selectedJerseySize}: {remaining}
+                                        </p>
+                                    );
+                                })()}
                                 
                                 {/* Extra Size Notice */}
                                 {jerseyOptions.find(j => j.size === selectedJerseySize)?.isExtraSize && (
