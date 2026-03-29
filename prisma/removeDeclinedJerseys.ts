@@ -13,8 +13,8 @@ async function main() {
       registration: {
         paymentStatus: "declined"
       },
-      jerseyId: {
-        not: null
+      NOT: {
+        jerseyId: null
       }
     }
   });
