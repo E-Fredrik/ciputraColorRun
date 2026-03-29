@@ -91,12 +91,12 @@ model Participant {
   id             Int           @id @default(autoincrement())
   registrationId Int
   categoryId     Int?
-  jerseyId       Int
+  jerseyId       Int?
   bibNumber      String?
   packClaimed    Boolean       @default(false)
   claimDetails   ClaimDetail[]
   category       RaceCategory?  @relation(fields: [categoryId], references: [id])
-  jersey         JerseyOption  @relation(fields: [jerseyId], references: [id])
+  jersey         JerseyOption?  @relation(fields: [jerseyId], references: [id])
   registration   Registration  @relation(fields: [registrationId], references: [id])
 }
 
