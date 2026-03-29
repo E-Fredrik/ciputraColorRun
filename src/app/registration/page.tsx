@@ -651,8 +651,8 @@ export default function RegistrationPage() {
         return map;
     }, [jerseyOptions]);
 
-    function getComputedRemainingForSize(size: string): number | null {
-        const jersey = jerseyMapBySize.get(size);
+    function getRemainingForSizeFromMap(map: Map<string, JerseyOption>, size: string): number | null {
+        const jersey = map.get(size);
         if (!jersey) return null;
 
         if (typeof jersey.remaining === "number") {
@@ -666,17 +666,85 @@ export default function RegistrationPage() {
         return null;
     }
 
-    function isSizeSoldOut(size: string): boolean {
-        const jersey = jerseyMapBySize.get(size);
+    function isSizeSoldOutFromMap(map: Map<string, JerseyOption>, size: string): boolean {
+        const jersey = map.get(size);
         if (!jersey) return false;
         if (typeof jersey.isSoldOut === "boolean") return jersey.isSoldOut;
 
-        const remaining = getComputedRemainingForSize(size);
+        const remaining = getRemainingForSizeFromMap(map, size);
         return typeof remaining === "number" ? remaining <= 0 : false;
+    }
+
+    function getComputedRemainingForSize(size: string): number | null {
+        return getRemainingForSizeFromMap(jerseyMapBySize, size);
+    }
+
+    function isSizeSoldOut(size: string): boolean {
+        return isSizeSoldOutFromMap(jerseyMapBySize, size);
     }
 
     function getSelectableMaxForSize(size: string): number | null {
         return getComputedRemainingForSize(size);
+    }
+
+    function validateIndividualJerseyQuotaWithMap(size: string, map: Map<string, JerseyOption>): boolean {
+        if (!map.has(size)) {
+            showToast("Please select a valid jersey size.", "error");
+            return false;
+        }
+
+        const remaining = getRemainingForSizeFromMap(map, size);
+        if (typeof remaining === "number" && remaining <= 0) {
+            showToast(`Jersey size ${size} is sold out. Please choose another size.`, "error");
+            return false;
+        }
+        return true;
+    }
+
+    function validateGroupJerseyQuotaWithMap(selection: Record<string, number | "">, map: Map<string, JerseyOption>): boolean {
+        for (const [size, rawCount] of Object.entries(selection)) {
+            const requested = Math.max(0, Math.floor(Number(rawCount || 0)));
+            if (requested <= 0) continue;
+
+            if (!map.has(size)) {
+                showToast(`Invalid jersey size in selection: ${size}. Please refresh and try again.`, "error");
+                return false;
+            }
+
+            const remaining = getRemainingForSizeFromMap(map, size);
+            if (typeof remaining === "number" && requested > remaining) {
+                showToast(`Only ${remaining} jersey(s) left for size ${size}. Please adjust your selection.`, "error");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    async function refreshLatestJerseyOptions(): Promise<Map<string, JerseyOption> | null> {
+        try {
+            const res = await fetch(`/api/jerseys?t=${Date.now()}`, {
+                cache: "no-store",
+                headers: { "Cache-Control": "no-cache" },
+            });
+
+            if (!res.ok) {
+                throw new Error(`Failed to refresh jersey options (${res.status})`);
+            }
+
+            const latestOptions: JerseyOption[] = await res.json();
+            setJerseyOptions(latestOptions);
+
+            const latestMap = new Map<string, JerseyOption>();
+            latestOptions.forEach((jersey) => {
+                latestMap.set(jersey.size, jersey);
+            });
+
+            return latestMap;
+        } catch (err) {
+            console.error("Failed to refresh jersey options:", err);
+            showToast("Failed to verify latest jersey stock. Please try again.", "error");
+            return null;
+        }
     }
 
     useEffect(() => {
@@ -697,36 +765,11 @@ export default function RegistrationPage() {
     }, [jerseyMapBySize, jerseyOptions, selectedJerseySize]);
 
     function validateIndividualJerseyQuota(size: string): boolean {
-        if (!jerseyMapBySize.has(size)) {
-            showToast("Please select a valid jersey size.", "error");
-            return false;
-        }
-
-        const remaining = getSelectableMaxForSize(size);
-        if (typeof remaining === "number" && remaining <= 0) {
-            showToast(`Jersey size ${size} is sold out. Please choose another size.`, "error");
-            return false;
-        }
-        return true;
+        return validateIndividualJerseyQuotaWithMap(size, jerseyMapBySize);
     }
 
     function validateGroupJerseyQuota(selection: Record<string, number | "">): boolean {
-        for (const [size, rawCount] of Object.entries(selection)) {
-            const requested = Math.max(0, Math.floor(Number(rawCount || 0)));
-            if (requested <= 0) continue;
-
-            if (!jerseyMapBySize.has(size)) {
-                showToast(`Invalid jersey size in selection: ${size}. Please refresh and try again.`, "error");
-                return false;
-            }
-
-            const remaining = getSelectableMaxForSize(size);
-            if (typeof remaining === "number" && requested > remaining) {
-                showToast(`Only ${remaining} jersey(s) left for size ${size}. Please adjust your selection.`, "error");
-                return false;
-            }
-        }
-        return true;
+        return validateGroupJerseyQuotaWithMap(selection, jerseyMapBySize);
     }
 
     function updateJersey(size: string, value: number | "") {
@@ -912,13 +955,25 @@ export default function RegistrationPage() {
             return;
         }
 
+        const latestJerseyMap = await refreshLatestJerseyOptions();
+        if (!latestJerseyMap) {
+            return;
+        }
+
+        if (type === "individual") {
+            if (!validateIndividualJerseyQuotaWithMap(selectedJerseySize, latestJerseyMap)) {
+                return;
+            }
+        } else {
+            if (!validateGroupJerseyQuotaWithMap(jerseys, latestJerseyMap)) {
+                return;
+            }
+        }
+
         if (type === "community") {
             const currentParticipants = Number(participants || 0);
             if (currentParticipants <= 0) {
                 showToast("Please enter the number of participants", "error");
-                return;
-            }
-            if (!validateGroupJerseyQuota(jerseys)) {
                 return;
             }
             const totalJerseys = Object.values(jerseys).reduce<number>((sum, val) => sum + Number(val || 0), 0);
@@ -995,8 +1050,13 @@ export default function RegistrationPage() {
         setIsSubmitting(true);
         
         try {
+            const latestJerseyMap = await refreshLatestJerseyOptions();
+            if (!latestJerseyMap) {
+                return;
+            }
+
             if (type === "individual") {
-                if (!validateIndividualJerseyQuota(selectedJerseySize)) {
+                if (!validateIndividualJerseyQuotaWithMap(selectedJerseySize, latestJerseyMap)) {
                     return;
                 }
 
@@ -1072,7 +1132,7 @@ export default function RegistrationPage() {
                     return;
                 }
 
-                if (!validateGroupJerseyQuota(jerseys)) {
+                if (!validateGroupJerseyQuotaWithMap(jerseys, latestJerseyMap)) {
                     return;
                 }
 
@@ -1093,7 +1153,7 @@ export default function RegistrationPage() {
                     return;
                 }
 
-                if (!validateGroupJerseyQuota(jerseys)) {
+                if (!validateGroupJerseyQuotaWithMap(jerseys, latestJerseyMap)) {
                     return;
                 }
 
@@ -1143,13 +1203,18 @@ export default function RegistrationPage() {
     // No add-to-cart - direct checkout only
 
     // Direct checkout after terms accepted - save to session and redirect
-    function executeCheckout() {
+    async function executeCheckout() {
+        const latestJerseyMap = await refreshLatestJerseyOptions();
+        if (!latestJerseyMap) {
+            return;
+        }
+
         // Ensure personal details persisted
         savePersonalDetailsToSession();
 
         // If individual, session already contains currentRegistration -> proceed directly
         if (type === "individual") {
-            if (!validateIndividualJerseyQuota(selectedJerseySize)) {
+            if (!validateIndividualJerseyQuotaWithMap(selectedJerseySize, latestJerseyMap)) {
                 return;
             }
 
@@ -1164,7 +1229,7 @@ export default function RegistrationPage() {
         if (!category) return;
  
         if (type === "family") {
-            if (!validateGroupJerseyQuota(jerseys)) {
+            if (!validateGroupJerseyQuotaWithMap(jerseys, latestJerseyMap)) {
                 return;
             }
 
@@ -1211,7 +1276,7 @@ export default function RegistrationPage() {
             sessionStorage.setItem("currentRegistration", JSON.stringify(registrationData));
         } else {
             // Community
-            if (!validateGroupJerseyQuota(jerseys)) {
+            if (!validateGroupJerseyQuotaWithMap(jerseys, latestJerseyMap)) {
                 return;
             }
 

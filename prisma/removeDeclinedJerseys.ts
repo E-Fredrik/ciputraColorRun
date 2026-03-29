@@ -24,10 +24,7 @@ async function main() {
     
     // Create an array of updates to remove the jerseyId
     const removalUpdates = invalidParticipants.map(p => 
-      prisma.participant.update({
-        where: { id: p.id },
-        data: { jersey: { disconnect: true } }
-      })
+      prisma.$executeRaw`UPDATE "Participant" SET "jerseyId" = NULL WHERE id = ${p.id}`
     );
     
     // Execute all updates in a single database transaction
