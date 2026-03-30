@@ -235,11 +235,11 @@ export default function ClaimPage() {
                 {isGroupRegistration ? (groupName || registration.user?.name || "Group Registration") : (registration.user?.name || "Unknown Participant")}
               </p>
             </div>
-            <div className="hidden md:block w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-lg">
+            {/* <div className="hidden md:block w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-lg">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-            </div>
+            </div> */}
           </div>
 
           {/* Stats Grid */}
