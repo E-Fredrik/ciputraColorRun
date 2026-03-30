@@ -13,9 +13,10 @@ export default function ClaimPage() {
   const [loading, setLoading] = useState(true);
   const [qrData, setQrData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [authorized, setAuthorized] = useState(false);
+  const [accessPassword, setAccessPassword] = useState("");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [claimedBy, setClaimedBy] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
   const [claiming, setClaiming] = useState(false);
 
   useEffect(() => {
@@ -38,6 +39,48 @@ export default function ClaimPage() {
     return () => { mounted = false; };
   }, [token]);
 
+  const ACCESS_PASS = process.env.NEXT_PUBLIC_CLAIM_PAGE_PASS;
+
+  function handleAccessSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (accessPassword === ACCESS_PASS) {
+      setAuthorized(true);
+    } else {
+      showToast('Incorrect admin password', 'error');
+      setAccessPassword('');
+    }
+  }
+
+  if (!authorized) {
+    return (
+      <main className="min-h-screen pt-28 p-4 bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Race Pack Claim </h1>
+            <p className="text-gray-600">Enter admin password to view and claim race packs</p>
+          </div>
+          <form onSubmit={handleAccessSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Admin Password</label>
+              <input
+                type="password"
+                value={accessPassword}
+                onChange={(e) => setAccessPassword(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all text-black"
+                placeholder="Enter admin password"
+                required
+              />
+            </div>
+            <div className="flex gap-3">
+              <button type="submit" className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all">Unlock</button>
+              <button type="button" onClick={() => router.push('/')} className="px-4 py-3 bg-gray-500 rounded-lg">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </main>
+    );
+  }
+
   function toggleSelect(id: number) {
     setSelectedIds((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
   }
@@ -50,10 +93,7 @@ export default function ClaimPage() {
       return;
     }
     
-    if (!password) {
-      showToast("Password is required to claim race packs.", "error");
-      return;
-    }
+    // no admin password required on client-side
 
     setClaiming(true);
     try {
@@ -65,7 +105,6 @@ export default function ClaimPage() {
           participantIds: selectedIds,
           claimedBy: claimedBy || "staff",
           claimType: "staff",
-          password: password, // Validated server-side only
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -139,6 +178,11 @@ export default function ClaimPage() {
   const registration = qrData.registration;
   const participants = registration.participants || [];
 
+  // Determine if this registration is a community/group registration
+  const regType = registration.registrationType || registration.type || registration.registration_type;
+  const groupName = registration.groupName || registration.group_name || registration.user?.name;
+  const isCommunity = String(regType || '').toLowerCase() === 'community';
+
   // Group participants by race category name (fallback "Unassigned")
   const groupedByCategory: Record<string, any[]> = {};
   participants.forEach((p: any) => {
@@ -169,7 +213,7 @@ export default function ClaimPage() {
                 Race Pack Claim
               </h1>
               <p className="text-lg text-gray-700 font-semibold">
-                {registration.user?.name || "Unknown Participant"}
+                {isCommunity ? (groupName || registration.user?.name || "Community Registration") : (registration.user?.name || "Unknown Participant")}
               </p>
             </div>
             <div className="hidden md:block w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-lg">
@@ -248,7 +292,7 @@ export default function ClaimPage() {
                               {p.bibNumber || `#${p.id}`}
                             </div>
                             <div className="text-xs text-gray-600 mt-0.5">
-                              {p.fullName || p.participantName || registration.user?.name || "Participant"}
+                              {isCommunity ? (groupName || registration.user?.name || "Community") : (p.fullName || p.participantName || registration.user?.name || "Participant")}
                             </div>
                           </div>
                         </div>
@@ -295,22 +339,7 @@ export default function ClaimPage() {
               <p className="text-xs text-gray-500 mt-2">Name of the staff member claiming the packs</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                Admin Password <span className="text-red-500">*</span>
-              </label>
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all text-base"
-                placeholder="Enter admin password"
-                required
-              />
-              <p className="text-xs text-red-600 mt-2 font-semibold">
-                🔒 Password required for security. Only authorized staff can claim race packs.
-              </p>
-            </div>
+            {/* Admin password removed: only staff name required */}
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
@@ -334,7 +363,6 @@ export default function ClaimPage() {
               <button
                 onClick={() => { 
                   setSelectedIds([]); 
-                  setPassword(''); 
                   setClaimedBy(''); 
                 }}
                 className="px-6 py-4 border-2 border-gray-300 hover:border-gray-400 bg-white text-gray-700 rounded-xl font-semibold transition-all"
@@ -347,10 +375,9 @@ export default function ClaimPage() {
 
         {/* Help Text */}
         <div className="mt-6 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-          <p className="text-sm text-blue-900">
-            <span className="font-bold">💡 Tip:</span> Select participants from the list above, then enter the admin password to claim their race packs. 
-            You can claim multiple packs at once by selecting multiple participants.
-          </p>
+            <p className="text-sm text-blue-900">
+              <span className="font-bold">💡 Tip:</span> Select participants from the list above, then enter the staff name and click Claim to record the packs. You can claim multiple packs at once by selecting multiple participants.
+            </p>
         </div>
       </div>
     </main>
