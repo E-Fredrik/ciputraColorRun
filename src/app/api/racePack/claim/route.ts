@@ -48,13 +48,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'QR code not found' }, { status: 404 });
     }
 
-    const registrationType = String(qrCode.registration?.registrationType || '').toLowerCase();
-    const isGroupRegistration = registrationType === 'community' || registrationType === 'family';
     const normalizedClaimType = String(claimType || 'self').toLowerCase() === 'representative' ? 'representative' : 'self';
     const normalizedRepresentativeName = typeof representativeName === 'string' ? representativeName.trim() : '';
     const normalizedRepresentativePhone = typeof representativePhone === 'string' ? representativePhone.trim() : '';
 
-    if (isGroupRegistration && normalizedClaimType === 'representative') {
+    if (normalizedClaimType === 'representative') {
       if (!normalizedRepresentativeName || !normalizedRepresentativePhone) {
         return NextResponse.json(
           { error: 'Representative name and phone number are required for representative claims.' },
@@ -106,23 +104,21 @@ export async function POST(request: Request) {
     }
 
     // Create RacePackClaim with ClaimDetails mapping participant ids
+    const claimData: any = {
+      qrCodeId: qrCode.id,
+      claimedBy: claimedBy || 'anonymous',
+      claimType: normalizedClaimType,
+      representativeName: normalizedClaimType === 'representative' ? normalizedRepresentativeName : null,
+      representativePhone: normalizedClaimType === 'representative' ? normalizedRepresentativePhone : null,
+      packsClaimedCount: toClaimParticipants.length,
+      claimDetails: {
+        create: toClaimParticipants.map((p: any) => ({ participantId: p.id })),
+      },
+    };
+
     const claim = await prisma.racePackClaim.create({
       data: {
-        qrCodeId: qrCode.id,
-        claimedBy: claimedBy || 'anonymous',
-        claimType: isGroupRegistration ? normalizedClaimType : 'self',
-        representativeName:
-          isGroupRegistration && normalizedClaimType === 'representative'
-            ? normalizedRepresentativeName
-            : null,
-        representativePhone:
-          isGroupRegistration && normalizedClaimType === 'representative'
-            ? normalizedRepresentativePhone
-            : null,
-        packsClaimedCount: toClaimParticipants.length,
-        claimDetails: {
-          create: toClaimParticipants.map((p: any) => ({ participantId: p.id })),
-        },
+        ...claimData,
       },
       include: { claimDetails: true },
     });

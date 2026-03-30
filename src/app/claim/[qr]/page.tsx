@@ -97,7 +97,7 @@ export default function ClaimPage() {
       return;
     }
 
-    if (isGroupRegistration && claimType === "representative") {
+    if (claimType === "representative") {
       if (!representativeName.trim() || !representativePhone.trim()) {
         showToast("Representative name and phone number are required.", "error");
         return;
@@ -115,13 +115,13 @@ export default function ClaimPage() {
           qrCodeData: token,
           participantIds: selectedIds,
           claimedBy: claimedBy || "staff",
-          claimType: isGroupRegistration ? claimType : "self",
+          claimType,
           representativeName:
-            isGroupRegistration && claimType === "representative"
+            claimType === "representative"
               ? representativeName.trim()
               : undefined,
           representativePhone:
-            isGroupRegistration && claimType === "representative"
+            claimType === "representative"
               ? representativePhone.trim()
               : undefined,
         }),
@@ -359,93 +359,91 @@ export default function ClaimPage() {
               <p className="text-xs text-gray-500 mt-2">Name of the staff member claiming the packs</p>
             </div>
 
-            {isGroupRegistration && (
-              <div className="space-y-4">
-                <p className="text-sm font-bold text-gray-700">Claim Method</p>
+            <div className="space-y-4">
+              <p className="text-sm font-bold text-gray-700">Claim Method</p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <label
-                    aria-label="Self Claim"
-                    className={`flex items-center gap-3 border-2 rounded-xl px-4 py-3 cursor-pointer transition-all ${
-                      claimType === "self"
-                        ? "border-emerald-500 bg-emerald-50"
-                        : "border-gray-300 bg-white hover:border-emerald-300"
-                    }`}
-                  >
-                    <input
-                      id="claim-type-self"
-                      type="radio"
-                      name="claimType"
-                      value="self"
-                      checked={claimType === "self"}
-                      onChange={() => setClaimType("self")}
-                      className="h-4 w-4 accent-emerald-600"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">Self Claim</p>
-                      <p className="text-xs text-gray-600">
-                        The participant/PIC comes directly to the booth and staff processes the claim.
-                      </p>
-                    </div>
-                  </label>
-
-                  <label
-                    aria-label="Claimed by Representative"
-                    className={`flex items-center gap-3 border-2 rounded-xl px-4 py-3 cursor-pointer transition-all ${
-                      claimType === "representative"
-                        ? "border-emerald-500 bg-emerald-50"
-                        : "border-gray-300 bg-white hover:border-emerald-300"
-                    }`}
-                  >
-                    <input
-                      id="claim-type-representative"
-                      type="radio"
-                      name="claimType"
-                      value="representative"
-                      checked={claimType === "representative"}
-                      onChange={() => setClaimType("representative")}
-                      className="h-4 w-4 accent-emerald-600"
-                    />
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">Claimed by Representative</p>
-                      <p className="text-xs text-gray-600">
-                        Claimed by friend/family representative with a valid surat kuasa.
-                      </p>
-                    </div>
-                  </label>
-                </div>
-
-                {claimType === "representative" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="representative-name" className="block text-sm font-semibold text-gray-700 mb-2">
-                        Representative Name
-                      </label>
-                      <input
-                        id="representative-name"
-                        value={representativeName}
-                        onChange={(e) => setRepresentativeName(e.target.value)}
-                        className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all text-base"
-                        placeholder="Enter representative full name"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="representative-phone" className="block text-sm font-semibold text-gray-700 mb-2">
-                        Representative Phone Number
-                      </label>
-                      <input
-                        id="representative-phone"
-                        type="tel"
-                        value={representativePhone}
-                        onChange={(e) => setRepresentativePhone(e.target.value)}
-                        className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all text-base"
-                        placeholder="Enter representative phone number"
-                      />
-                    </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label
+                  aria-label="Self Claim"
+                  className={`flex items-center gap-3 border-2 rounded-xl px-4 py-3 cursor-pointer transition-all ${
+                    claimType === "self"
+                      ? "border-emerald-500 bg-emerald-50"
+                      : "border-gray-300 bg-white hover:border-emerald-300"
+                  }`}
+                >
+                  <input
+                    id="claim-type-self"
+                    type="radio"
+                    name="claimType"
+                    value="self"
+                    checked={claimType === "self"}
+                    onChange={() => setClaimType("self")}
+                    className="h-4 w-4 accent-emerald-600"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Self Claim</p>
+                    <p className="text-xs text-gray-600">
+                      The participant/PIC comes directly to the booth and staff processes the claim.
+                    </p>
                   </div>
-                )}
+                </label>
+
+                <label
+                  aria-label="Claimed by Representative"
+                  className={`flex items-center gap-3 border-2 rounded-xl px-4 py-3 cursor-pointer transition-all ${
+                    claimType === "representative"
+                      ? "border-emerald-500 bg-emerald-50"
+                      : "border-gray-300 bg-white hover:border-emerald-300"
+                  }`}
+                >
+                  <input
+                    id="claim-type-representative"
+                    type="radio"
+                    name="claimType"
+                    value="representative"
+                    checked={claimType === "representative"}
+                    onChange={() => setClaimType("representative")}
+                    className="h-4 w-4 accent-emerald-600"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Claimed by Representative</p>
+                    <p className="text-xs text-gray-600">
+                      Claimed by friend/family representative with a valid surat kuasa.
+                    </p>
+                  </div>
+                </label>
               </div>
-            )}
+
+              {claimType === "representative" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="representative-name" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Representative Name
+                    </label>
+                    <input
+                      id="representative-name"
+                      value={representativeName}
+                      onChange={(e) => setRepresentativeName(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all text-base"
+                      placeholder="Enter representative full name"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="representative-phone" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Representative Phone Number
+                    </label>
+                    <input
+                      id="representative-phone"
+                      type="tel"
+                      value={representativePhone}
+                      onChange={(e) => setRepresentativePhone(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all text-base"
+                      placeholder="Enter representative phone number"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Admin password removed: only staff name required */}
 
@@ -487,7 +485,7 @@ export default function ClaimPage() {
         {/* Help Text */}
         <div className="mt-6 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
             <p className="text-sm text-blue-900">
-              <span className="font-bold">💡 Tip:</span> Select participants, enter staff name, then choose self claim or representative claim for community/family registrations before submitting.
+              <span className="font-bold">💡 Tip:</span> Select participants, enter staff name, then choose self claim or representative claim before submitting.
             </p>
         </div>
       </div>
