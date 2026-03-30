@@ -17,6 +17,9 @@ export default function ClaimPage() {
   const [accessPassword, setAccessPassword] = useState("");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [claimedBy, setClaimedBy] = useState<string>('');
+  const [claimType, setClaimType] = useState<"self" | "representative">("self");
+  const [representativeName, setRepresentativeName] = useState<string>("");
+  const [representativePhone, setRepresentativePhone] = useState<string>("");
   const [claiming, setClaiming] = useState(false);
 
   useEffect(() => {
@@ -61,8 +64,9 @@ export default function ClaimPage() {
           </div>
           <form onSubmit={handleAccessSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Admin Password</label>
+              <label htmlFor="claim-access-password" className="block text-sm font-medium text-gray-700 mb-2">Admin Password</label>
               <input
+                id="claim-access-password"
                 type="password"
                 value={accessPassword}
                 onChange={(e) => setAccessPassword(e.target.value)}
@@ -92,6 +96,13 @@ export default function ClaimPage() {
       showToast("Please select at least one participant to claim.", "error");
       return;
     }
+
+    if (isGroupRegistration && claimType === "representative") {
+      if (!representativeName.trim() || !representativePhone.trim()) {
+        showToast("Representative name and phone number are required.", "error");
+        return;
+      }
+    }
     
     // no admin password required on client-side
 
@@ -104,7 +115,15 @@ export default function ClaimPage() {
           qrCodeData: token,
           participantIds: selectedIds,
           claimedBy: claimedBy || "staff",
-          claimType: "staff",
+          claimType: isGroupRegistration ? claimType : "self",
+          representativeName:
+            isGroupRegistration && claimType === "representative"
+              ? representativeName.trim()
+              : undefined,
+          representativePhone:
+            isGroupRegistration && claimType === "representative"
+              ? representativePhone.trim()
+              : undefined,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -112,7 +131,7 @@ export default function ClaimPage() {
       
       showToast(`Successfully claimed ${selectedIds.length} race pack(s)!`, "success");
       
-      router.replace(window.location.pathname);
+      router.replace(globalThis.location.pathname);
     } catch (err: any) {
       showToast("Claim failed: " + (err?.message || String(err)), "error");
     } finally {
@@ -181,7 +200,8 @@ export default function ClaimPage() {
   // Determine if this registration is a community/group registration
   const regType = registration.registrationType || registration.type || registration.registration_type;
   const groupName = registration.groupName || registration.group_name || registration.user?.name;
-  const isCommunity = String(regType || '').toLowerCase() === 'community';
+  const normalizedRegType = String(regType || '').toLowerCase();
+  const isGroupRegistration = normalizedRegType === 'community' || normalizedRegType === 'family';
 
   // Group participants by race category name (fallback "Unassigned")
   const groupedByCategory: Record<string, any[]> = {};
@@ -192,7 +212,6 @@ export default function ClaimPage() {
   });
 
   const totalClaimed = participants.filter((p: any) => p.packClaimed).length;
-  const totalParticipants = participants.length;
 
   return (
     <main 
@@ -213,7 +232,7 @@ export default function ClaimPage() {
                 Race Pack Claim
               </h1>
               <p className="text-lg text-gray-700 font-semibold">
-                {isCommunity ? (groupName || registration.user?.name || "Community Registration") : (registration.user?.name || "Unknown Participant")}
+                {isGroupRegistration ? (groupName || registration.user?.name || "Group Registration") : (registration.user?.name || "Unknown Participant")}
               </p>
             </div>
             <div className="hidden md:block w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center shadow-lg">
@@ -292,7 +311,7 @@ export default function ClaimPage() {
                               {p.bibNumber || `#${p.id}`}
                             </div>
                             <div className="text-xs text-gray-600 mt-0.5">
-                              {isCommunity ? (groupName || registration.user?.name || "Community") : (p.fullName || p.participantName || registration.user?.name || "Participant")}
+                              {isGroupRegistration ? (groupName || registration.user?.name || "Group") : (p.fullName || p.participantName || registration.user?.name || "Participant")}
                             </div>
                           </div>
                         </div>
@@ -326,10 +345,11 @@ export default function ClaimPage() {
 
           <div className="space-y-6">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
+              <label htmlFor="claim-staff-name" className="block text-sm font-bold text-gray-700 mb-2">
                 Claimed By (Staff Name)
               </label>
               <input
+                id="claim-staff-name"
                 value={claimedBy}
                 onChange={(e) => setClaimedBy(e.target.value)}
                 className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all text-base"
@@ -338,6 +358,94 @@ export default function ClaimPage() {
               />
               <p className="text-xs text-gray-500 mt-2">Name of the staff member claiming the packs</p>
             </div>
+
+            {isGroupRegistration && (
+              <div className="space-y-4">
+                <p className="text-sm font-bold text-gray-700">Claim Method</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label
+                    aria-label="Self Claim"
+                    className={`flex items-center gap-3 border-2 rounded-xl px-4 py-3 cursor-pointer transition-all ${
+                      claimType === "self"
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-gray-300 bg-white hover:border-emerald-300"
+                    }`}
+                  >
+                    <input
+                      id="claim-type-self"
+                      type="radio"
+                      name="claimType"
+                      value="self"
+                      checked={claimType === "self"}
+                      onChange={() => setClaimType("self")}
+                      className="h-4 w-4 accent-emerald-600"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">Self Claim</p>
+                      <p className="text-xs text-gray-600">
+                        The participant/PIC comes directly to the booth and staff processes the claim.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label
+                    aria-label="Claimed by Representative"
+                    className={`flex items-center gap-3 border-2 rounded-xl px-4 py-3 cursor-pointer transition-all ${
+                      claimType === "representative"
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-gray-300 bg-white hover:border-emerald-300"
+                    }`}
+                  >
+                    <input
+                      id="claim-type-representative"
+                      type="radio"
+                      name="claimType"
+                      value="representative"
+                      checked={claimType === "representative"}
+                      onChange={() => setClaimType("representative")}
+                      className="h-4 w-4 accent-emerald-600"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">Claimed by Representative</p>
+                      <p className="text-xs text-gray-600">
+                        Claimed by friend/family representative with a valid surat kuasa.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {claimType === "representative" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="representative-name" className="block text-sm font-semibold text-gray-700 mb-2">
+                        Representative Name
+                      </label>
+                      <input
+                        id="representative-name"
+                        value={representativeName}
+                        onChange={(e) => setRepresentativeName(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all text-base"
+                        placeholder="Enter representative full name"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="representative-phone" className="block text-sm font-semibold text-gray-700 mb-2">
+                        Representative Phone Number
+                      </label>
+                      <input
+                        id="representative-phone"
+                        type="tel"
+                        value={representativePhone}
+                        onChange={(e) => setRepresentativePhone(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-xl text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all text-base"
+                        placeholder="Enter representative phone number"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Admin password removed: only staff name required */}
 
@@ -363,7 +471,10 @@ export default function ClaimPage() {
               <button
                 onClick={() => { 
                   setSelectedIds([]); 
-                  setClaimedBy(''); 
+                  setClaimedBy('');
+                  setClaimType("self");
+                  setRepresentativeName("");
+                  setRepresentativePhone("");
                 }}
                 className="px-6 py-4 border-2 border-gray-300 hover:border-gray-400 bg-white text-gray-700 rounded-xl font-semibold transition-all"
               >
@@ -376,7 +487,7 @@ export default function ClaimPage() {
         {/* Help Text */}
         <div className="mt-6 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
             <p className="text-sm text-blue-900">
-              <span className="font-bold">💡 Tip:</span> Select participants from the list above, then enter the staff name and click Claim to record the packs. You can claim multiple packs at once by selecting multiple participants.
+              <span className="font-bold">💡 Tip:</span> Select participants, enter staff name, then choose self claim or representative claim for community/family registrations before submitting.
             </p>
         </div>
       </div>

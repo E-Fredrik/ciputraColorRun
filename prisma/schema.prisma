@@ -133,6 +133,9 @@ model RacePackClaim {
   id                Int           @id @default(autoincrement())
   qrCodeId          Int
   claimedBy         String
+  claimType         String        @default("self")
+  representativeName String?
+  representativePhone String?
   packsClaimedCount Int
   claimedAt         DateTime      @default(now())
   claimDetails      ClaimDetail[]

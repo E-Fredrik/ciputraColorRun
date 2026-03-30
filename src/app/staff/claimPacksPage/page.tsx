@@ -26,7 +26,11 @@ interface ClaimRecord {
   id: number;
   claimedBy: string;
   packsClaimedCount: number;
-  createdAt: string;
+  claimType?: string;
+  representativeName?: string | null;
+  representativePhone?: string | null;
+  claimedAt?: string;
+  createdAt?: string;
   qrCode: {
     registration: {
       id: number;
@@ -421,7 +425,11 @@ export default function ClaimPacksPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredClaims.map((claim) => (
+              {filteredClaims.map((claim) => {
+                const claimTimestamp = claim.claimedAt || claim.createdAt;
+                const isRepresentativeClaim = claim.claimType === 'representative';
+
+                return (
                 <div key={claim.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex-1">
@@ -448,8 +456,16 @@ export default function ClaimPacksPage() {
                           <span>Staff: {claim.claimedBy}</span>
                         </div>
                         <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Method: {isRepresentativeClaim ? 'Representative' : 'Self'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4" />
-                          <span>{new Date(claim.createdAt).toLocaleDateString('id-ID')} {new Date(claim.createdAt).toLocaleTimeString('id-ID')}</span>
+                          <span>
+                            {claimTimestamp
+                              ? `${new Date(claimTimestamp).toLocaleDateString('id-ID')} ${new Date(claimTimestamp).toLocaleTimeString('id-ID')}`
+                              : 'N/A'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -466,7 +482,7 @@ export default function ClaimPacksPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>
@@ -603,10 +619,14 @@ export default function ClaimPacksPage() {
               {/* Claim Info */}
               <div className="bg-emerald-50 rounded-lg p-4">
                 <h3 className="font-semibold text-gray-800 mb-3">Claim Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Claimed By</p>
                     <p className="font-medium">{selectedClaim.claimedBy}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Claim Method</p>
+                    <p className="font-medium capitalize">{selectedClaim.claimType || 'self'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Packs Claimed</p>
@@ -615,11 +635,24 @@ export default function ClaimPacksPage() {
                   <div>
                     <p className="text-sm text-gray-600">Date & Time</p>
                     <p className="font-medium">
-                      {new Date(selectedClaim.createdAt).toLocaleDateString('id-ID')}<br/>
-                      {new Date(selectedClaim.createdAt).toLocaleTimeString('id-ID')}
+                      {new Date(selectedClaim.claimedAt || selectedClaim.createdAt || '').toLocaleDateString('id-ID')}<br/>
+                      {new Date(selectedClaim.claimedAt || selectedClaim.createdAt || '').toLocaleTimeString('id-ID')}
                     </p>
                   </div>
                 </div>
+
+                {selectedClaim.claimType === 'representative' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-emerald-200">
+                    <div>
+                      <p className="text-sm text-gray-600">Representative Name</p>
+                      <p className="font-medium">{selectedClaim.representativeName || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Representative Phone</p>
+                      <p className="font-medium">{selectedClaim.representativePhone || '-'}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Participant Details */}

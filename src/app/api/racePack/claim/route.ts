@@ -6,7 +6,16 @@ const prisma = new PrismaClient();
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { qrCodeData, claimedBy, packsClaimedCount, participantIds, password, claimType } = body || {};
+    const {
+      qrCodeData,
+      claimedBy,
+      packsClaimedCount,
+      participantIds,
+      password,
+      claimType,
+      representativeName,
+      representativePhone,
+    } = body || {};
 
     if (!qrCodeData) {
       return NextResponse.json({ error: 'Missing qrCodeData' }, { status: 400 });
@@ -39,13 +48,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'QR code not found' }, { status: 404 });
     }
 
+    const registrationType = String(qrCode.registration?.registrationType || '').toLowerCase();
+    const isGroupRegistration = registrationType === 'community' || registrationType === 'family';
+    const normalizedClaimType = String(claimType || 'self').toLowerCase() === 'representative' ? 'representative' : 'self';
+    const normalizedRepresentativeName = typeof representativeName === 'string' ? representativeName.trim() : '';
+    const normalizedRepresentativePhone = typeof representativePhone === 'string' ? representativePhone.trim() : '';
+
+    if (isGroupRegistration && normalizedClaimType === 'representative') {
+      if (!normalizedRepresentativeName || !normalizedRepresentativePhone) {
+        return NextResponse.json(
+          { error: 'Representative name and phone number are required for representative claims.' },
+          { status: 400 }
+        );
+      }
+    }
+
     // If participantIds provided, validate them
     let toClaimParticipants = [];
     if (Array.isArray(participantIds) && participantIds.length > 0) {
       // Fetch provided participants and ensure they belong to this registration and are unclaimed
       const participants = await prisma.participant.findMany({
         where: {
-          id: { in: participantIds.map((id: any) => Number(id)) },
+          id: { in: participantIds.map(Number) },
           registrationId: qrCode.registrationId,
           packClaimed: false,
         },
@@ -86,6 +110,15 @@ export async function POST(request: Request) {
       data: {
         qrCodeId: qrCode.id,
         claimedBy: claimedBy || 'anonymous',
+        claimType: isGroupRegistration ? normalizedClaimType : 'self',
+        representativeName:
+          isGroupRegistration && normalizedClaimType === 'representative'
+            ? normalizedRepresentativeName
+            : null,
+        representativePhone:
+          isGroupRegistration && normalizedClaimType === 'representative'
+            ? normalizedRepresentativePhone
+            : null,
         packsClaimedCount: toClaimParticipants.length,
         claimDetails: {
           create: toClaimParticipants.map((p: any) => ({ participantId: p.id })),
