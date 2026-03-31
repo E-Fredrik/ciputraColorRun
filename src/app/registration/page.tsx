@@ -86,7 +86,7 @@ export default function RegistrationPage() {
     }
     const isFamilyBundleSold = true
     const threeKMCategory = categories.find(c => String(c.name).toLowerCase().includes("3km") || String(c.name).toLowerCase().includes("3k"));
-    const is3kSoldOut = threeKMCategory ? (threeKMCategory.totalParticipants || 0) >= 305 : false;
+    const is3kSoldOut = true; // Hard-coded: 3K category is disabled
     const [fullName, setFullName] = useSessionState<string>("reg_fullName", "");
     const [email, setEmail] = useSessionState<string>("reg_email", "");
     const [phone, setPhone] = useSessionState<string>("reg_phone", "");
