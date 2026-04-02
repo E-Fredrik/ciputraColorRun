@@ -327,11 +327,16 @@ async function main() {
 	);
 	console.log("═══════════════════════════════════════════════════════\n");
 
-	// Fetch users in range
+	// Fetch users in range (only those with confirmed payments)
 	const users = await prisma.user.findMany({
 		where: {
 			id: { gte: fromId, lte: toId },
 			role: { not: "admin" },
+			registrations: {
+				some: {
+					paymentStatus: "confirmed",
+				},
+			},
 		},
 		orderBy: { id: "asc" },
 		select: {
