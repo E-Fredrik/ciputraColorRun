@@ -217,7 +217,7 @@ function buildHtml(userName: string, accessCode: string): string {
     <!-- Footer -->
     <div style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
       <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 12px;">
-        © 2026 Ciputra Color Run. All rights reserved.
+        © 2026 Universitas Ciputra Color Run. All rights reserved.
       </p>
       <p style="margin: 0; color: #9ca3af; font-size: 11px;">
         Organized by Student Council of Universitas Ciputra
@@ -285,7 +285,7 @@ async function runTest() {
 			from: `"Ciputra Color Run 2026" <${emailUser}>`,
 			to: testEmail,
 			subject:
-				"🧪 [TEST] Info Penting — Jadwal Racepack & Hari-H Ciputra Color Run 2026",
+				"🧪 [TEST] Info Penting — Jadwal Racepack & Hari-H Universitas Ciputra Color Run 2026",
 			html: buildHtml(sampleName, sampleAccessCode),
 			attachments: [
 				{
@@ -397,7 +397,7 @@ async function main() {
 				from: `"Ciputra Color Run 2026" <${emailUser}>`,
 				to: u.email,
 				subject:
-					"📢 Info Penting — Jadwal Racepack & Hari-H Ciputra Color Run 2026",
+					"📢 Info Penting — Jadwal Racepack & Hari-H Universitas Ciputra Color Run 2026",
 				html: buildHtml(u.name || "Peserta", u.accessCode),
 				attachments: [
 					{
