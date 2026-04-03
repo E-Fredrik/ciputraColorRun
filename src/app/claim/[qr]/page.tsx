@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { showToast } from "../../../lib/toast";
+import { getImageUrl } from "../../../lib/imageUrl";
 
 export default function ClaimPage() {
   const params = useParams();
@@ -263,6 +264,68 @@ export default function ClaimPage() {
           </div>
         </div>
 
+        {/* ID Card Section */}
+        {registration.user?.idCardPhoto && (
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 md:p-8 mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+              <span className="w-2 h-8 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full"></span>
+              {registration.user.nationality === 'WNI' ? 'KTP / ID Card' : 'Passport / ID Card'}
+            </h2>
+            {(() => {
+              const idCardUrl = getImageUrl(registration.user.idCardPhoto) || '';
+              const isPdf = /\.pdf$/i.test(registration.user.idCardPhoto || '');
+              
+              if (isPdf) {
+                return (
+                  <div className="space-y-3">
+                    <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 flex items-center gap-3">
+                      <svg className="w-8 h-8 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-blue-900">PDF Document</p>
+                        <p className="text-xs text-blue-700">ID card was uploaded as a PDF file</p>
+                      </div>
+                      <a
+                        href={idCardUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
+                      >
+                        Open PDF
+                      </a>
+                    </div>
+                    <iframe
+                      src={idCardUrl}
+                      className="w-full h-[500px] rounded-xl border-2 border-gray-200"
+                      title="ID Card PDF"
+                    />
+                  </div>
+                );
+              }
+              
+              return (
+                <a
+                  href={idCardUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block"
+                >
+                  <img
+                    src={idCardUrl}
+                    alt={registration.user.nationality === 'WNI' ? 'KTP' : 'Passport'}
+                    className="w-full max-w-lg mx-auto rounded-xl border-2 border-gray-300 hover:border-emerald-500 transition-all cursor-pointer shadow-md hover:shadow-xl"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300'%3E%3Crect fill='%23f3f4f6' width='400' height='300'/%3E%3Ctext fill='%236b7280' font-family='sans-serif' font-size='16' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3EID not available%3C/text%3E%3C/svg%3E";
+                    }}
+                  />
+                  <p className="text-xs text-gray-500 text-center mt-3">Click to view full size</p>
+                </a>
+              );
+            })()}
+          </div>
+        )}
+
         {/* Participants Section */}
         <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 md:p-8 mb-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
@@ -307,8 +370,15 @@ export default function ClaimPage() {
                             className="h-5 w-5 accent-emerald-600 cursor-pointer disabled:cursor-not-allowed"
                           />
                           <div className="flex-1">
-                            <div className="text-sm font-bold text-gray-900">
-                              {p.bibNumber || `#${p.id}`}
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-gray-900">
+                                {p.bibNumber || `#${p.id}`}
+                              </span>
+                              {p.jersey?.size && (
+                                <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-semibold border border-indigo-200">
+                                  {p.jersey.size}
+                                </span>
+                              )}
                             </div>
                             <div className="text-xs text-gray-600 mt-0.5">
                               {isGroupRegistration ? (groupName || registration.user?.name || "Group") : (p.fullName || p.participantName || registration.user?.name || "Participant")}
