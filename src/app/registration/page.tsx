@@ -87,6 +87,38 @@ export default function RegistrationPage() {
     const isFamilyBundleSold = true
     const threeKMCategory = categories.find(c => String(c.name).toLowerCase().includes("3km") || String(c.name).toLowerCase().includes("3k"));
     const is3kSoldOut = true; // Hard-coded: 3K category is disabled
+
+    // Dynamic slot limits for 5K and 10K
+    const CATEGORY_SLOT_LIMITS: Record<string, number> = {
+        "5k": 828,
+        "10k": 321,
+    };
+
+    function isCategorySoldOut(cat: Category): boolean {
+        const nameLower = String(cat.name).toLowerCase();
+        // 3K is hardcoded sold out
+        if (nameLower.includes("3km") || nameLower.includes("3k")) {
+            return is3kSoldOut;
+        }
+        // Check dynamic limits for 5K and 10K
+        for (const [key, limit] of Object.entries(CATEGORY_SLOT_LIMITS)) {
+            if (nameLower.includes(key)) {
+                return (cat.totalParticipants ?? 0) >= limit;
+            }
+        }
+        return false;
+    }
+
+    function getCategorySlotInfo(cat: Category): { limit: number; remaining: number } | null {
+        const nameLower = String(cat.name).toLowerCase();
+        for (const [key, limit] of Object.entries(CATEGORY_SLOT_LIMITS)) {
+            if (nameLower.includes(key)) {
+                const used = cat.totalParticipants ?? 0;
+                return { limit, remaining: Math.max(0, limit - used) };
+            }
+        }
+        return null;
+    }
     const [fullName, setFullName] = useSessionState<string>("reg_fullName", "");
     const [email, setEmail] = useSessionState<string>("reg_email", "");
     const [phone, setPhone] = useSessionState<string>("reg_phone", "");
@@ -956,6 +988,12 @@ export default function RegistrationPage() {
             return;
         }
 
+        // Check category sold out
+        if (isCategorySoldOut(category)) {
+            showToast(`${category.name} is sold out! Please select a different category.`, "error");
+            return;
+        }
+
         const latestJerseyMap = await refreshLatestJerseyOptions();
         if (!latestJerseyMap) {
             return;
@@ -1047,6 +1085,13 @@ export default function RegistrationPage() {
         if (isSubmitting) return; // prevent double clicks
         
         if (!validatePersonalDetails()) return;
+
+        // Check category sold out before proceeding
+        const selectedCat = categories.find((c) => c.id === categoryId);
+        if (selectedCat && isCategorySoldOut(selectedCat)) {
+            showToast(`${selectedCat.name} is sold out! Please select a different category.`, "error");
+            return;
+        }
         
         setIsSubmitting(true);
         
@@ -2062,11 +2107,11 @@ export default function RegistrationPage() {
                                             className="w-full px-4 py-3 border-b-2 border-gray-200 bg-transparent text-gray-800 focus:border-emerald-500 focus:outline-none transition-colors text-base cursor-pointer"
                                         >
                                             {categories.map((cat) => {
-                                                const is3k = String(cat.name).toLowerCase().includes("3km") || String(cat.name).toLowerCase().includes("3k");
-                                                const isDisabled = is3k && is3kSoldOut;
+                                                const isDisabled = isCategorySoldOut(cat);
+                                                const slotInfo = getCategorySlotInfo(cat);
                                                 return (
                                                     <option key={cat.id} value={cat.id} disabled={isDisabled}>
-                                                        {cat.name} {isDisabled ? "(Sold Out!)" : ""} - Starting from Rp {Number(cat.basePrice).toLocaleString("id-ID")}
+                                                        {cat.name} {isDisabled ? "(Sold Out!)" : (slotInfo ? `(${slotInfo.remaining} slots left)` : "")} - Starting from Rp {Number(cat.basePrice).toLocaleString("id-ID")}
                                                     </option>
                                                 );
                                             })}
@@ -2400,11 +2445,11 @@ export default function RegistrationPage() {
                                     className="w-full px-4 py-3 border-b-2 border-gray-200 bg-transparent text-gray-800 focus:border-blue-500 focus:outline-none transition-colors text-base cursor-pointer"
                                 >
                                     {categories.map((cat) => {
-                                        const is3k = String(cat.name).toLowerCase().includes("3km") || String(cat.name).toLowerCase().includes("3k");
-                                        const isDisabled = is3k && is3kSoldOut;
+                                        const isDisabled = isCategorySoldOut(cat);
+                                        const slotInfo = getCategorySlotInfo(cat);
                                         return (
                                             <option key={cat.id} value={cat.id} disabled={isDisabled}>
-                                                {cat.name} {isDisabled ? "(Sold Out!)" : ""} - Rp {Number(cat.basePrice).toLocaleString("id-ID")}
+                                                {cat.name} {isDisabled ? "(Sold Out!)" : (slotInfo ? `(${slotInfo.remaining} slots left)` : "")} - Rp {Number(cat.basePrice).toLocaleString("id-ID")}
                                             </option>
                                         );
                                     })}
