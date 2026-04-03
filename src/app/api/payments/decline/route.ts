@@ -62,6 +62,12 @@ export async function POST(request: Request) {
          data: { paymentStatus: 'declined' },
          include: { user: true },
        });
+
+       // Remove jersey selection for all participants in this registration
+       await tx.participant.updateMany({
+         where: { registrationId },
+         data: { jerseyId: null },
+       });
  
       return reg;
     });
