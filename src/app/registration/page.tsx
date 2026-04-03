@@ -94,6 +94,35 @@ export default function RegistrationPage() {
         "10k": 321,
     };
 
+    // Auto-close community registration when combined 5K + 10K remaining quota < 10
+    const isCommunityAutoClosedByQuota = useMemo(() => {
+        if (categories.length === 0) return false;
+        let totalRemaining = 0;
+        for (const cat of categories) {
+            const nameLower = String(cat.name).toLowerCase();
+            for (const [key, limit] of Object.entries(CATEGORY_SLOT_LIMITS)) {
+                if (nameLower.includes(key)) {
+                    const used = cat.totalParticipants ?? 0;
+                    totalRemaining += Math.max(0, limit - used);
+                }
+            }
+        }
+        return totalRemaining < 10;
+    }, [categories]);
+
+    // Check if community participant count exceeds remaining quota for selected category
+    function getCommunityQuotaError(catId: number | null, participantCount: number): string | null {
+        if (!catId || participantCount <= 0) return null;
+        const category = categories.find(c => c.id === catId);
+        if (!category) return null;
+        const slotInfo = getCategorySlotInfo(category);
+        if (!slotInfo) return null;
+        if (participantCount > slotInfo.remaining) {
+            return `Cannot register ${participantCount} participants. Only ${slotInfo.remaining} slot(s) remaining for ${category.name}. Please reduce the number of participants.`;
+        }
+        return null;
+    }
+
     function isCategorySoldOut(cat: Category): boolean {
         const nameLower = String(cat.name).toLowerCase();
         // 3K is hardcoded sold out
@@ -994,6 +1023,16 @@ export default function RegistrationPage() {
             return;
         }
 
+        // Check community quota: participant count must not exceed remaining slots
+        if (type === "community") {
+            const currentParticipants = Number(participants || 0);
+            const quotaError = getCommunityQuotaError(category.id, currentParticipants);
+            if (quotaError) {
+                showToast(quotaError, "error");
+                return;
+            }
+        }
+
         const latestJerseyMap = await refreshLatestJerseyOptions();
         if (!latestJerseyMap) {
             return;
@@ -1196,6 +1235,13 @@ export default function RegistrationPage() {
                 const currentParticipants = Number(participants || 0);
                 if (currentParticipants < 10) {
                     showToast(`Community registration requires minimum 10 participants. Currently have ${currentParticipants}`, "error");
+                    return;
+                }
+
+                // Check community quota: participant count must not exceed remaining slots
+                const quotaError = getCommunityQuotaError(categoryId, currentParticipants);
+                if (quotaError) {
+                    showToast(quotaError, "error");
                     return;
                 }
 
@@ -1493,15 +1539,17 @@ export default function RegistrationPage() {
  
                             {/* Community */}
                             <label
-                              title="Community"
-                              className={`relative flex items-center justify-center p-4 rounded-xl border-2 transition-all cursor-pointer ${type === "community" ? 'border-emerald-500 bg-emerald-50 shadow-lg scale-105' : 'border-gray-300 bg-white hover:border-emerald-300 hover:bg-emerald-50/50'}`}
+                              title={isCommunityAutoClosedByQuota ? "Community registration is closed" : "Community"}
+                              className={`relative flex items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                                isCommunityAutoClosedByQuota ? 'opacity-50 cursor-not-allowed bg-gray-100' :
+                                type === "community" ? 'border-emerald-500 bg-emerald-50 shadow-lg scale-105 cursor-pointer' : 'border-gray-300 bg-white hover:border-emerald-300 hover:bg-emerald-50/50 cursor-pointer'}`}
                             >
                                 <input
                                     type="radio"
                                     name="regType"
                                     value="community"
+                                    disabled={isCommunityAutoClosedByQuota}
                                     checked={type === "community"}
-                                    // onChange={() => { setType("community"); setRegistrationType("community"); }}
                                     onChange={() => { setType("community"); setRegistrationType("community"); }}
                                     className="sr-only"
                                 />
@@ -1513,6 +1561,11 @@ export default function RegistrationPage() {
                                         Community
                                         <span className="block text-xs font-normal">(Min. 10)</span>
                                     </span>
+                                    {isCommunityAutoClosedByQuota && (
+                                        <span className="text-xs font-semibold text-red-500 text-center uppercase tracking-wide mt-1">
+                                            Closed
+                                        </span>
+                                    )}
                                 </div>
                             </label>
  
@@ -2130,6 +2183,19 @@ export default function RegistrationPage() {
                                         {/* <p className="text-xs text-gray-500 mt-1">
                                             This will be added to your community total ({getTotalCommunityParticipants()} currently in cart)
                                         </p> */}
+                                        {/* Inline quota error for community */}
+                                        {(() => {
+                                            const quotaErr = getCommunityQuotaError(categoryId, Number(participants || 0));
+                                            if (!quotaErr) return null;
+                                            return (
+                                                <div className="mt-2 p-3 bg-red-50 border border-red-300 rounded-lg flex items-start gap-2">
+                                                    <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                                    </svg>
+                                                    <p className="text-xs text-red-700 font-semibold">{quotaErr}</p>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
                                     {/* LIVE TIER INFO */}
@@ -2403,8 +2469,12 @@ export default function RegistrationPage() {
                             <div className="flex justify-center mt-4">
                                 <button
                                     onClick={handleAddToCart}
-                                    disabled={isSubmitting}
-                                    className={`w-1/2 md:w-1/3 px-6 py-3 rounded-full font-bold shadow-xl transition-all transform bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95`}
+                                    disabled={isSubmitting || !!getCommunityQuotaError(categoryId, Number(participants || 0))}
+                                    className={`w-1/2 md:w-1/3 px-6 py-3 rounded-full font-bold shadow-xl transition-all transform ${
+                                        getCommunityQuotaError(categoryId, Number(participants || 0))
+                                            ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                                            : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 hover:shadow-2xl hover:scale-105 active:scale-95'
+                                    } text-white shadow-xl`}
                                 >
                                     {isSubmitting ? (
                                         <span className="flex items-center justify-center gap-2">
