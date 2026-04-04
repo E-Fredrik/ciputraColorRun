@@ -44,6 +44,8 @@ export default function Footer() {
     "/images/sponsor/sedang/sofresh-logo-sedang.png",
     "/images/sponsor/sedang/soklin-logo-sedang.png",
     "/images/sponsor/sedang/wizz-logo-sedang.png",
+    "/images/sponsor/sedang/wiyung-auto-logo-sedang.png",
+    "/images/sponsor/sedang/wiyung-logo-sedang.png"
   ];
 
   const sponsorLogosKecil = [
@@ -88,7 +90,7 @@ export default function Footer() {
       <div className="bg-white py-10 px-6 md:px-16 lg:px-24 text-center" data-aos="fade-up" data-aos-delay="100">
         {/* <h3 className="text-gradient-supported font-extrabold text-lg mb-6">Main Sponsors</h3> */}
         <div className="flex justify-center">
-          <div className="w-full max-w-7xl flex justify-center items-center gap-6 flex-wrap">
+          <div className="w-full max-w-7xl flex justify-center items-center gap-2 flex-wrap">
             {sponsorLogosSedang.map((logo, index) => (
               <div key={`sedang-${index}`} className="relative w-28 h-28 sm:w-36 sm:h-32">
                 <Image
