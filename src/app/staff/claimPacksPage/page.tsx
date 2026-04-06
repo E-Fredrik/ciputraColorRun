@@ -354,12 +354,12 @@ export default function ClaimPacksPage() {
         {/* Search Bar */}
         <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 mb-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black w-5 h-5" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              className="w-full text-black pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               placeholder={activeTab === 'claims' 
                 ? "Search by participant name, email, staff name, category, or bib number..."
                 : "Search by participant name, email, category, or bib number..."
