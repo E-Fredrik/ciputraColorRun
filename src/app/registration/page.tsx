@@ -90,7 +90,7 @@ export default function RegistrationPage() {
 
     // Dynamic slot limits for 5K and 10K
     const CATEGORY_SLOT_LIMITS: Record<string, number> = {
-        "5k": 828,
+        "5k": 823,
         "10k": 321,
     };
 
