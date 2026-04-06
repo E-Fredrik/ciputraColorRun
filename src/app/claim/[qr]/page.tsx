@@ -55,6 +55,30 @@ export default function ClaimPage() {
     }
   }
 
+  const isDeclined = qrData?.registration && (qrData.registration.paymentStatus?.toLowerCase() === 'declined' || qrData.registration.status?.toLowerCase() === 'declined');
+
+  if (isDeclined) {
+    return (
+      <main className="min-h-screen pt-28 p-4 bg-gradient-to-br from-red-50 to-pink-50 flex items-center justify-center">
+        <div className="max-w-md bg-white rounded-2xl shadow-xl p-8 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Registration Declined</h2>
+          <p className="text-red-600 mb-6">This QR code is invalid because the associated payment was declined.</p>
+          <button
+            onClick={() => router.push('/')}
+            className="px-6 py-2 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 transition-colors"
+          >
+            Go to Homepage
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   if (!authorized) {
     return (
       <main className="min-h-screen pt-28 p-4 bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
