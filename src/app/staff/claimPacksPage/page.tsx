@@ -593,24 +593,24 @@ export default function ClaimPacksPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Participant Name</p>
-                    <p className="font-medium">{selectedClaim.qrCode.registration.user?.name || "N/A"}</p>
+                    <p className="font-medium text-black">{selectedClaim.qrCode.registration.user?.name || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Registration Type</p>
-                    <p className="font-medium">{selectedClaim.qrCode.registration.registrationType}</p>
+                    <p className="font-medium text-black">{selectedClaim.qrCode.registration.registrationType}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-medium">{selectedClaim.qrCode.registration.user?.email || "N/A"}</p>
+                    <p className="font-medium text-black">{selectedClaim.qrCode.registration.user?.email || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Phone</p>
-                    <p className="font-medium">{selectedClaim.qrCode.registration.user?.phone || "N/A"}</p>
+                    <p className="font-medium text-black">{selectedClaim.qrCode.registration.user?.phone || "N/A"}</p>
                   </div>
                   {selectedClaim.qrCode.registration.groupName && (
                     <div>
                       <p className="text-sm text-gray-600">Group Name</p>
-                      <p className="font-medium">{selectedClaim.qrCode.registration.groupName}</p>
+                      <p className="font-medium text-black">{selectedClaim.qrCode.registration.groupName}</p>
                     </div>
                   )}
                 </div>
@@ -621,20 +621,20 @@ export default function ClaimPacksPage() {
                 <h3 className="font-semibold text-gray-800 mb-3">Claim Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">Claimed By</p>
-                    <p className="font-medium">{selectedClaim.claimedBy}</p>
+                    <p className="text-sm text-black">Claimed By</p>
+                    <p className="font-medium text-black">{selectedClaim.claimedBy}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Claim Method</p>
-                    <p className="font-medium capitalize">{selectedClaim.claimType || 'self'}</p>
+                    <p className="text-sm text-black">Claim Method</p>
+                    <p className="font-medium capitalize text-black">{selectedClaim.claimType || 'self'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Packs Claimed</p>
-                    <p className="font-medium">{selectedClaim.packsClaimedCount}</p>
+                    <p className="text-sm text-black">Packs Claimed</p>
+                    <p className="font-medium text-black">{selectedClaim.packsClaimedCount}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Date & Time</p>
-                    <p className="font-medium">
+                    <p className="text-sm text-black">Date & Time</p>
+                    <p className="font-medium text-black">
                       {new Date(selectedClaim.claimedAt || selectedClaim.createdAt || '').toLocaleDateString('id-ID')}<br/>
                       {new Date(selectedClaim.claimedAt || selectedClaim.createdAt || '').toLocaleTimeString('id-ID')}
                     </p>
@@ -644,12 +644,12 @@ export default function ClaimPacksPage() {
                 {selectedClaim.claimType === 'representative' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-emerald-200">
                     <div>
-                      <p className="text-sm text-gray-600">Representative Name</p>
-                      <p className="font-medium">{selectedClaim.representativeName || '-'}</p>
+                      <p className="text-sm text-black">Representative Name</p>
+                      <p className="font-medium text-black">{selectedClaim.representativeName || '-'}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Representative Phone</p>
-                      <p className="font-medium">{selectedClaim.representativePhone || '-'}</p>
+                      <p className="text-sm text-black">Representative Phone</p>
+                      <p className="font-medium text-black">{selectedClaim.representativePhone || '-'}</p>
                     </div>
                   </div>
                 )}

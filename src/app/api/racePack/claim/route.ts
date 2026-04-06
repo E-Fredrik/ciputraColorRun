@@ -11,7 +11,6 @@ export async function POST(request: Request) {
       claimedBy,
       packsClaimedCount,
       participantIds,
-      password,
       claimType,
       representativeName,
       representativePhone,
@@ -21,12 +20,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing qrCodeData' }, { status: 400 });
     }
 
-    // Require password for all claims
-    // Validate password server-side only
-    const expectedPassword = process.env.CLAIM_PASS;
-    if (password !== expectedPassword) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // removed server-side password check as it was removed from the client
 
     // Find QR
     const qrCode = await prisma.qrCode.findUnique({
