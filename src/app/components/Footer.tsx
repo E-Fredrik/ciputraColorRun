@@ -44,6 +44,7 @@ export default function Footer() {
     "/images/sponsor/sedang/sofresh-logo-sedang.png",
     "/images/sponsor/sedang/soklin-logo-sedang.png",
     "/images/sponsor/sedang/wizz-logo-sedang.png",
+    "/images/sponsor/sedang/wiyung-logo-sedang.png"
   ];
 
   const sponsorLogosKecil = [
@@ -90,7 +91,14 @@ export default function Footer() {
         <div className="flex justify-center">
           <div className="w-full max-w-7xl flex justify-center items-center gap-6 flex-wrap">
             {sponsorLogosSedang.map((logo, index) => (
-              <div key={`sedang-${index}`} className="relative w-28 h-28 sm:w-36 sm:h-32">
+              <div 
+                key={`sedang-${index}`} 
+                className={
+                  logo.includes("wiyung") 
+                    ? "relative w-48 h-24 sm:w-64 sm:h-28"
+                    : "relative w-32 h-32 sm:w-36 sm:h-32"
+                }
+              >
                 <Image
                   src={logo}
                   alt={`Main Sponsor ${index + 1}`}
