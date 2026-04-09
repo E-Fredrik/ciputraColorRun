@@ -122,6 +122,11 @@ export default function ClaimPage() {
       return;
     }
 
+    if (!claimedBy.trim()) {
+      showToast("Staff name is required.", "error");
+      return;
+    }
+
     if (claimType === "representative") {
       if (!representativeName.trim() || !representativePhone.trim()) {
         showToast("Representative name and phone number are required.", "error");
@@ -543,7 +548,7 @@ export default function ClaimPage() {
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <button
-                disabled={claiming || selectedIds.length === 0}
+                disabled={claiming || selectedIds.length === 0 || !claimedBy.trim()}
                 onClick={submitClaim}
                 className="flex-1 px-6 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95"
               >
