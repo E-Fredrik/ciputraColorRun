@@ -137,6 +137,7 @@ export default function ClaimPacksPage() {
       claim.qrCode.registration.user?.email?.toLowerCase().includes(searchLower) ||
       claim.claimedBy.toLowerCase().includes(searchLower) ||
       claim.qrCode.category.name.toLowerCase().includes(searchLower) ||
+      claim.qrCode.registration.groupName?.toLowerCase().includes(searchLower) ||
       claim.claimDetails.some(detail => 
         detail.participant.bibNumber?.toLowerCase().includes(searchLower) ||
         detail.participant.fullName?.toLowerCase().includes(searchLower) ||
@@ -151,6 +152,7 @@ export default function ClaimPacksPage() {
       reg.user?.name?.toLowerCase().includes(searchLower) ||
       reg.user?.email?.toLowerCase().includes(searchLower) ||
       reg.registrationType?.toLowerCase().includes(searchLower) ||
+      reg.groupName?.toLowerCase().includes(searchLower) ||
       reg.participants?.some((p: any) => 
         p.category?.name?.toLowerCase().includes(searchLower) ||
         p.bibNumber?.toLowerCase().includes(searchLower)
@@ -361,8 +363,8 @@ export default function ClaimPacksPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full text-black pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               placeholder={activeTab === 'claims' 
-                ? "Search by participant name, email, staff name, category, or bib number..."
-                : "Search by participant name, email, category, or bib number..."
+                ? "Search by participant name, email, staff name, category, community name, or bib number..."
+                : "Search by participant name, email, category, community name, or bib number..."
               }
             />
           </div>

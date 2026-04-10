@@ -91,7 +91,7 @@ export default function RegistrationPage() {
     // Dynamic slot limits for 5K and 10K
     const CATEGORY_SLOT_LIMITS: Record<string, number> = {
         "5k": 822,
-        "10k": 316,
+        "10k": 306,
     };
 
     // Auto-close community registration when combined 5K + 10K remaining quota < 10

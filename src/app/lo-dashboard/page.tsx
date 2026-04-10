@@ -806,7 +806,7 @@ export default function LODashboard() {
             <div className="mb-4 sm:mb-6">
               <input
                 type="text"
-                placeholder="Search by name, email..."
+                placeholder="Search by name, email, or community name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-[#232326] border border-[#73e9dd]/30 text-[#ffdfc0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#73e9dd] focus:border-transparent placeholder-[#ffdfc0]/40 text-sm sm:text-base"
