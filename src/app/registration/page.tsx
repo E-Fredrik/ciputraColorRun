@@ -44,6 +44,10 @@ interface JerseyOption {
 
 export default function RegistrationPage() {
     const router = useRouter();
+
+    // --- Registration is closed: redirect to closed page ---
+    useEffect(() => { router.replace("/registration/closed"); }, [router]);
+
     const [currentUser, setCurrentUser] = useState<any | null>(null);
     const { cart, setCart } = useContext(CartContext);
     
@@ -1525,6 +1529,7 @@ export default function RegistrationPage() {
                                     type="radio"
                                     name="regType"
                                     value="individual"
+                                    disabled={true}
                                     checked={type === "individual"}
                                     onChange={() => { setType("individual"); setRegistrationType("individual"); }}
                                     className="sr-only"

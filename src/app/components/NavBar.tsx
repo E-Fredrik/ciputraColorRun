@@ -253,7 +253,7 @@ export default function NavBar() {
                             HOME
                         </Link>
                         <Link
-                            href="/registration"
+                            href="/registration/closed"
                             className="text-white font-bold text-lg hover:text-white/80 transition-colors tracking-wide"
                         >
                             REGISTER
