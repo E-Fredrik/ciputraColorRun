@@ -251,7 +251,7 @@ export default function Home() {
 					>
 						Thank you to every runner, volunteer, sponsor, and supporter who made this event an
 						unforgettable celebration of health, happiness, and color! Your energy and excitement
-						made this the most vibrant Color Run yet.
+						made this event the most vibrant Color Run yet.
 					</p>
 
 					<p
