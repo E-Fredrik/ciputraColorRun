@@ -1,105 +1,91 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import Image from "next/image";
+import { useEffect, useState, useCallback } from "react";
+import confetti from "canvas-confetti";
 import Link from "next/link";
-import "./styles/homepage.css";
-import LogoLoop from "./components/LogoLoop";
-import CountdownTimer from "./components/CountdownTimer";
-import AboutCarousel from "./components/AboutCarousel";
-import DocDecor from "./components/DocDecor";
-import RouteImageModal from "./components/RouteImageModal";
-
-interface Category {
-    id: number;
-    name: string;
-    basePrice: string;
-    earlyBirdPrice?: string;
-    tier1Price?: string;
-    tier1Min?: number;
-    tier1Max?: number;
-    tier2Price?: string;
-    tier2Min?: number;
-    tier2Max?: number | null;
-    tier3Price?: string;
-    tier3Min?: number;
-    bundlePrice?: string;
-    bundleSize?: number;
-    earlyBirdCapacity?: number;
-    earlyBirdRemaining?: number | null;
-}
 
 export default function Home() {
-	const homeTopRef = useRef<HTMLDivElement | null>(null); // now attached to outer .home_top
-	const aboutRef = useRef<HTMLElement | null>(null);
-	
-	// State for route image modal
-	const [routeModalOpen, setRouteModalOpen] = useState(false);
-	const [selectedRoute, setSelectedRoute] = useState({ src: "", title: "" });
+	const [loading, setLoading] = useState(true);
 
-	// State for categories
-	const [categories, setCategories] = useState<Category[]>([]);
+	// Confetti burst function
+	const fireConfetti = useCallback(() => {
+		const duration = 4000;
+		const end = Date.now() + duration;
 
-	useEffect(() => {
-		if (typeof window === "undefined") return;
-		const outer = homeTopRef.current;
-		if (!outer) return;
+		// Color palette matching the Ciputra Color Run brand
+		const colors = ["#91DCAC", "#F581A4", "#4EF9CD", "#FFD700", "#73E9DD", "#ff6b9d", "#c084fc"];
 
-		// Observe the outer jumbotron element:
-		const io = new IntersectionObserver(
-			(entries) => {
-				for (const entry of entries) {
-					if (entry.isIntersecting) {
-						outer.classList.remove("home_top_hide");
-						try {
-							(window as any).AOS?.refresh?.();
-						} catch (e) {}
-					} else {
-						outer.classList.add("home_top_hide");
-						setTimeout(() => {
-							try {
-								(window as any).AOS?.refresh?.();
-							} catch (e) {}
-						}, 240);
-					}
-				}
-			},
-			{ root: null, rootMargin: "-10% 0px 0px 0px", threshold: 0.05 }
-		);
+		// Initial big burst
+		confetti({
+			particleCount: 100,
+			spread: 100,
+			origin: { y: 0.4 },
+			colors,
+			startVelocity: 45,
+			gravity: 0.8,
+			ticks: 300,
+		});
 
-		io.observe(outer);
-		return () => io.disconnect();
+		// Continuous side cannons
+		const interval = setInterval(() => {
+			if (Date.now() > end) {
+				clearInterval(interval);
+				return;
+			}
+
+			// Left cannon
+			confetti({
+				particleCount: 3,
+				angle: 60,
+				spread: 55,
+				origin: { x: 0, y: 0.65 },
+				colors,
+				startVelocity: 35,
+				gravity: 1,
+				ticks: 200,
+			});
+
+			// Right cannon
+			confetti({
+				particleCount: 3,
+				angle: 120,
+				spread: 55,
+				origin: { x: 1, y: 0.65 },
+				colors,
+				startVelocity: 35,
+				gravity: 1,
+				ticks: 200,
+			});
+		}, 60);
+
+		return () => clearInterval(interval);
 	}, []);
 
-	const [loading, setLoading] = useState(true);
-	// Jumbotron image path - use the actual path from public folder
-	const jumbotronImage = "/homepage/home_bg.jpg"; // match actual file path
-
-	// Refresh AOS animations when page loads
 	useEffect(() => {
-		if (typeof window !== "undefined" && (window as any).AOS) {
-			(window as any).AOS.refresh();
-		}
-
-		// Fetch categories
-		(async () => {
-			try {
-				const res = await fetch(`/api/categories`, {
-					cache: 'no-store',
-					headers: { 'Cache-Control': 'no-cache' }
-				});
-				if (!res.ok) throw new Error("Failed to load categories");
-				const data = await res.json();
-				setCategories(data);
-			} catch (err) {
-				console.error("Failed to load categories:", err);
-			}
-		})();
-
-		// Simulate initial content load
-		const timer = setTimeout(() => setLoading(false), 800);
+		// Simulate initial load
+		const timer = setTimeout(() => {
+			setLoading(false);
+		}, 800);
 		return () => clearTimeout(timer);
 	}, []);
+
+	// Fire confetti after loading completes
+	useEffect(() => {
+		if (!loading) {
+			// Small delay for the page to render before confetti
+			const timer = setTimeout(() => {
+				fireConfetti();
+			}, 400);
+			return () => clearTimeout(timer);
+		}
+	}, [loading, fireConfetti]);
+
+	// Refresh AOS animations
+	useEffect(() => {
+		if (!loading && typeof window !== "undefined" && (window as any).AOS) {
+			(window as any).AOS.refresh();
+		}
+	}, [loading]);
 
 	if (loading) {
 		return (
@@ -114,738 +100,278 @@ export default function Home() {
 		);
 	}
 
-	const TEMP_LOGO_PATH_BESAR = "/images/sponsor/besar";
-
-		const partnerLogoBesar = [
-		{
-			src: `${TEMP_LOGO_PATH_BESAR}/alganos-logo-besar.png`,
-			alt: "Azzura",
-		},
-		{
-			src: `${TEMP_LOGO_PATH_BESAR}/isoplus-logo-besar.jpeg`,
-			alt: "Cihos",
-		},
-		{
-			src: `${TEMP_LOGO_PATH_BESAR}/aquaviva-logo-besar.png`,
-			alt: "DRM",
-		},
-		{
-			src: `${TEMP_LOGO_PATH_BESAR}/entretive-logo-besar.png`,
-			alt: "DRM",
-		}
-		
-	];
-
-	// list documentation images placed in /public/Homepage/documentation
-	const docImages = [
-		"/homepage/documentation/doc1.jpg",
-		"/homepage/documentation/doc2.jpg",
-		"/homepage/documentation/doc3.jpg",
-		"/homepage/documentation/doc4.jpg",
-		"/homepage/documentation/doc5.jpg",
-		"/homepage/documentation/doc6.jpg",
-		"/homepage/documentation/doc7.jpg",
-	];
-
-	// Route maps data
-	const routeMaps = [
-		{
-			distance: "3K",
-			title: "3K Route Map",
-			image: "/images/routes/3k.png", 
-		},
-		{
-			distance: "5K",
-			title: "5K Route Map",
-			image: "/images/routes/5k.png", 
-		},
-		{
-			distance: "10K",
-			title: "10K Route Map",
-			image: "/images/routes/10k.png",
-		},
-	];
-
-	const openRouteModal = (imageSrc: string, title: string) => {
-		setSelectedRoute({ src: imageSrc, title });
-		setRouteModalOpen(true);
-	};
-
 	return (
-		<main className="bg-white overflow-hidden">
+		<main className="min-h-screen relative overflow-hidden">
+			{/* Background */}
 			<div
-				ref={homeTopRef}
-				className="home_top pt-8"
+				className="absolute inset-0 z-0"
 				style={{
-					// gradient overlay above the image
-					backgroundImage: `linear-gradient(rgba(152,232,206,0.85) 0%, rgba(255,225,196,0.7) 50%, rgba(238,150,157,0.8) 100%), url('${jumbotronImage}')`,
+					backgroundImage:
+						"linear-gradient(rgba(152,232,206,0.7) 0%, rgba(255,225,196,0.55) 50%, rgba(238,150,157,0.65) 100%), url('/images/generalBg.jpg')",
 					backgroundSize: "cover",
 					backgroundPosition: "center",
-					backgroundRepeat: "no-repeat",
 				}}
-			>
-				<div className="home_top_content">
-					<img
-						src="/images/logo.png"
-						alt="Universitas Ciputra Color Run Logo"
-						className="home_top_logo pt-10"
-						data-aos="zoom-in"
-						data-aos-duration="1000"
-						data-aos-delay="100"
-					/>
+			/>
 
-					<h1
-						className="home_title"
-						data-aos="fade-up"
-						data-aos-duration="1000"
-						data-aos-delay="300"
-					>
-						UNIVERSITAS CIPUTRA COLOR RUN 2026
-					</h1>
+			{/* Animated floating decorative elements */}
+			<img
+				src="/assets/asset10.svg"
+				alt=""
+				aria-hidden
+				className="absolute top-[6%] left-[4%] w-14 sm:w-20 opacity-30 pointer-events-none z-[1]"
+				style={{ animation: "floatY 5s ease-in-out infinite" }}
+			/>
+			<img
+				src="/assets/asset4.svg"
+				alt=""
+				aria-hidden
+				className="absolute bottom-[8%] right-[5%] w-16 sm:w-28 opacity-25 pointer-events-none z-[1]"
+				style={{ animation: "floatYSlow 7s ease-in-out infinite" }}
+			/>
+			<img
+				src="/assets/asset10.svg"
+				alt=""
+				aria-hidden
+				className="absolute top-[55%] left-[85%] w-10 sm:w-14 opacity-20 pointer-events-none z-[1] hidden sm:block"
+				style={{
+					animation: "drift 6s ease-in-out infinite",
+					transform: "rotate(45deg)",
+				}}
+			/>
+			<img
+				src="/assets/asset4.svg"
+				alt=""
+				aria-hidden
+				className="absolute top-[20%] right-[15%] w-12 sm:w-16 opacity-15 pointer-events-none z-[1] hidden md:block"
+				style={{ animation: "floatY 8s ease-in-out infinite 1s" }}
+			/>
+			<img
+				src="/assets/asset10.svg"
+				alt=""
+				aria-hidden
+				className="absolute bottom-[25%] left-[10%] w-8 sm:w-12 opacity-20 pointer-events-none z-[1] hidden sm:block"
+				style={{ animation: "drift 9s ease-in-out infinite 0.5s" }}
+			/>
 
-					<CountdownTimer />
+			{/* Main Content */}
+			<div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20">
+				{/* Logo */}
+				<img
+					src="/images/logo.png"
+					alt="Universitas Ciputra Color Run Logo"
+					className="w-40 sm:w-52 md:w-60 mb-6 drop-shadow-xl"
+					data-aos="zoom-in"
+					data-aos-duration="1000"
+					data-aos-delay="100"
+				/>
 
-					{/* Register button wrapper: shows flower assets on hover */}
+				{/* Glassmorphism Card */}
+				<div
+					className="max-w-2xl w-full rounded-3xl p-8 sm:p-12 text-center shadow-2xl border border-white/20"
+					style={{
+						background:
+							"linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.68) 100%)",
+						backdropFilter: "blur(18px) saturate(1.3)",
+						WebkitBackdropFilter: "blur(18px) saturate(1.3)",
+					}}
+					data-aos="fade-up"
+					data-aos-duration="1000"
+					data-aos-delay="300"
+				>
+					{/* Celebration Icon */}
 					<div
-						className="register-wrap"
-						data-aos="fade-up"
-						data-aos-duration="1000"
+						className="inline-flex items-center justify-center w-20 h-20 rounded-full mx-auto mb-6"
+						style={{
+							background:
+								"linear-gradient(135deg, #91DCAC 0%, #4EF9CD 50%, #F581A4 100%)",
+							boxShadow: "0 8px 32px rgba(145,220,172,0.4)",
+						}}
+						data-aos="zoom-in"
 						data-aos-delay="500"
 					>
-						<Link
-							href="/registration"
-							className="home_register_button register-btn"
+						<svg
+							width="40"
+							height="40"
+							viewBox="0 0 24 24"
+							fill="none"
+							xmlns="http://www.w3.org/2000/svg"
 						>
-							REGISTER NOW
-						</Link>
-
-						{/* decorative flowers that pop out on hover */}
-						<img
-							src="/assets/asset10.svg"
-							alt=""
-							className="register-flower reg-flower-1"
-							aria-hidden
-						/>
-						<img
-							src="/assets/asset10.svg"
-							alt=""
-							className="register-flower reg-flower-2"
-							aria-hidden
-						/>
+							{/* Party popper / celebration icon */}
+							<path
+								d="M5.8 11.3L2 22l10.7-3.8"
+								stroke="white"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							/>
+							<path
+								d="M4 3h.01M22 8h.01M15 2h.01M22 20h.01M22 2L13.2 6.4a1.28 1.28 0 00-.4 1.78l3.02 3.02a1.28 1.28 0 001.78-.4L22 2z"
+								stroke="white"
+								strokeWidth="2"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+							/>
+							<path
+								d="M9 12a1 1 0 001 1 1 1 0 001-1 1 1 0 00-1-1 1 1 0 00-1 1z"
+								fill="white"
+							/>
+						</svg>
 					</div>
 
-					<p
-						className="home_description"
+					{/* Title */}
+					<h1
+						className="font-moderniz text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 leading-tight"
+						style={{
+							background:
+								"linear-gradient(90deg, #1F6251 0%, #4D9D56 35%, #a52d5d 70%, #F581A4 100%)",
+							WebkitBackgroundClip: "text",
+							WebkitTextFillColor: "transparent",
+							backgroundClip: "text",
+						}}
 						data-aos="fade-up"
-						data-aos-duration="1000"
+						data-aos-delay="600"
+					>
+						Thank You!
+					</h1>
+
+					{/* Subtitle */}
+					<h2
+						className="font-moderniz text-lg sm:text-xl md:text-2xl font-bold text-[#1F6251] mb-6"
+						data-aos="fade-up"
 						data-aos-delay="700"
 					>
-						Official registration is available only through this website. Your
-						data is secure and will not be shared with third parties.
-					</p>
-				</div>
-			</div>
-
-			<div className="sponsor-container">
-				<h1
-					className="sponsor-title"
-					data-aos="fade-down"
-					data-aos-duration="1000"
-				>
-					MAIN SPONSORS
-				</h1>
-
-				<div className="flex justify-center mb-8">
-					<div className="relative w-88 h-80 sm:w-[36rem] sm:h-[20rem]">
-						<Image
-						src="/images/sponsor/besar/wahyu-redjo-logo-besar.png"
-						alt="Sponsor Utama"
-						fill
-						className="object-contain opacity-90 hover:opacity-100 transition"
-						/>
-					</div>
-				</div>
-
-				<div
-					className="partner-loop-with-borders"
-					data-aos="fade-up"
-					data-aos-duration="1000"
-					data-aos-delay="200"
-				>
-					<LogoLoop
-						logos={partnerLogoBesar}
-						speed={40}
-						direction="left"
-						logoHeight={120}
-						gap={100}
-						pauseOnHover={true}
-						fadeOut={false}
-						scaleOnHover={false}
-						className="partner-logo-loop"
-					/>
-				</div>
-
-				{/* <div
-					className="partner-loop-with-borders"
-					data-aos="fade-up"
-					data-aos-duration="1000"
-					data-aos-delay="200"
-				>
-					<LogoLoop
-						logos={partnerLogoSedang}
-						speed={40}
-						direction="left"
-						logoHeight={120}
-						gap={20}
-						pauseOnHover={true}
-						fadeOut={false}
-						scaleOnHover={false}
-						className="partner-logo-loop"
-					/>
-				</div> */}
-			</div>
-
-			{/* About Section - Two Column Layout (image fills entire section) */}
-			<section ref={aboutRef} className="w-full relative overflow-hidden pt-20">
-				<div className="max-w-full mx-auto relative z-10">
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-0 items-stretch min-h-[400px] md:min-h-[600px]">
-						{/* Left: carousel — show on mobile and desktop */}
-						<div className="about-left" aria-hidden>
-							<AboutCarousel />
-						</div>
-
-						{/* Right: Text content overlays the background image */}
-						<div
-							className="about-right relative p-6 sm:p-8 md:p-12 md:pl-20 flex flex-col justify-center min-h-[400px]"
-							data-aos="fade-left"
-							data-aos-duration="1200"
-						>
-							<h2 className="text-2xl md:text-4xl font-bold mb-4 md:mb-6 unified-gradient-title">
-								About Universitas Ciputra Color Run
-							</h2>
-							<p className="text-sm text-justify md:text-lg text-[#1F6251] mb-3 leading-relaxed">
-								Universitas Ciputra Color Run is the most vibrant celebration of health and
-								happiness in Surabaya. Proudly organized by the Student Council
-								of Universitas Ciputra, this annual Fun Run takes you through
-								CitraLand and ends with a twist.
-							</p>
-							<p className="text-sm text-justify md:text-lg text-[#1F6251] mb-3 leading-relaxed">
-								The finish line is just the beginning. Get ready for our
-								celebrate under a shower of colorful powder.
-							</p>
-							<p className="text-sm text-justify md:text-lg text-[#1F6251] mb-5 leading-relaxed">
-								From casuals to professionals, individuals to families, everyone
-								is welcome to run and have fun with us. Let’s make colorful
-								memories at Universitas Ciputra Color Run 2026!
-							</p>
-							<div className="flex flex-col sm:flex-row gap-3">
-								<Link
-									href="/registration"
-									className="inline-block px-5 py-2 rounded-full bg-white text-[#1F6251] font-semibold text-center shadow hover:shadow-lg transition-all"
-								>
-									Register Now
-								</Link>
-							</div>
-						</div>
-					</div>
-				</div>
-			</section>
-
-			{/* Route Maps Section */}
-			<section className="route-maps-section py-16 bg-gradient-to-br from-emerald-50 to-teal-50">
-				<div className="max-w-6xl mx-auto px-4 sm:px-6">
-					<h2
-						className="text-3xl md:text-4xl font-moderniz font-extrabold text-center mb-4 benefit-section-title"
-						data-aos="fade-up"
-					>
-						RACE ROUTES
+						Universitas Ciputra Color Run 2026 Has Been Completed! 🎉
 					</h2>
+
+					{/* Description */}
 					<p
-						className="text-center text-gray-600 mb-10 max-w-2xl mx-auto"
+						className="font-mustica text-[#3d5c52] text-sm sm:text-base leading-relaxed mb-3"
 						data-aos="fade-up"
-						data-aos-delay="100"
+						data-aos-delay="800"
 					>
-						Explore the routes for each distance category. Click on any map to view it in full size.
+						Thank you to every runner, volunteer, sponsor, and supporter who made this event an
+						unforgettable celebration of health, happiness, and color! Your energy and excitement
+						made this the most vibrant Color Run yet.
 					</p>
 
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-						{routeMaps.map((route, index) => (
-							<div
-								key={route.distance}
-								className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2"
-								data-aos="zoom-in"
-								data-aos-delay={index * 100}
-							>
-								{/* Route Badge */}
-								<div className="bg-gradient-to-r from-[#91DCAC] to-[#4EF9CD] px-4 py-3 text-center">
-									<h3 className="text-2xl font-bold text-white">
-										{route.distance}
-									</h3>
-								</div>
-
-								{/* Image Container - Clickable */}
-								<div
-									className="relative aspect-[4/3] bg-gray-100 cursor-pointer group overflow-hidden"
-									onClick={() => openRouteModal(route.image, route.title)}
-								>
-									<Image
-										src={route.image}
-										alt={route.title}
-										fill
-										className="object-cover transition-transform duration-300 group-hover:scale-110"
-									/>
-									{/* Overlay on hover */}
-									<div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-										<div className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center">
-											<svg
-												className="w-12 h-12 mb-2"
-												fill="none"
-												stroke="currentColor"
-												viewBox="0 0 24 24"
-											>
-												<path
-													strokeLinecap="round"
-													strokeLinejoin="round"
-													strokeWidth={2}
-													d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
-												/>
-											</svg>
-											<span className="font-semibold text-lg">Click to Expand</span>
-										</div>
-									</div>
-								</div>
-							</div>
-						))}
-					</div>
-
-					<div className="text-center mt-8">
-						<p className="text-sm text-gray-500">
-							Maps are for reference only. Actual routes may vary slightly on race day.
-						</p>
-					</div>
-				</div>
-			</section>
-
-			{/* Pricing Section: semantic table with minimal styling + small decor assets */}
-			<section className="pricing-section max-w-6xl mx-auto px-4 sm:px-6 py-10 relative overflow-y-hidden">
-				{/* decorative assets near the table (non-interactive) */}
-				<div className="pricing-decor" aria-hidden>
-					<img
-						src="/assets/asset4.svg"
-						className="pricing-decor-large"
-						alt=""
-					/>
-					<img
-						src="/assets/asset10.svg"
-						className="pricing-decor-small"
-						alt=""
-					/>
-				</div>
-
-				<h3 className="text-3xl md:text-4xl font-moderniz font-extrabold text-center mb-10 benefit-section-title">
-						TICKET PRICES
-					</h3>
-
-				<div className="pricing-table-wrap ">
-					<table
-						className="pricing-table"
-						role="table"
-						aria-label="Universitas Ciputra Color Run Ticket Prices"
+					<p
+						className="font-mustica text-[#5a706a] text-sm leading-relaxed mb-8"
 						data-aos="fade-up"
-						data-aos-delay="300"
-						data-aos-duration="900"
+						data-aos-delay="900"
 					>
-						<thead>
-							<tr className="text-center justify-center items-center">
-								<th scope="col" className="col-item">
-									Category
-								</th>
-								<th scope="col" className="col-main">
-									Normal Price
-								</th>
-								<th scope="col" className="col-tier">
-									Community 10-29 Person
-								</th>
-								<th scope="col" className="col-tier">
-									Community 30-59 Person
-								</th>
-								<th scope="col" className="col-tier">
-									Community ≥60 Person
-								</th>
-								<th scope="col" className="col-note">
-									Early bird / Bundle
-								</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr className="text-center justify-center items-center">
-								<td className="col-item" data-label="Kategori">
-									10K
-								</td>
-								<td className="col-main font-mustica" data-label="Harga Dasar">
-									Rp 250.000 / Pax
-								</td>
-								<td className="col-tier" data-label="Komunitas 10-29">
-									Rp 235.000 / Pax
-								</td>
-								<td className="col-tier" data-label="Komunitas 30-59">
-									Rp 225.000 / Pax
-								</td>
-								<td className="col-tier" data-label="Komunitas ≥60">
-									Rp 215.000 / Pax
-								</td>
-								<td className="col-note" data-label="Promo">
-									{categories.find(c => c.name.toLowerCase().includes('10'))?.earlyBirdRemaining && categories.find(c => c.name.toLowerCase().includes('10'))?.earlyBirdRemaining! > 0 ? (
-										<>
-											Early bird: Rp {Number(categories.find(c => c.name.toLowerCase().includes('10'))?.earlyBirdPrice).toLocaleString("id-ID")} / Pax
-										</>
-									) : (
-										<span className="text-red-500 font-semibold">SOLD OUT</span>
-									)}
-								</td>
-							</tr>
-							<tr className="text-center justify-center items-center">
-								<td className="col-item" data-label="Kategori">
-									5K
-								</td>
-								<td className="col-main font-mustica" data-label="Harga Dasar">
-									Rp 200.000 / Pax
-								</td>
-								<td className="col-tier" data-label="Komunitas 10-29">
-									Rp 190.000 / Pax
-								</td>
-								<td className="col-tier" data-label="Komunitas 30-59">
-									Rp 180.000 / Pax
-								</td>
-								<td className="col-tier" data-label="Komunitas ≥60">
-									Rp 170.000 / Pax
-								</td>
-								<td className="col-note" data-label="Promo">
-									{categories.find(c => c.name.toLowerCase().includes('5'))?.earlyBirdRemaining && categories.find(c => c.name.toLowerCase().includes('5'))?.earlyBirdRemaining! > 0 ? (
-										<>
-											Early bird: Rp {Number(categories.find(c => c.name.toLowerCase().includes('5'))?.earlyBirdPrice).toLocaleString("id-ID")}
-										</>
-									) : (
-										<span className="text-red-500 font-semibold">SOLD OUT</span>
-									)}
-								</td>
-							</tr>
-							<tr className="text-center justify-center items-center">
-                                <td className="col-item" data-label="Kategori">
-                                    3K
-                                </td>
-                                <td className="col-main font-mustica" data-label="Harga Dasar">
-                                    Rp 150.000 / Pax
-                                </td>
-                                <td className="col-tier" data-label="Komunitas 10-29">
-                                    Rp 140.000 / Pax
-                                </td>
-                                <td className="col-tier" data-label="Komunitas 30-59">
-                                    Rp 135.000 / Pax
-                                </td>
-                                <td className="col-tier" data-label="Komunitas ≥60">
-                                    Rp 135.000 / Pax
-                                </td>
-                                <td className="col-note" data-label="Promo">
-                                    {(() => {
-                                        const three = categories.find(c => c.name.toLowerCase().includes('3'));
-                                        const earlyAvailable = Boolean(three?.earlyBirdRemaining && three!.earlyBirdRemaining! > 0);
-                                        const bundlePrice = Number(three?.bundlePrice ?? three?.basePrice ?? 0);
-                                        return (
-                                            <>
-                                                {earlyAvailable ? (
-                                                    <>
-                                                        Early bird: Rp {Number(three?.earlyBirdPrice ?? 0).toLocaleString("id-ID")}
-                                                        <br />
-                                                    </>
-                                                ) : (
-                                                    <span className="text-red-500 font-semibold">Early bird: SOLD OUT</span>
-                                                )}
-                                                <div>
-                                                    Bundling family (4 people): Rp 145.000 / Pax
-                                                </div>
-                                            </>
-                                        );
-                                    })()}
-                                </td>
-                            </tr>
-						</tbody>
-					</table>
-				</div>
+						We couldn&apos;t have done it without each and every one of you. 
+						From the starting line to the final color burst — you made it truly special. 💚
+					</p>
 
-				{/* Benefits Section */}
-				<div className="benefits-section mt-12" data-aos="fade-up">
-					<h3 className="text-3xl md:text-4xl font-moderniz font-extrabold text-center mb-10 benefit-section-title">
-						BENEFITS
-					</h3>
+					{/* Divider */}
+					<div
+						className="w-24 h-1 mx-auto rounded-full mb-8"
+						style={{
+							background:
+								"linear-gradient(90deg, #91DCAC 0%, #F581A4 100%)",
+						}}
+						data-aos="fade-up"
+						data-aos-delay="950"
+					/>
 
-					<div className="benefits-grid">
-						{/* Jersey & Medal Card */}
-						<div
-							className="benefit-card"
-							data-aos="zoom-in"
-							data-aos-delay="100"
+					{/* Stay Tuned Badge */}
+					<div
+						className="inline-flex items-center gap-2 px-6 py-3 rounded-full mb-8"
+						style={{
+							background:
+								"linear-gradient(90deg, rgba(145,220,172,0.2) 0%, rgba(245,129,164,0.2) 100%)",
+							border: "1.5px solid rgba(31,98,81,0.15)",
+						}}
+						data-aos="fade-up"
+						data-aos-delay="1000"
+					>
+						<svg
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="#1F6251"
+							strokeWidth="2"
+							strokeLinecap="round"
+							strokeLinejoin="round"
 						>
-							<div className="benefit-icon-wrap">
-								<img
-									src="/images/homepage/medal_2.png"
-									alt="Jersey & Medali"
-									className="benefit-image"
-									
-								/>
-							</div>
-							<h4 className="benefit-title">Jersey & Medal</h4>
-							<p className="benefit-description">
-								Exclusive race jersey designed for style and comfort, plus a collectible finisher medal to mark your achievement.
-							</p>
-						</div>
+							<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+							<path d="M13.73 21a2 2 0 0 1-3.46 0" />
+						</svg>
+						<span className="font-moderniz text-[#1F6251] text-sm sm:text-base font-bold">
+							Stay Tuned for Further Updates!
+						</span>
+					</div>
 
-						{/* Fresh Money Card */}
-						<div
-							className="benefit-card"
-							data-aos="zoom-in"
-							data-aos-delay="200"
+					{/* CTA Buttons */}
+					<div
+						className="flex flex-col sm:flex-row gap-3 justify-center"
+						data-aos="fade-up"
+						data-aos-delay="1100"
+					>
+						<a
+							href="https://www.instagram.com/uc.colorrun/"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="px-7 py-3 rounded-full font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-0.5 text-sm sm:text-base flex items-center justify-center gap-2"
+							style={{
+								background:
+									"linear-gradient(90deg, #1F6251 0%, #4D9D56 100%)",
+							}}
 						>
-							<div className="benefit-icon-wrap bg-gradient-to-br from-[#FFD700]/20 to-[#FFA500]/10">
-								<svg
-									className="benefit-svg"
-									viewBox="0 0 24 24"
-									fill="none"
-									xmlns="http://www.w3.org/2000/svg"
-								>
-									<path
-										d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
-										fill="url(#gold-gradient)"
-										stroke="#FFD700"
-										strokeWidth="2"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-									/>
-									<defs>
-										<linearGradient
-											id="gold-gradient"
-											x1="12"
-											y1="2"
-											x2="12"
-											y2="21.02"
-											gradientUnits="userSpaceOnUse"
-										>
-											<stop stopColor="#FFD700" />
-											<stop offset="1" stopColor="#FFA500" />
-										</linearGradient>
-									</defs>
-								</svg>
-							</div>
-							<h4 className="benefit-title">Podium (5K & 10K)</h4>
-							<p className="benefit-description">
-								Compete for glory! Trophies and exclusive prizes await the top finishers in the 5K and 10K competitive categories
-							</p>
-						</div>
+							<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+							</svg>
+							Follow @uc.colorrun
+						</a>
 
-						{/* Powder Color War Card */}
-						<div
-							className="benefit-card"
-							data-aos="zoom-in"
-							data-aos-delay="300"
+						<button
+							onClick={() => fireConfetti()}
+							className="px-7 py-3 rounded-full font-semibold text-[#1F6251] border-2 border-[#1F6251]/30 hover:bg-[#1F6251]/5 transition-all duration-200 hover:-translate-y-0.5 text-sm sm:text-base cursor-pointer"
 						>
-							<div className="benefit-icon-wrap bg-gradient-to-br from-[#91DCAC]/20 to-[#F581A4]/10">
-								<svg
-									className="benefit-svg"
-									viewBox="0 0 24 24"
-									fill="none"
-									xmlns="http://www.w3.org/2000/svg"
-								>
-									<circle cx="12" cy="12" r="3" fill="#91DCAC" />
-									<circle cx="8" cy="8" r="2" fill="#F581A4" />
-									<circle cx="16" cy="8" r="2" fill="#4EF9CD" />
-									<circle cx="8" cy="16" r="2" fill="#FFD700" />
-									<circle cx="16" cy="16" r="2" fill="#73E9DD" />
-									<path
-										d="M12 2C12 2 15 5 15 8C15 10 13.5 12 12 12C10.5 12 9 10 9 8C9 5 12 2 12 2Z"
-										fill="#91DCAC"
-										opacity="0.6"
-									/>
-									<path
-										d="M2 12C2 12 5 9 8 9C10 9 12 10.5 12 12C12 13.5 10 15 8 15C5 15 2 12 2 12Z"
-										fill="#F581A4"
-										opacity="0.6"
-									/>
-								</svg>
-							</div>
-							<h4 className="benefit-title">Color War</h4>
-							<p className="benefit-description">
-								Immerse yourself in the euphoria of our signature Color War.
-							</p>
-						</div>
-						
-						{/* agar other benefits ditengah */}
-						<div className="hidden md:block">
-						</div>
-
-						{/* Additional Benefits Card */}
-						<div
-							className="benefit-card"
-							data-aos="zoom-in"
-							data-aos-delay="400"
-						>
-							<div className="benefit-icon-wrap bg-gradient-to-br from-[#4EF9CD]/20 to-[#73E9DD]/10">
-								<svg
-								 className="benefit-svg"
-								 viewBox="0 0 24 24"
-								 fill="none"
-								 xmlns="http://www.w3.org/2000/svg"
-								>
-									<path
-										d="M9 11L12 14L22 4"
-										stroke="#4EF9CD"
-										strokeWidth="2"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-									/>
-									<path
-										d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16"
-										stroke="#73E9DD"
-										strokeWidth="2"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-									/>
-								</svg>
-							</div>
-							<h4 className="benefit-title">Other Benefits</h4>
-							<p className="benefit-description">
-								Enjoy full hydration support, entertainment, and a goody bag packed with exciting sponsor perks.
-							</p>
-						</div>
+							🎊 Celebrate Again!
+						</button>
 					</div>
 				</div>
-			</section>
 
-			{/* Timeline Section */}
-			<section className="timeline-section py-12 md:py-16">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6">
-                    <h2
-                        className="text-3xl md:text-4xl font-moderniz font-extrabold text-center mb-8 benefit-section-title"
-                        data-aos="fade-up"
-                    >
-                        TIMELINE
-                    </h2>
+				{/* Footer note */}
+				<p
+					className="mt-8 text-xs text-[#5a706a] text-center max-w-md"
+					data-aos="fade-up"
+					data-aos-delay="1200"
+					style={{
+						textShadow: "0 1px 4px rgba(255,255,255,0.6)",
+					}}
+				>
+					Follow us on Instagram for event highlights, photos, and exciting announcements!
+					<br />
+					<a
+						href="https://www.instagram.com/uc.colorrun/"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="underline font-bold text-[#1F6251] hover:text-[#4D9D56] transition-colors"
+					>
+						@uc.colorrun
+					</a>
+				</p>
+			</div>
 
-					{/* Minimal semantic list timeline */}
-					<div className="timeline-scroll-wrap" data-aos="fade-up" data-aos-delay="200">
-                        <ul className="timeline-list minimal" aria-label="Event timeline">
-                            <li className="timeline-item minimal">
-                                <div className="timeline-date">1 Dec 2025 — 28 Mar 2026</div>
-                                <div className="timeline-title">Open Registration</div>
-                            </li>
-
-                            <li className="timeline-item minimal">
-                                <div className="timeline-date">9 — 11 Apr 2026</div>
-                                <div className="timeline-title">Race Pack Collection</div>
-                            </li>
-
-                            <li className="timeline-item minimal">
-                                <div className="timeline-date">12 Apr 2026</div>
-                                <div className="timeline-title">Race Day</div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
-
-			{/* Claim Racepack & Venue Section */}
-			<section className="claim-venue-section py-10">
-				<div className="max-w-6xl mx-auto px-4 sm:px-6">
-					<div className="space-y-8">
-						{/* Race Pack Claim card — full-width block */}
-						<div className="claim-card" data-aos="fade-up">
-							<div className="claim-card-header">
-								<h3 className="font-moderniz text-xl text-[#1F6251] mt-1">
-									Race Pack Claim
-								</h3>
-								<span className="badge-small text-[#1F6251]"><strong>Important</strong></span>
-							</div>
-							<p className="font-mustica text-[#52605f] mt-3">
-								Get your gear ready for the big day! You can pick up your Race Pack at:
-							</p>
-							<ul className="claim-list mt-4 text-[#52605f]">
-								<li>
-									<strong>Location:</strong> Corepreneur 1st Floor, UC Tower
-								</li>
-								<li>
-									<strong>Dates:</strong> 9 — 11 April 2026
-								</li>
-								<li>
-									<strong>What to Bring:</strong> Valid ID card (KTP/Birth Certificate/Passport) and your registration QR Code.
-								</li>
-							</ul>
-							<br/>
-							<strong className="mt-4 text-[#52605f]">
-								Representative Collection
-							</strong>
-							<ul className="claim-list text-[#52605f]">
-								<li>
-									<strong>Individuals:</strong> If someone is collecting for you, they must bring a power of attorney letter.
-								</li>
-								<li>
-									<strong>Communities:</strong> Your representative must bring the full list of registered participants.
-								</li>
-							</ul>
-						</div>
-
-						{/* Start / Finish card — full-width block */}
-						<div className="venue-card" data-aos="fade-up" data-aos-delay="80">
-							<div className="venue-card-header">
-								<h3 className="font-moderniz text-xl text-[#1F6251]">
-									Start and Finish
-								</h3>
-							</div>
-                            <p className="font-mustica text-[#52605f] mt-2">
-                            Both Start and Finish gate are located in {" "}
-                                <strong>Universitas Ciputra Surabaya</strong>.
-                            </p>
-
-							{/* Minimalistic map card — click to open full Google Maps */}
-							<div className="venue-map-wrapper mt-4">
-								<div className="venue-map-card" role="group" aria-label="Race venue map">
-                                    <div className="venue-map-top">
-                                        <span className="venue-map-title">Universitas Ciputra Surabaya</span>
-                                        <a
-                                            href="https://www.google.com/maps?q=Universitas+Ciputra+Surabaya"
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="venue-map-link"
-                                        >
-                                            Open in Google Maps
-                                        </a>
-                                    </div>
-                                    <iframe
-                                        src="https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d494.69981702612677!2d112.6314999987017!3d-7.286434733495391!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2sid!4v1764055698752!5m2!1sen!2sid"
-                                        width={600}
-                                        height={450}
-                                        style={{ border: 0 }}
-                                        allowFullScreen
-                                        loading="lazy"
-                                        referrerPolicy="no-referrer-when-downgrade"
-                                        className="venue-iframe"
-                                        title="Universitas Ciputra Surabaya - Racepack Claim Location"
-                                    />
-                                </div>
-							</div>
-							<p className="mt-4 text-sm text-[#52605f]">
-								More information on our Instagram <a className = "underline font-bold" href = "https://instagram.com/ciputrarun.uc">@ciputrarun.uc</a>
-							</p>
-						</div>
-					</div>
-				</div>
-			</section>
-
-			{/* Route Image Modal */}
-			<RouteImageModal
-				isOpen={routeModalOpen}
-				onClose={() => setRouteModalOpen(false)}
-				imageSrc={selectedRoute.src}
-				title={selectedRoute.title}
-			/>
+			{/* CSS Animations */}
+			<style jsx>{`
+				@keyframes floatY {
+					0%, 100% { transform: translateY(0); }
+					50% { transform: translateY(-18px); }
+				}
+				@keyframes floatYSlow {
+					0%, 100% { transform: translateY(0); }
+					50% { transform: translateY(-12px); }
+				}
+				@keyframes drift {
+					0%, 100% { transform: translateX(0) translateY(0) rotate(45deg); }
+					33% { transform: translateX(8px) translateY(-10px) rotate(50deg); }
+					66% { transform: translateX(-6px) translateY(-5px) rotate(40deg); }
+				}
+			`}</style>
 		</main>
 	);
 }

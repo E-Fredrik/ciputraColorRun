@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Package, User, Calendar, MapPin, Search, Eye, CheckCircle, Clock, Filter, ChevronDown, X } from 'lucide-react';
 import { showToast } from '../../../lib/toast';
 import { getImageUrl, getPaymentProofUrl } from '../../../lib/imageUrl';
@@ -69,6 +69,12 @@ export default function ClaimPacksPage() {
   const [categoryFilter, setCategoryFilter] = useState<'all' | '3k' | '5k' | '10k'>('all');
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
+  // Jersey size filter for claims
+  const [jerseySizeFilter, setJerseySizeFilter] = useState<string>('all');
+
+  // Claim status filter for confirmed registrations
+  const [claimStatusFilter, setClaimStatusFilter] = useState<'all' | 'claimed' | 'unclaimed'>('all');
+
   const STAFF_PASSWORD = process.env.NEXT_PUBLIC_CLAIM_PAGE_PASS;
 
   useEffect(() => {
@@ -132,7 +138,7 @@ export default function ClaimPacksPage() {
 
   const filteredClaims = claims.filter(claim => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = (
       claim.qrCode.registration.user?.name?.toLowerCase().includes(searchLower) ||
       claim.qrCode.registration.user?.email?.toLowerCase().includes(searchLower) ||
       claim.claimedBy.toLowerCase().includes(searchLower) ||
@@ -144,6 +150,13 @@ export default function ClaimPacksPage() {
         detail.participant.participantName?.toLowerCase().includes(searchLower)
       )
     );
+
+    const matchesJerseySize = jerseySizeFilter === 'all' || 
+      claim.claimDetails.some(detail => 
+        (detail.participant.jersey?.size || 'Unknown') === jerseySizeFilter
+      );
+
+    return matchesSearch && matchesJerseySize;
   });
 
   const filteredConfirmed = confirmedRegs.filter(reg => {
@@ -193,8 +206,45 @@ export default function ClaimPacksPage() {
         })
         .filter(Boolean);
 
+  // Compute claim status counts from confirmed registrations
+  const claimStatusCounts = useMemo(() => {
+    let claimed = 0;
+    let unclaimed = 0;
+    confirmedRegs.forEach(reg => {
+      (reg.participants || []).forEach((p: any) => {
+        if (p.packClaimed) claimed++;
+        else unclaimed++;
+      });
+    });
+    return { all: claimed + unclaimed, claimed, unclaimed };
+  }, [confirmedRegs]);
+
   const totalPacksClaimed = claims.reduce((sum, claim) => sum + claim.packsClaimedCount, 0);
   const uniqueStaff = new Set(claims.map(claim => claim.claimedBy)).size;
+
+  // Compute jersey size counts from claimed packs
+  const jerseySizeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    claims.forEach(claim => {
+      claim.claimDetails.forEach(detail => {
+        const size = detail.participant.jersey?.size || 'Unknown';
+        counts[size] = (counts[size] || 0) + 1;
+      });
+    });
+    return counts;
+  }, [claims]);
+
+  const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+  const sortedSizes = useMemo(() => {
+    return Object.keys(jerseySizeCounts).sort((a, b) => {
+      const idxA = sizeOrder.indexOf(a.toUpperCase());
+      const idxB = sizeOrder.indexOf(b.toUpperCase());
+      if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
+    });
+  }, [jerseySizeCounts]);
 
   if (!isAuthenticated) {
     return (
@@ -353,6 +403,52 @@ export default function ClaimPacksPage() {
         </div>
         )}
 
+        {/* Jersey Size Filter - only show on Claims tab */}
+        {activeTab === 'claims' && (
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-4 mb-6">
+            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">Filter by Jersey Size</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setJerseySizeFilter('all')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                  jerseySizeFilter === 'all'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                All Sizes
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                  jerseySizeFilter === 'all'
+                    ? 'bg-white/25 text-white'
+                    : 'bg-gray-300 text-gray-600'
+                }`}>
+                  {totalPacksClaimed}
+                </span>
+              </button>
+              {sortedSizes.map(size => (
+                <button
+                  key={size}
+                  onClick={() => setJerseySizeFilter(size === jerseySizeFilter ? 'all' : size)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                    jerseySizeFilter === size
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {size}
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                    jerseySizeFilter === size
+                      ? 'bg-white/25 text-white'
+                      : 'bg-gray-300 text-gray-600'
+                  }`}>
+                    {jerseySizeCounts[size]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Search Bar */}
         <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 mb-6">
           <div className="relative">
@@ -370,36 +466,70 @@ export default function ClaimPacksPage() {
           </div>
         </div>
 
-        {/* Category Filter Tabs - only show when on Confirmed Registrations tab */}
+        {/* Filters - only show when on Confirmed Registrations tab */}
         {activeTab === 'confirmed' && (
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-4">
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">Filter by Category</p>
-            <div className="flex flex-wrap gap-2">
-              {([
-                { key: 'all' as const, label: 'All Categories' },
-                { key: '3k' as const, label: '3K' },
-                { key: '5k' as const, label: '5K' },
-                { key: '10k' as const, label: '10K' },
-              ]).map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setCategoryFilter(key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                    categoryFilter === key
-                      ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {label}
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                    categoryFilter === key
-                      ? 'bg-white/25 text-white'
-                      : 'bg-gray-300 text-gray-600'
-                  }`}>
-                    {categoryCounts[key]}
-                  </span>
-                </button>
-              ))}
+          <div className="space-y-4 mb-6">
+            {/* Category Filter */}
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-4">
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">Filter by Category</p>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { key: 'all' as const, label: 'All Categories' },
+                  { key: '3k' as const, label: '3K' },
+                  { key: '5k' as const, label: '5K' },
+                  { key: '10k' as const, label: '10K' },
+                ]).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setCategoryFilter(key)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                      categoryFilter === key
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                      categoryFilter === key
+                        ? 'bg-white/25 text-white'
+                        : 'bg-gray-300 text-gray-600'
+                    }`}>
+                      {categoryCounts[key]}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Claim Status Filter */}
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-4">
+              <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-3">Filter by Claim Status</p>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { key: 'all' as const, label: 'All', color: 'from-emerald-600 to-teal-600' },
+                  { key: 'claimed' as const, label: '✓ Claimed', color: 'from-emerald-600 to-teal-600' },
+                  { key: 'unclaimed' as const, label: '✗ Not Claimed', color: 'from-red-500 to-orange-500' },
+                ]).map(({ key, label, color }) => (
+                  <button
+                    key={key}
+                    onClick={() => setClaimStatusFilter(key)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                      claimStatusFilter === key
+                        ? `bg-gradient-to-r ${color} text-white shadow-md`
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                      claimStatusFilter === key
+                        ? 'bg-white/25 text-white'
+                        : 'bg-gray-300 text-gray-600'
+                    }`}>
+                      {claimStatusCounts[key]}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -500,16 +630,28 @@ export default function ClaimPacksPage() {
                 <p className="text-gray-600">Loading confirmed registrations...</p>
               </div>
             ) : (() => {
-              // Filter registrations by search + category
+              // Filter registrations by search + category + claim status
               const displayed = filteredConfirmed
                 .map((reg: any) => {
-                  if (categoryFilter === 'all') return reg;
-                  const matched = (reg.participants || []).filter((p: any) => {
-                    const cat = (p.category?.name || '').toLowerCase().replace(/\s+/g, '');
-                    return cat.includes(categoryFilter);
-                  });
-                  if (matched.length === 0) return null;
-                  return { ...reg, participants: matched };
+                  let participants = reg.participants || [];
+
+                  // Apply category filter
+                  if (categoryFilter !== 'all') {
+                    participants = participants.filter((p: any) => {
+                      const cat = (p.category?.name || '').toLowerCase().replace(/\s+/g, '');
+                      return cat.includes(categoryFilter);
+                    });
+                  }
+
+                  // Apply claim status filter
+                  if (claimStatusFilter !== 'all') {
+                    participants = participants.filter((p: any) => 
+                      claimStatusFilter === 'claimed' ? p.packClaimed : !p.packClaimed
+                    );
+                  }
+
+                  if (participants.length === 0) return null;
+                  return { ...reg, participants };
                 })
                 .filter(Boolean);
 
@@ -541,7 +683,23 @@ export default function ClaimPacksPage() {
                               ))}
                             </div>
                           </div>
-                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">Confirmed</span>
+                          {(() => {
+                            const totalP = reg.participants?.length || 0;
+                            const claimedP = (reg.participants || []).filter((p: any) => p.packClaimed).length;
+                            const allClaimed = claimedP === totalP;
+                            const noneClaimed = claimedP === 0;
+                            return (
+                              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                allClaimed
+                                  ? 'bg-green-100 text-green-700'
+                                  : noneClaimed
+                                    ? 'bg-red-100 text-red-700'
+                                    : 'bg-yellow-100 text-yellow-700'
+                              }`}>
+                                {allClaimed ? '✓ All Claimed' : noneClaimed ? '✗ Unclaimed' : `${claimedP}/${totalP} Claimed`}
+                              </span>
+                            );
+                          })()}
                         </div>
                         <div className="space-y-1 text-sm text-gray-600 mb-3">
                           <div className="flex items-center gap-2">

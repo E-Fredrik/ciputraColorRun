@@ -44,7 +44,8 @@ export default function Footer() {
     "/images/sponsor/sedang/sofresh-logo-sedang.png",
     "/images/sponsor/sedang/soklin-logo-sedang.png",
     "/images/sponsor/sedang/wizz-logo-sedang.png",
-    "/images/sponsor/sedang/wiyung-logo-sedang.png"
+    "/images/sponsor/sedang/wiyung-logo-sedang.png",
+    "/images/sponsor/sedang/greensm-sedang.png"
   ];
 
   const sponsorLogosKecil = [
@@ -96,6 +97,8 @@ export default function Footer() {
                 className={
                   logo.includes("wiyung") 
                     ? "relative w-48 h-24 sm:w-64 sm:h-28"
+                    : logo.includes("greensm")
+                    ? "relative w-44 h-44 sm:w-52 sm:h-52"
                     : "relative w-32 h-32 sm:w-36 sm:h-32"
                 }
               >
