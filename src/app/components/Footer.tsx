@@ -45,8 +45,8 @@ export default function Footer() {
     "/images/sponsor/sedang/soklin-logo-sedang.png",
     "/images/sponsor/sedang/wizz-logo-sedang.png",
     "/images/sponsor/sedang/wiyung-logo-sedang.png",
-    "/images/sponsor/sedang/jete-sedang.png",
-    "/images/sponsor/sedang/greensm-sedang.png"
+    "/images/sponsor/sedang/jete-logo-sedang.png",
+    "/images/sponsor/sedang/greensm-logo-sedang.png"
   ];
 
   const sponsorLogosKecil = [
