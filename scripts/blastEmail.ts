@@ -1,7 +1,7 @@
 /**
  * Blast Email Script — Ciputra Color Run 2026
  *
- * Sends the racepack-pickup announcement to every user whose
+ * Sends the post-event feedback thank-you email to every user whose
  * id is in the range [--from, --to] (inclusive).
  *
  * Usage:
@@ -19,8 +19,6 @@
 import "dotenv/config";
 import nodemailer from "nodemailer";
 import { PrismaClient } from "@prisma/client";
-import path from "path";
-import fs from "fs";
 
 // ── CLI arg parsing ──────────────────────────────────────────────
 function getArg(flag: string): string | undefined {
@@ -48,20 +46,10 @@ if (!testEmail && (!fromId || !toId || fromId > toId)) {
 // ── Prisma ───────────────────────────────────────────────────────
 const prisma = new PrismaClient();
 
-// ── PDF attachments ──────────────────────────────────────────────
-const pdfDir = path.resolve(__dirname, "..", "public", "pdf");
-const denahBazaarPath = path.join(pdfDir, "DenahBazaar.pdf");
-const denahParkiranPath = path.join(pdfDir, "DenahParkiran.pdf");
 
-for (const f of [denahBazaarPath, denahParkiranPath]) {
-	if (!fs.existsSync(f)) {
-		console.error(`❌ PDF not found: ${f}`);
-		process.exit(1);
-	}
-}
 
 // ── Email HTML builder ───────────────────────────────────────────
-function buildHtml(userName: string, accessCode: string): string {
+function buildHtml(): string {
 	return `
 <!DOCTYPE html>
 <html>
@@ -89,129 +77,50 @@ function buildHtml(userName: string, accessCode: string): string {
     rgba(222, 159, 169, 0.38) 100%
   ); padding: 40px 24px; text-align: center;">
       <h1 style="margin: 0; color: black; font-size: 26px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.15);">
-        🎨🏃 Universitas Ciputra Color Run 2026
+        🏃‍♂️🌈 Universitas Ciputra Color Run 2026
       </h1>
       <p style="margin: 12px 0 0 0; color: black; font-size: 16px;">
-        Pengumuman Penting — Racepack & Race Day
+        Thank you for joining!
       </p>
     </div>
 
     <!-- Content -->
     <div style="padding: 32px 24px; text-align: left;">
       <p style="margin: 0 0 20px 0; color: #111827; font-size: 16px; line-height: 1.6;">
-        Halo <strong>${userName}</strong>! 👋
+        Dear Runners,
       </p>
 
       <p style="margin: 0 0 20px 0; color: #374151; font-size: 15px; line-height: 1.7;">
-        Kami ingin menginformasikan bahwa <strong>pengambilan racepack</strong> akan diselenggarakan selama <strong>3 hari</strong> dengan detail sebagai berikut:
-      </p>
-
-      <!-- Schedule -->
-      <div style="margin: 24px 0;">
-        <h3 style="margin: 0 0 16px 0; color: #000000; font-size: 18px; font-weight: bold;">
-          📅 Jadwal Pengambilan Racepack
-        </h3>
-
-        <p style="margin: 0 0 4px 0; color: #000000; font-weight: bold; font-size: 15px;">DAY 1</p>
-        <p style="margin: 4px 0 16px 0; color: #000000; font-size: 14px; line-height: 1.6;">
-          📅 <strong>Kamis, 9 April 2026</strong><br>
-          ⏰ 08.00 – 17.00 WIB<br>
-          📍 Corepreneur, 1st Floor UC Tower, Universitas Ciputra Surabaya
-        </p>
-
-        <p style="margin: 0 0 4px 0; color: #000000; font-weight: bold; font-size: 15px;">DAY 2</p>
-        <p style="margin: 4px 0 16px 0; color: #000000; font-size: 14px; line-height: 1.6;">
-          📅 <strong>Jumat, 10 April 2026</strong><br>
-          ⏰ 08.00 – 17.00 WIB<br>
-          📍 Corepreneur, 1st Floor UC Tower, Universitas Ciputra Surabaya
-        </p>
-
-        <p style="margin: 0 0 4px 0; color: #000000; font-weight: bold; font-size: 15px;">DAY 3</p>
-        <p style="margin: 4px 0 0 0; color: #000000; font-size: 14px; line-height: 1.6;">
-          📅 <strong>Sabtu, 11 April 2026</strong><br>
-          ⏰ 08.00 – 16.00 WIB<br>
-          📍 Corepreneur, 1st Floor UC Tower, Universitas Ciputra Surabaya
-        </p>
-      </div>
-
-      <!-- What to bring -->
-      <div style="margin: 24px 0;">
-        <h3 style="margin: 0 0 12px 0; color: #000000; font-size: 16px; font-weight: bold;">
-          🎒 Yang perlu dibawa saat pengambilan racepack:
-        </h3>
-        <ol style="margin: 0; padding-left: 20px; color: #000000; font-size: 14px; line-height: 1.8;">
-          <li style="margin-bottom: 6px;">Kartu identitas sesuai yang didaftarkan di website</li>
-          <li style="margin-bottom: 6px;">QR Code (yang telah dikirimkan melalui email)</li>
-          <li style="margin-bottom: 6px;">Surat kuasa (jika pengambilan racepack diwakilkan)</li>
-        </ol>
-      </div>
-
-      <!-- Race Day Info -->
-      <div style="margin: 24px 0;">
-        <h3 style="margin: 0 0 16px 0; color: #000000; font-size: 16px; font-weight: bold;">
-          🏁 Informasi Hari-H (Race Day)
-        </h3>
-
-        <p style="margin: 0 0 8px 0; color: #000000; font-weight: 600; font-size: 14px;">Flag Off:</p>
-        <p style="margin: 4px 0; color: #000000; font-size: 14px; line-height: 1.8;">
-          🏃 <strong>10K</strong> — 05.25 WIB<br>
-          🏃 <strong>5K</strong> — 05.45 WIB<br>
-          🏃 <strong>3K</strong> — 05.55 WIB
-        </p>
-
-        <p style="margin: 12px 0 4px 0; color: #000000; font-size: 14px;">
-          ⏳ <strong>Cut Off Time:</strong> 07.25 WIB
-        </p>
-        <p style="margin: 4px 0; color: #000000; font-size: 14px;">
-          🎉 <strong>Open Area:</strong> 04.00 WIB
-        </p>
-      </div>
-
-      <p style="margin: 20px 0; color: #374151; font-size: 15px; line-height: 1.7;">
-        Dimohon untuk para peserta memperhatikan jadwal serta mempersiapkan seluruh kebutuhan dengan baik ya!
+        Thank you for being part of the vibrant energy at Universitas Ciputra Color Run 2026! Your participation made this event truly colorful and unforgettable.
       </p>
 
       <p style="margin: 0 0 20px 0; color: #374151; font-size: 15px; line-height: 1.7;">
-        Kami lampirkan <strong>denah parkir</strong> dan <strong>denah race village/bazaar</strong> untuk memudahkan peserta saat di hari-H.
+        We would love to hear about your experience. Whether it was the route or the color war. Our feedback is very important to us for making our future events even better.
       </p>
 
-      <!-- Access Code Section -->
-      <div style="background: linear-gradient(135deg, #fdf4ff 0%, #f5d0fe 100%); border: 3px solid #a855f7; border-radius: 12px; padding: 28px; margin: 28px 0; text-align: center;">
-        <p style="margin: 0 0 16px 0; color: #7e22ce; font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
-          🔑 Access Code Kamu
-        </p>
-        <div style="background: #ffffff; border: 3px dashed #a855f7; border-radius: 10px; padding: 20px; margin: 16px 0;">
-          <code style="font-size: 28px; font-weight: bold; color: #7e22ce; font-family: 'Courier New', Consolas, monospace; letter-spacing: 3px; display: block; word-break: break-all;">
-            ${accessCode}
-          </code>
-        </div>
-        <p style="margin: 16px 0 0 0; color: #7e22ce; font-size: 13px; line-height: 1.6;">
-          Gunakan access code ini untuk login dan melihat detail registrasi serta QR Code kamu di website.
-        </p>
+      <p style="margin: 0 0 20px 0; color: #374151; font-size: 15px; line-height: 1.7;">
+        Please take 1-2 minutes to share your thoughts through the link below:
+      </p>
+
+      <!-- Feedback Link -->
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="https://forms.gle/zrJCD227n93BBF76A" style="display: inline-block; background: linear-gradient(135deg, #a855f7, #ec4899); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: bold; letter-spacing: 0.5px;">
+          📝 Share Your Feedback
+        </a>
       </div>
 
-      <!-- Closing -->
+      <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 13px; text-align: center;">
+        Or copy this link: <a href="https://forms.gle/zrJCD227n93BBF76A" style="color: #7e22ce; text-decoration: underline;">https://forms.gle/zrJCD227n93BBF76A</a>
+      </p>
+
       <p style="margin: 24px 0 0 0; color: #374151; font-size: 15px; line-height: 1.7;">
-        Thank you & see you all! 😁🙌🏻
+        Thank you for your time and for being such an amazing participant. We hope to see you again at our next event!
       </p>
 
-      <!-- Support -->
-      <div style="margin-top: 32px; padding-top: 24px; border-top: 2px solid #e5e7eb;">
-        <p style="margin: 0 0 12px 0; color: #111827; font-weight: bold; font-size: 14px;">
-          Need Help?
-        </p>
-        <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 13px;">
-          Hubungi tim support kami:
-        </p>
-        <div style="margin-top: 12px;">
-          <p style="margin: 6px 0; color: #374151; font-size: 14px;">
-            <strong>📱 Abel</strong> — WhatsApp: <a href="https://wa.me/6289541031967" style="color: #059669; text-decoration: none;">0895410319676</a>
-          </p>
-          <p style="margin: 6px 0; color: #374151; font-size: 14px;">
-            <strong>📱 Elysian</strong> — WhatsApp: <a href="https://wa.me/62811306658" style="color: #059669; text-decoration: none;">0811306658</a>
-          </p>
-        </div>
-      </div>
+      <p style="margin: 20px 0 0 0; color: #374151; font-size: 15px; line-height: 1.7;">
+        Best regards,<br>
+        <strong>Universitas Ciputra Color Run 2026</strong>
+      </p>
     </div>
 
     <!-- Footer -->
@@ -277,33 +186,18 @@ async function runTest() {
 		process.exit(1);
 	}
 
-	const sampleName = "Test User";
-	const sampleAccessCode = "TEST-XXXX-XXXX-XXXX";
+
 
 	try {
 		await transporter.sendMail({
 			from: `"Ciputra Color Run 2026" <${emailUser}>`,
 			to: testEmail,
 			subject:
-				"🧪 [TEST] Info Penting — Jadwal Racepack & Hari-H Universitas Ciputra Color Run 2026",
-			html: buildHtml(sampleName, sampleAccessCode),
-			attachments: [
-				{
-					filename: "Denah_Bazaar_RaceVillage.pdf",
-					path: denahBazaarPath,
-					contentType: "application/pdf",
-				},
-				{
-					filename: "Denah_Parkiran.pdf",
-					path: denahParkiranPath,
-					contentType: "application/pdf",
-				},
-			],
+				"🧪 [TEST] [Feedback] Thank you for joining Universitas Ciputra Color Run 2026! 🏃‍♂️🌈",
+			html: buildHtml(),
 		});
 
 		console.log(`✅ Test email sent successfully to ${testEmail}`);
-		console.log("   Name shown  : " + sampleName);
-		console.log("   Access code : " + sampleAccessCode);
 	} catch (err: any) {
 		console.error(`❌ Failed to send test email: ${err?.message || err}`);
 	}
@@ -343,7 +237,6 @@ async function main() {
 			id: true,
 			name: true,
 			email: true,
-			accessCode: true,
 		},
 	});
 
@@ -356,12 +249,12 @@ async function main() {
 		return;
 	}
 
-	// Filter out users without email/accessCode
-	const validUsers = users.filter((u) => u.email && u.accessCode);
+	// Filter out users without email
+	const validUsers = users.filter((u) => u.email);
 	const skippedCount = users.length - validUsers.length;
 	if (skippedCount > 0) {
 		console.log(
-			`⚠️  Skipping ${skippedCount} user(s) with no email or access code.\n`,
+			`⚠️  Skipping ${skippedCount} user(s) with no email.\n`,
 		);
 	}
 
@@ -397,20 +290,8 @@ async function main() {
 				from: `"Ciputra Color Run 2026" <${emailUser}>`,
 				to: u.email,
 				subject:
-					"📢 Info Penting — Jadwal Racepack & Hari-H Universitas Ciputra Color Run 2026",
-				html: buildHtml(u.name || "Peserta", u.accessCode),
-				attachments: [
-					{
-						filename: "Denah_Bazaar_RaceVillage.pdf",
-						path: denahBazaarPath,
-						contentType: "application/pdf",
-					},
-					{
-						filename: "Denah_Parkiran.pdf",
-						path: denahParkiranPath,
-						contentType: "application/pdf",
-					},
-				],
+					"[Feedback] Thank you for joining Universitas Ciputra Color Run 2026! 🏃‍♂️🌈",
+				html: buildHtml(),
 			});
 
 			sent++;
