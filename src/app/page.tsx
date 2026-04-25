@@ -1,3 +1,4 @@
+//PDD WEBSITE - UNIVERSITAS CIPUTRA COLOR RUN 2026 SIGNING OUT 🎉
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
